@@ -275,6 +275,50 @@ function actionName(raw, l) {
   return name ? name + " (" + text + ")" : text
 }
 
+// ----------------------------------------------------------------- indicator
+
+var INDICATOR_MODES = ["off", "minimal", "full"]
+var ARROWS = { U: "↑", D: "↓", L: "←", R: "→" }
+
+// Anything but a known mode gives "full" (the default), so a typo in the settings file
+// does not silently switch the feedback off.
+function normalizeIndicator(v) { return INDICATOR_MODES.indexOf(v) >= 0 ? v : "full" }
+
+function arrowFor(dir) { return Object.prototype.hasOwnProperty.call(ARROWS, dir) ? ARROWS[dir] : "" }
+
+// "DR" -> ["↓", "→"]; unknown letters are dropped.
+function arrowList(dirs) {
+  return String(dirs || "").split("").map(arrowFor).filter(function (a) { return a !== "" })
+}
+
+// "DR" -> "↓→"
+function arrowText(dirs) { return arrowList(dirs).join("") }
+
+// What releasing now would do, for the indicator: { name, valid }. `name` is "—" and
+// `valid` false when nothing is bound (or the entry is "none").
+function preview(event, windowInfo, config, l) {
+  var hit = resolve(event, windowInfo, config)
+  if (!hit) return { name: "—", valid: false }
+  var name = actionName(hit.action, l)
+  return { name: name, valid: name !== "—" }
+}
+
+// `hyprctl cursorpos -j` ({"x": 12, "y": 34}) or the plain "12, 34" form -> {x, y} or null.
+function parseCursorPos(text) {
+  var x, y
+  try {
+    var p = JSON.parse(text)
+    x = Number(p.x)
+    y = Number(p.y)
+  } catch (e) {
+    var m = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(String(text))
+    if (!m) return null
+    x = Number(m[1])
+    y = Number(m[2])
+  }
+  return isFinite(x) && isFinite(y) ? { x: x, y: y } : null
+}
+
 // ------------------------------------------------------------------- resolve
 
 function stripTag(tag) { return String(tag).replace(/\*$/, "") }  // dynamic tags carry a trailing "*"
@@ -403,6 +447,9 @@ if (typeof module !== "undefined") module.exports = {
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, keysLua: keysLua,
   actionName: actionName, keysText: keysText,
+  INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
+  arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText,
+  preview: preview, parseCursorPos: parseCursorPos,
   profilesFor: profilesFor, gestureKey: gestureKey, eventGesture: eventGesture, resolve: resolve,
   isExcluded: isExcluded, parseActiveWindow: parseActiveWindow
 }

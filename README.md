@@ -3,12 +3,41 @@
 Opera-style mouse gestures for Omarchy (Hyprland + Quickshell shell): hold the right
 button, drag a line, release. See `PLAN.md` for the full plan.
 
-**Status:** step 3 of 6 – daemon, direction recognition, plugin service and actions with the
-default bindings. No indicator overlay and no settings UI yet (`Settings.qml` is a placeholder).
+**Status:** step 4 of 6 – daemon, direction recognition, plugin service, actions with the
+default bindings, and the gesture overlay (real line + indicator). No settings UI yet
+(`Settings.qml` is a placeholder; the `indicator` and `animations` options are edited in the
+state file for now).
 
-*Deutsch:* Opera-artige Mausgesten für Omarchy. Stand: Schritt 3 von 6, Daemon, Erkennung,
-Plugin-Service und Aktionen mit Standardbelegung; Indikator und Einstellungen fehlen noch
-(`Settings.qml` ist ein Platzhalter).
+*Deutsch:* Opera-artige Mausgesten für Omarchy. Stand: Schritt 4 von 6, Daemon, Erkennung,
+Plugin-Service, Aktionen mit Standardbelegung und Overlay (echte Linie + Indikator);
+Einstellungsoberfläche fehlt noch (`Settings.qml` ist ein Platzhalter, `indicator` und
+`animations` stehen vorerst nur in der Zustandsdatei).
+
+## Overlay (`GestureOverlay.qml`)
+
+Created by `Service.qml`; lives only while a gesture runs.
+
+- On `start` it asks `hyprctl cursorpos -j` (read-only) for the pointer, picks the screen
+  containing it (fallback: focused monitor) and maps two full-screen layer-shell surfaces
+  (layer Overlay, namespace `more-gestures`, no keyboard, no exclusive zone):
+  - an **input surface**, transparent, with `MouseArea { hoverEnabled }`. The daemon holds the
+    trigger press back, so no application has seen a button-down and there is no implicit
+    pointer grab: the surface receives the exact pointer positions. They become the line
+    (accent colour, ≥ 3 px, round caps and joins);
+  - a **visual surface** with an empty input region that draws line and indicator.
+- Indicator at the start point: a ring, below it a card with the recognized segments as arrows
+  (`full` only), the segment under way growing with `progress` events, and the name of the
+  action that releasing now would run (for `keys` actions without a label the combination,
+  e.g. `Ctrl+Shift+T` / `Strg+Umschalt+T`). Colours: neutral until the first segment, accent
+  for a bound gesture, dimmed with `—` for an unknown one. When the action fires the ring
+  shows a check mark while fading out. Trackpad gestures show the finger count in the ring.
+- On `end`/`cancel` the input surface is unmapped at once, so the next click reaches the
+  application; only the visual surface fades out (≤ 150 ms). Safety nets: everything closes
+  after 10 s at the latest, and when the daemon exits or restarts.
+- Settings in `~/.local/state/omarchy/settings/more-gestures.json`:
+  - `indicator`: `"off"` (no overlay at all), `"minimal"` (line, ring, action name) or
+    `"full"` (default; adds arrows and the growing segment). Anything else means `full`.
+  - `animations`: `false` replaces every fade/grow animation by a cut (default `true`).
 
 ## Plugin (`manifest.json`, `Service.qml`, `Actions.js`)
 
@@ -24,7 +53,8 @@ Plugin id `more-gestures`, kinds `service` + `overlay`, `keepLoaded`. The servic
   `virt-manager`, `gamescope`; a trailing `*` is a prefix match),
 - on `end`, `wheel` and `rocker` calls `Actions.resolve` and runs the result,
 - reads `~/.local/state/omarchy/settings/more-gestures.json` (watched; broken JSON gives
-  defaults): `enabled`, `button`, `threshold`, `holdMs`, `rocker`, `exclude`, `bindings`.
+  defaults): `enabled`, `button`, `threshold`, `holdMs`, `rocker`, `indicator`, `animations`,
+  `exclude`, `bindings`.
   Nothing writes it yet (step 5),
 - offers `qs ipc call more-gestures enable|disable|toggle|status`. `enable`/`disable` are
   runtime only; `status` returns JSON (daemon state, active window and profiles, last
@@ -151,7 +181,9 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
   parsing, device classification), no evdev dependency.
 - `bin/gesture-daemon` – thin evdev/uinput wrapper.
 - `manifest.json`, `Service.qml`, `Settings.qml` (placeholder) – the Omarchy plugin.
-- `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building.
+- `GestureOverlay.qml` – line and indicator, instantiated by `Service.qml`.
+- `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building,
+  indicator helpers (arrows, preview name, cursor position parsing).
 - `tests/test_core.py`, `tests/actions.test.mjs` – unit tests.
 
 ## Tests

@@ -321,3 +321,42 @@ test("parseActiveWindow tolerates empty and broken output", () => {
   assert.deepEqual(A.parseActiveWindow("Invalid"), { class: "", tags: [] })
   assert.deepEqual(A.parseActiveWindow("null"), { class: "", tags: [] })
 })
+
+test("arrows: directions become arrows, unknown letters are dropped", () => {
+  assert.equal(A.arrowText("DR"), "↓→")
+  assert.equal(A.arrowText("ULDR"), "↑←↓→")
+  assert.deepEqual(A.arrowList("RX"), ["→"])
+  assert.equal(A.arrowFor("toString"), "")
+  assert.equal(A.arrowText(undefined), "")
+})
+
+test("normalizeIndicator: known modes pass, everything else is full", () => {
+  for (const m of ["off", "minimal", "full"]) assert.equal(A.normalizeIndicator(m), m)
+  for (const bad of [undefined, null, "", "FULL", 1, {}]) assert.equal(A.normalizeIndicator(bad), "full")
+})
+
+test("preview: name and validity for the indicator", () => {
+  assert.deepEqual(A.preview(mouse("L"), plain, {}, "en"), { name: "Workspace left", valid: true })
+  assert.deepEqual(A.preview(mouse("DR"), browser, {}, "de"), { name: "Tab schließen (Strg+W)", valid: true })
+  assert.deepEqual(A.preview(mouse("LU"), browser, {}, "en"), { name: "Reopen closed tab (Ctrl+Shift+T)", valid: true })
+  // unbound on the desktop -> dash, not valid
+  assert.deepEqual(A.preview(mouse("UD"), plain, {}, "en"), { name: "—", valid: false })
+  // explicit "none" counts as unknown too
+  const cfg = { bindings: { default: { "*:L": { type: "none" } } } }
+  assert.deepEqual(A.preview(mouse("L"), plain, cfg, "en"), { name: "—", valid: false })
+  // unknown source
+  assert.deepEqual(A.preview({ source: "pen", gesture: "L" }, plain, {}, "en"), { name: "—", valid: false })
+})
+
+test("preview: key combination without label shows the combination", () => {
+  const cfg = { bindings: { default: { "*:UD": { type: "keys", combo: ["CTRL SHIFT", "T"] } } } }
+  assert.equal(A.preview(mouse("UD"), plain, cfg, "de").name, "Strg+Umschalt+T")
+  assert.equal(A.preview(mouse("UD"), plain, cfg, "en").name, "Ctrl+Shift+T")
+})
+
+test("parseCursorPos: JSON, plain text, garbage", () => {
+  assert.deepEqual(A.parseCursorPos('{"x": 1234, "y": 567}'), { x: 1234, y: 567 })
+  assert.deepEqual(A.parseCursorPos("-12, 34\n"), { x: -12, y: 34 })
+  assert.deepEqual(A.parseCursorPos("1.5,2"), { x: 1.5, y: 2 })
+  for (const bad of ["", "null", "12", "{}", "a, b", '{"x":"q","y":1}']) assert.equal(A.parseCursorPos(bad), null)
+})

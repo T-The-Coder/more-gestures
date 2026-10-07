@@ -52,6 +52,8 @@ Item {
       threshold: num(raw.threshold, 1, 5000, 20),
       holdMs: num(raw.holdMs, 0, 5000, 350),
       rocker: raw.rocker === true,
+      indicator: Actions.normalizeIndicator(raw.indicator),
+      animations: raw.animations !== false,
       exclude: Array.isArray(raw.exclude) ? raw.exclude : Actions.DEFAULT_EXCLUDES,
       bindings: raw.bindings
     }
@@ -154,21 +156,46 @@ Item {
       // The window can have changed without an event we saw; look again before the
       // gesture ends (a drag takes far longer than hyprctl).
       root.probeActiveWindow()
+      overlay.begin(event.source === "touchpad" ? "touchpad" : "mouse", event.fingers)
+      return
+    }
+    if (event.type === "segment" && typeof event.dirs === "string") {
+      var p = Actions.preview({ source: event.source || "mouse", fingers: event.fingers, gesture: event.dirs },
+                              root.activeWindow, root.config, root.lang)
+      overlay.update(event.dirs, p.name, p.valid)
+      return
+    }
+    if (event.type === "progress") {
+      overlay.setProgress(String(event.dir || ""), Number(event.ratio) || 0)
+      return
+    }
+    if (event.type === "cancel") {
+      overlay.cancel()
       return
     }
     var gesture = Actions.eventGesture(event)
     if (gesture === "") return
-    root.fire(event, gesture)
+    var fired = root.fire(event, gesture)
+    if (event.type === "end") overlay.finish(fired)
   }
 
+  // Returns true when an action was started.
   function fire(event, gesture) {
     var ev = { source: event.source || "mouse", fingers: event.fingers, gesture: gesture }
     root.lastGesture = Actions.gestureKey(ev)
     var hit = Actions.resolve(ev, root.activeWindow, root.config)
-    if (!hit) { root.lastAction = ""; return }
+    if (!hit) { root.lastAction = ""; return false }
     root.lastAction = Actions.actionName(hit.action, root.lang)
     var cmd = Actions.buildCommand(hit.action)
     if (cmd) Quickshell.execDetached(cmd.argv)
+    return cmd !== null
+  }
+
+  GestureOverlay {
+    id: overlay
+    indicator: root.config.indicator
+    animations: root.config.animations
+    lang: root.lang
   }
 
   function daemonCommand() {
@@ -187,9 +214,12 @@ Item {
     stderr: SplitParser { onRead: function(line) { console.warn("more-gestures daemon:", line) } }
     onStarted: {
       root.daemonReady = false
+      overlay.cancel()
       readyTimer.restart()
     }
     onExited: function(exitCode) {
+      // A dead daemon will never send `end`; the input surface must not stay up.
+      overlay.cancel()
       root.daemonReady = false
       root.lastExitCode = exitCode
       readyTimer.stop()

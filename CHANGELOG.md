@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added (step 4)
+- `GestureOverlay.qml`: real gesture line drawn from hover positions of a transparent
+  full-screen layer-shell surface on the monitor under the pointer, plus an indicator (ring,
+  segment arrows, growing current segment, action name, check mark on trigger). The input
+  surface is unmapped the moment the gesture ends; only the visual surface fades (≤ 150 ms).
+  Safety nets: 10 s timeout, close on daemon exit/restart.
+- Settings `indicator` (`off`/`minimal`/`full`, default `full`) and `animations` (default
+  `true`) in the state file.
+- `Actions.js`: `arrowFor`/`arrowList`/`arrowText`, `preview` (action name + validity for the
+  indicator), `normalizeIndicator`, `parseCursorPos`; tests for all of them.
+- `Service.qml` forwards `start`, `segment`, `progress`, `end`, `cancel` to the overlay.
+
 ### Added (step 3)
 - `manifest.json` (id `more-gestures`, service + overlay, `keepLoaded`), `Settings.qml` placeholder.
 - `Actions.js`: profiles from window tags, gesture keys with source (`mouse:`, `tp3:`, `tp4:`,
