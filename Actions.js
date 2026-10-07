@@ -163,7 +163,8 @@ function defaultBindings() {
   // (the mouse table). Four fingers left/right are Hyprland's workspace swipe by default
   // (Config: touchpad.swipe), so they never reach these tables.
   desktop["tp4:U"] = dispatch("expose")
-  desktop["tp4:D"] = dispatch("show-desktop")
+  // Like SUPER+S: the scratchpad comes in, the same gesture takes it away again.
+  desktop["tp4:D"] = dispatch("scratchpad-toggle")
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
   return { "default": desktop, browser: browser, terminal: terminal }

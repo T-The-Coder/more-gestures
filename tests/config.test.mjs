@@ -169,7 +169,7 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   assert.equal(Config.needsRestart(a, b), false)
   assert.equal(Config.daemonConfigChanged(a, b), true)
   assert.equal(Config.daemonConfigLine(b), 'config {"threshold":40,"hold_ms":350,"rocker":false,'
-    + '"touchpad":{"enabled":true,"threshold_mm":12,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}}}')
+    + '"touchpad":{"enabled":true,"threshold_mm":8,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}}}')
   b.button = "middle"
   assert.equal(Config.needsRestart(a, b), true)
   // indicator, exclusions, bindings, wheel never touch the daemon

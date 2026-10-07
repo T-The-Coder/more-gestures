@@ -21,7 +21,7 @@ var PROFILES = ["default", "browser", "terminal"]
 var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
   holdMs: { min: 0, max: 5000, def: 350 },
-  thresholdMm: { min: 4, max: 60, def: 12 }
+  thresholdMm: { min: 4, max: 60, def: 8 }
 }
 
 var FINGERS = ["tp3", "tp4"]

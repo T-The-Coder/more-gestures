@@ -47,7 +47,10 @@ GESTURE_FINGERS = (3, 4)
 @dataclass
 class TouchpadSettings:
     enabled: bool = True
-    threshold_mm: float = 12.0
+    # 8 mm per segment and a lenient direction test: in the first live test shapes like
+    # ↓→ needed "quite precise" strokes with 12 mm and the mouse's 0.7.
+    threshold_mm: float = 8.0
+    dominance: float = 0.9
     # Relative change of the finger spread that counts as a pinch (0.3 = 30 %).
     pinch_ratio: float = 0.3
     max_segments: int = 4

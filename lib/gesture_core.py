@@ -262,7 +262,9 @@ class Recognizer:
             direction, mag, minor = ("R" if self._vx > 0 else "L"), ax, ay
         else:
             direction, mag, minor = ("D" if self._vy > 0 else "U"), ay, ax
-        if mag == 0 or minor > DOMINANCE * mag:
+        # Fingers on a trackpad drift more than a mouse: the touchpad settings pass a
+        # more lenient dominance than the mouse default.
+        if mag == 0 or minor > getattr(self.config, "dominance", DOMINANCE) * mag:
             return None
         return direction, mag
 

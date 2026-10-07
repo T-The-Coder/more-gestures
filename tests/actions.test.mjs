@@ -308,7 +308,7 @@ test("pinch gestures and trackpad defaults resolve", () => {
   const ev = (fingers, gesture) => ({ type: "end", source: "touchpad", fingers, gesture })
   assert.equal(A.gestureKey(ev(4, "pinchout")), "tp4:pinchout")
   assert.equal(A.resolve(ev(4, "pinchout"), {}, cfg).action.id, "hyprexpo")
-  assert.equal(A.resolve(ev(4, "D"), {}, cfg).action.id, "show-desktop")
+  assert.equal(A.resolve(ev(4, "D"), {}, cfg).action.id, "scratchpad-toggle")
   assert.equal(A.resolve(ev(4, "U"), {}, cfg).action.id, "expose")
   // Three fingers fall back to the shared "*:" table, in the browser to back/forward.
   assert.equal(A.resolve(ev(3, "L"), { tags: ["chromium-based-browser"] }, cfg).action.label, "back")
