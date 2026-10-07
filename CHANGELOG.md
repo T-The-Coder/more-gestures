@@ -6,6 +6,8 @@
 - "Show desktop" ends when another workspace is shown: on every workspace switch the
   stashed windows go back to their workspace (the active one is left alone), so it
   looks as expected when you come back.
+- Picking a workspace (ring, corner tap, gesture) ends "show desktop" there too, also when
+  it is the current one (choosing 1 while on 1 used to leave the desktop empty).
 
 ### Fixed
 - Ring: releasing without having left the middle keeps the ring open, then a click on

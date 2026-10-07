@@ -298,7 +298,7 @@ test("every default action is valid and has a name in both languages", () => {
     assert.ok(d.en && d.de, id)
     // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
     // hyprexpo) that is passed to `hyprctl eval` as is.
-    if (d.chunk) assert.match(d.chunk, /^local /, id)
+    if (d.chunk) assert.match(d.chunk, /^(local |for )/, id)
     else assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
   }
 })
@@ -400,4 +400,10 @@ test("corner taps resolve to workspaces", () => {
 test("restore chunk targets only our stash workspaces", () => {
   assert.match(A.RESTORE_DESKTOPS_LUA, /more%-gestures%-desktop%-/)
   assert.match(A.RESTORE_DESKTOPS_LUA, /^local active = hl\.get_active_workspace\(\)/)
+})
+
+test("workspace actions restore that workspace's stash before switching", () => {
+  const lua = A.DISPATCH["workspace-3"].chunk
+  assert.match(lua, /special:more-gestures-desktop-3/)
+  assert.match(lua, /hl\.dsp\.focus\(\{ workspace = "3" \}\)\)$/)
 })

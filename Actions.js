@@ -74,6 +74,19 @@ var RESTORE_DESKTOPS_LUA = [
   'end'
 ].join("\n")
 
+// Switch to workspace n and end "show desktop" there first: picking 1 while already on
+// 1 changes no workspace, so the switch hook (RESTORE_DESKTOPS_LUA) never runs and the
+// desktop stayed empty.
+function workspaceLua(n) {
+  var id = String(n)
+  return [
+    'for _, win in ipairs(hl.get_workspace_windows("special:more-gestures-desktop-' + id + '") or {}) do',
+    '  hl.dispatch(hl.dsp.window.move({ workspace = "' + id + '", follow = false, window = win }))',
+    'end',
+    'hl.dispatch(hl.dsp.focus({ workspace = "' + id + '" }))'
+  ].join("\n")
+}
+
 // hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
 // `hyprpm reload`. Say so instead of failing silently.
 var HYPREXPO_LUA = [
@@ -107,16 +120,16 @@ var DISPATCH = {
   "group-prev":          { lua: 'hl.dsp.group.prev()', en: "Previous window in group", de: "Vorheriges Fenster in Gruppe" },
   "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")', en: "Toggle scratchpad", de: "Notizblock umschalten" },
   // Event the expose.window-overview plugin listens for (same as its CTRL+ALT+TAB bind).
-  "workspace-1":         { lua: 'hl.dsp.focus({ workspace = "1" })', en: "Workspace 1", de: "Arbeitsfläche 1" },
-  "workspace-2":         { lua: 'hl.dsp.focus({ workspace = "2" })', en: "Workspace 2", de: "Arbeitsfläche 2" },
-  "workspace-3":         { lua: 'hl.dsp.focus({ workspace = "3" })', en: "Workspace 3", de: "Arbeitsfläche 3" },
-  "workspace-4":         { lua: 'hl.dsp.focus({ workspace = "4" })', en: "Workspace 4", de: "Arbeitsfläche 4" },
-  "workspace-5":         { lua: 'hl.dsp.focus({ workspace = "5" })', en: "Workspace 5", de: "Arbeitsfläche 5" },
-  "workspace-6":         { lua: 'hl.dsp.focus({ workspace = "6" })', en: "Workspace 6", de: "Arbeitsfläche 6" },
-  "workspace-7":         { lua: 'hl.dsp.focus({ workspace = "7" })', en: "Workspace 7", de: "Arbeitsfläche 7" },
-  "workspace-8":         { lua: 'hl.dsp.focus({ workspace = "8" })', en: "Workspace 8", de: "Arbeitsfläche 8" },
-  "workspace-9":         { lua: 'hl.dsp.focus({ workspace = "9" })', en: "Workspace 9", de: "Arbeitsfläche 9" },
-  "workspace-10":        { lua: 'hl.dsp.focus({ workspace = "10" })', en: "Workspace 10", de: "Arbeitsfläche 10" },
+  "workspace-1":         { chunk: workspaceLua(1), en: "Workspace 1", de: "Arbeitsfläche 1" },
+  "workspace-2":         { chunk: workspaceLua(2), en: "Workspace 2", de: "Arbeitsfläche 2" },
+  "workspace-3":         { chunk: workspaceLua(3), en: "Workspace 3", de: "Arbeitsfläche 3" },
+  "workspace-4":         { chunk: workspaceLua(4), en: "Workspace 4", de: "Arbeitsfläche 4" },
+  "workspace-5":         { chunk: workspaceLua(5), en: "Workspace 5", de: "Arbeitsfläche 5" },
+  "workspace-6":         { chunk: workspaceLua(6), en: "Workspace 6", de: "Arbeitsfläche 6" },
+  "workspace-7":         { chunk: workspaceLua(7), en: "Workspace 7", de: "Arbeitsfläche 7" },
+  "workspace-8":         { chunk: workspaceLua(8), en: "Workspace 8", de: "Arbeitsfläche 8" },
+  "workspace-9":         { chunk: workspaceLua(9), en: "Workspace 9", de: "Arbeitsfläche 9" },
+  "workspace-10":        { chunk: workspaceLua(10), en: "Workspace 10", de: "Arbeitsfläche 10" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
   // The ring shows only the part before the brackets ("Desktop").
   "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Desktop (show desktop)", de: "Desktop (Desktop anzeigen)" },
