@@ -238,6 +238,33 @@ Item {
     root.working = Config.sanitize(next, Actions)
   }
 
+  function setRing(key, value) {
+    var next = Config.clone(root.working.ring)
+    next[key] = Config.clone(value)
+    root.set("ring", next)
+  }
+
+  // Dropdown value of a ring slot: the dispatch id, "none", or "custom" for an action
+  // only editable in the file (key combo, command).
+  function slotValue(action) {
+    if (!action || action.type === "none") return "none"
+    return action.type === "dispatch" ? action.id : "custom"
+  }
+
+  function slotOptions(action) {
+    var opts = [{ value: "none", label: root.tr("ringEmpty") }].concat(root.dispatchOptions())
+    if (root.slotValue(action) === "custom")
+      opts.push({ value: "custom", label: Actions.actionName(action, root.lang) })
+    return opts
+  }
+
+  function setSlot(index, value) {
+    if (value === "custom") return
+    var slots = Config.clone(root.working.ring.slots)
+    slots[index] = value === "none" ? { type: "none" } : { type: "dispatch", id: value }
+    root.setRing("slots", slots)
+  }
+
   function sourceText(source) {
     return source === "mouse" ? root.tr("source_mouse")
       : source === "tp3" ? root.tr("source_tp3")
@@ -455,7 +482,7 @@ Item {
                 description: root.tr("ringHint")
                 checked: root.working.ring.enabled
                 foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("ring", { enabled: !root.working.ring.enabled, doubleMs: root.working.ring.doubleMs })
+                onClicked: root.setRing("enabled", !root.working.ring.enabled)
               }
               NumberField {
                 id: doubleField
@@ -466,7 +493,51 @@ Item {
                 stepSize: 25
                 value: root.working.ring.doubleMs
                 foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onModified: function(v) { root.set("ring", { enabled: root.working.ring.enabled, doubleMs: v }) }
+                onModified: function(v) { root.setRing("doubleMs", v) }
+              }
+
+              // Clock face: what each of the 12 directions does.
+              Column {
+                width: parent.width
+                visible: root.working.ring.enabled
+                spacing: Style.spacing.sm
+                Label { text: root.tr("ringSlots") }
+                Grid {
+                  columns: 2
+                  columnSpacing: Style.spacing.huge
+                  rowSpacing: Style.spacing.sm
+                  Repeater {
+                    // A new array per change recreates the rows, so each Dropdown starts
+                    // from the stored value again (they drop their binding once used).
+                    model: root.working.ring.slots
+                    delegate: Row {
+                      required property var modelData
+                      required property int index
+                      spacing: Style.spacing.md
+                      Text {
+                        width: Style.space(70)
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (index === 0 ? 12 : index) + " " + root.tr("oclock")
+                        color: root.muted
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                      }
+                      Dropdown {
+                        width: Style.space(260)
+                        showLabel: false
+                        fontFamily: root.fontFamily
+                        options: root.slotOptions(modelData)
+                        value: root.slotValue(modelData)
+                        onChanged: function(v) { root.setSlot(index, v) }
+                      }
+                    }
+                  }
+                }
+                SmallButton {
+                  text: root.tr("ringSlotsReset")
+                  onClicked: root.setRing("slots", Actions.RING_SLOTS)
+                }
               }
 
               Toggle {

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+- The ring is a clock face with 12 slots: Exposé at 12, workspaces 1-5 at 1-5, show
+  desktop at 6, workspaces 6-0 at 7-11. Each slot can be set in the settings
+  (`ring.slots`, default `Actions.RING_SLOTS`).
+
 ### Added (workspace ring)
 - Double click the trigger and hold the second press: a ring with workspaces 1-0 around
   the pointer (1 at the top, clockwise). Move towards one and release to switch, release

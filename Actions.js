@@ -187,6 +187,18 @@ function defaultBindings() {
   return { "default": desktop, browser: browser, terminal: terminal }
 }
 
+// Ring menu (double click with the trigger, second press held): a clock face, slot 0 at
+// 12 o'clock, clockwise. Exposé at 12, workspaces 1-5 at 1-5, show desktop at 6,
+// workspaces 6-9 and 10 ("0") at 7-11.
+var RING_SLOTS = [
+  dispatch("expose"),
+  dispatch("workspace-1"), dispatch("workspace-2"), dispatch("workspace-3"),
+  dispatch("workspace-4"), dispatch("workspace-5"),
+  dispatch("show-desktop"),
+  dispatch("workspace-6"), dispatch("workspace-7"), dispatch("workspace-8"),
+  dispatch("workspace-9"), dispatch("workspace-10")
+]
+
 // ------------------------------------------------------------------ validation
 
 function isPlainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v) }
@@ -513,7 +525,7 @@ function parseActiveWindow(text) {
 
 if (typeof module !== "undefined") module.exports = {
   KEY_HOLD_MS: KEY_HOLD_MS, SEQUENCE_GAP_MS: SEQUENCE_GAP_MS, MAX_SEQUENCE: MAX_SEQUENCE,
-  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
+  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
   GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,

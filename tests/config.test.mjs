@@ -209,9 +209,21 @@ test("corner taps: opt-in, bound list from all profiles", () => {
 })
 
 test("ring settings: off by default, clamped", () => {
-  assert.deepEqual(Config.defaults().ring, { enabled: false, doubleMs: 250 })
+  const d = Config.defaults().ring
+  assert.equal(d.enabled, false)
+  assert.equal(d.doubleMs, 250)
+  assert.equal(d.slots.length, 12)
+  assert.equal(d.slots[0].id, "expose")
   const c = Config.sanitize({ ring: { enabled: true, doubleMs: 5 } })
-  assert.deepEqual(c.ring, { enabled: true, doubleMs: 100 })
+  assert.equal(c.ring.enabled, true)
+  assert.equal(c.ring.doubleMs, 100)
+  // A broken slot falls back to its default, a valid one is kept.
+  const slots = d.slots.slice()
+  slots[0] = { type: "dispatch", id: "nope" }
+  slots[6] = { type: "none" }
+  const e = Config.sanitize({ ring: { slots } })
+  assert.equal(e.ring.slots[0].id, "expose")
+  assert.deepEqual(e.ring.slots[6], { type: "none" })
   assert.equal(Config.daemonConfig(c).ring, true)
   assert.equal(Config.daemonConfig(c).double_ms, 100)
 })

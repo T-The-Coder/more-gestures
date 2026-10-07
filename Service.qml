@@ -192,7 +192,7 @@ Item {
     }
     if (event.type === "ring") {
       if (event.phase === "open") { root.probeActiveWindow(); ring.open() }
-      else if (event.phase === "close") root.switchWorkspace(ring.close())
+      else if (event.phase === "close") root.runRingSlot(ring.close())
       else ring.cancel()
       return
     }
@@ -217,17 +217,18 @@ Item {
     return cmd !== null
   }
 
-  function switchWorkspace(ws) {
-    if (!(ws >= 1 && ws <= 10)) return
+  function runRingSlot(action) {
+    if (!action) return
     root.lastGesture = "ring"
-    root.lastAction = "workspace " + ws
-    var cmd = Actions.buildCommand({ type: "dispatch", id: "workspace-" + ws })
+    root.lastAction = Actions.actionName(action, root.lang)
+    var cmd = Actions.buildCommand(action)  // revalidates: the slot came from the settings file
     if (cmd) Quickshell.execDetached(cmd.argv)
   }
 
   RingOverlay {
     id: ring
     lang: root.lang
+    slots: root.config.ring ? root.config.ring.slots : Actions.RING_SLOTS
   }
 
   GestureOverlay {

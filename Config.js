@@ -28,11 +28,24 @@ var LIMITS = {
 
 // Workspace ring (double click with the trigger, second press held). Off by default:
 // it delays every ordinary click of the trigger button by doubleMs.
-function ringDefaults() { return { enabled: false, doubleMs: LIMITS.doubleMs.def } }
+// `slots`: 12 actions, slot 0 at 12 o'clock, clockwise; {type: "none"} leaves it empty.
+function ringDefaults(actions) {
+  var A = actionsModule(actions)
+  return { enabled: false, doubleMs: LIMITS.doubleMs.def, slots: clone(A.RING_SLOTS) }
+}
 
-function cleanRing(raw) {
-  if (!isPlainObject(raw)) return ringDefaults()
-  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs) }
+function cleanRing(raw, actions) {
+  var A = actionsModule(actions)
+  var d = ringDefaults(A)
+  if (!isPlainObject(raw)) return d
+  var slots = d.slots
+  if (Array.isArray(raw.slots) && raw.slots.length === d.slots.length) {
+    slots = raw.slots.map(function (s, i) {
+      var v = A.validateAction(s)
+      return v.ok ? v.action : d.slots[i]
+    })
+  }
+  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs), slots: slots }
 }
 
 // Corner taps need the touchpad grabbed (to swallow the taps' clicks), so they are
@@ -165,7 +178,7 @@ function defaults(actions) {
     animations: true,
     touchpad: touchpadDefaults(),
     taps: tapsDefaults(),
-    ring: ringDefaults(),
+    ring: ringDefaults(A),
     exclude: A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings({}, A)
   }
@@ -187,7 +200,7 @@ function sanitize(raw, actions) {
     animations: raw.animations !== false,
     touchpad: cleanTouchpad(raw.touchpad),
     taps: cleanTaps(raw.taps),
-    ring: cleanRing(raw.ring),
+    ring: cleanRing(raw.ring, A),
     exclude: Array.isArray(raw.exclude) ? cleanExcludes(raw.exclude) : A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings(raw.bindings, A)
   }
@@ -218,7 +231,7 @@ function daemonConfig(config, actions) {
     native[f.slice(2)] = t.swipe[f] ? ["L", "R"] : []
     if (t.fingers[f]) fingers.push(Number(f.slice(2)))
   })
-  var ring = config.ring || ringDefaults()
+  var ring = config.ring || { enabled: false, doubleMs: LIMITS.doubleMs.def }
   return { threshold: config.threshold, hold_ms: config.holdMs, rocker: config.rocker,
            ring: ring.enabled, double_ms: ring.doubleMs,
            touchpad: { enabled: t.enabled && fingers.length > 0, threshold_mm: t.thresholdMm,

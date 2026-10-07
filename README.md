@@ -26,13 +26,16 @@ of that profile. "Remove" on a built-in gesture stores `none` for it (switched o
 "Reset" restores the built-in action. Key combinations can be recorded (press them) or
 typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
 
-## Workspace ring
+## Ring menu
 
-Double click the trigger and keep the second press held: ten workspaces appear around
-the pointer, 1 at the top and clockwise to 0 (= 10) left of it. Move towards one and
-release to switch; release in the middle to cancel. 1-5 always look normal, 6-0 are faded
-unless a window is on them. The daemon holds the first click back for the double click
-time, so with the ring on every ordinary click of the trigger arrives that much later.
+Double click the trigger and keep the second press held: a clock face of twelve slots
+appears around the pointer. Default: Exposé at 12 o'clock, workspaces 1-5 at 1-5,
+show desktop at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release
+to run it; release in the middle to cancel. Workspaces 1-5 always look normal, 6-0 are
+faded unless a window is on them; the current one is outlined. Every slot can be set in
+the settings (any desktop action, or empty). The daemon holds the first click back for
+the double click time, so with the ring on every ordinary click of the trigger arrives
+that much later.
 
 ## Trackpad
 

@@ -7,10 +7,11 @@ import qs.Commons
 import "Actions.js" as Actions
 import "Ring.js" as Ring
 
-// Workspace ring: double click with the trigger button and keep the second press held.
-// Ten workspaces around the pointer (1 at the top, clockwise, 10 shown as "0"); moving
-// towards one highlights it, releasing switches there, releasing in the middle cancels.
-// 1-5 always look normal, 6-0 are faded unless a window is on them.
+// Ring menu: double click with the trigger button and keep the second press held.
+// A clock face of actions around the pointer (default: Exposé at 12, workspaces 1-5 at
+// 1-5 o'clock, show desktop at 6, workspaces 6-0 at 7-11). Moving towards a slot
+// highlights it, releasing runs it, releasing in the middle cancels. Workspaces 1-5
+// always look normal, 6-0 are faded unless a window is on them.
 //
 // One surface that takes pointer input: the daemon held the button back, so no
 // application has an implicit grab and the hover positions come straight from
@@ -20,6 +21,8 @@ Item {
   id: root
 
   property string lang: "en"
+  property var slots: Actions.RING_SLOTS
+  readonly property int count: slots.length
 
   property bool opened: false
   // Set on open, cleared on close: hyprctl may answer after the button is already up,
@@ -36,7 +39,9 @@ Item {
 
   readonly property real radius: Style.space(110)
   readonly property real deadzone: radius * 0.35
-  readonly property int selected: havePointer ? Ring.sectorFor(px - cx, py - cy, deadzone) : -1
+  readonly property int rawSelected: havePointer ? Ring.sectorFor(px - cx, py - cy, deadzone, count) : -1
+  // An empty slot cannot be picked: releasing there cancels like the middle.
+  readonly property int selected: rawSelected >= 0 && slots[rawSelected].type !== "none" ? rawSelected : -1
 
   function open() {
     root.armed = true
@@ -46,13 +51,19 @@ Item {
     if (!workspaceProbe.running) workspaceProbe.running = true
   }
 
-  // Returns the workspace to switch to, or 0 when cancelled.
+  // Returns the chosen slot's action, or null when cancelled.
   function close() {
-    var pick = root.opened && root.selected >= 0 ? Ring.workspaceFor(root.selected) : 0
+    var pick = root.opened && root.selected >= 0 ? root.slots[root.selected] : null
     root.armed = false
     root.opened = false
     safety.stop()
     return pick
+  }
+
+  // "Exposé (all windows)" -> "Exposé": the ring has little room, the part in brackets
+  // is explanation for the settings list.
+  function shortName(action) {
+    return Actions.actionName(action, root.lang).replace(/\s*\(.*\)\s*$/, "")
   }
 
   function cancel() {
@@ -158,28 +169,33 @@ Item {
     }
 
     Repeater {
-      model: Ring.COUNT
+      model: root.count
       delegate: Rectangle {
         required property int index
-        readonly property var pos: Ring.position(index, root.radius)
+        readonly property var action: root.slots[index]
+        readonly property int ws: Ring.workspaceOf(action)
+        readonly property var pos: Ring.position(index, root.radius, root.count)
         readonly property bool hot: root.selected === index
-        readonly property bool strong: Ring.emphasized(index, root.occupied)
-        readonly property bool isCurrent: Ring.workspaceFor(index) === root.current
-        width: Style.space(44)
-        height: width
-        radius: width / 2
+        readonly property bool strong: Ring.emphasized(action, root.occupied)
+        readonly property bool isCurrent: ws > 0 && ws === root.current
+        visible: action.type !== "none"
+        // Workspaces are round number chips; other actions a pill with their name.
+        width: ws > 0 ? Style.space(44) : Math.max(Style.space(44), label.implicitWidth + Style.space(20))
+        height: Style.space(44)
+        radius: height / 2
         x: root.cx + pos.x - width / 2
         y: root.cy + pos.y - height / 2
         color: hot ? Color.accent : "transparent"
         border.width: isCurrent ? Math.max(2, Style.space(3)) : 0
         border.color: Color.accent
         Text {
+          id: label
           anchors.centerIn: parent
-          text: Ring.labelFor(index)
+          text: parent.ws > 0 ? Ring.workspaceLabel(parent.ws) : root.shortName(parent.action)
           color: parent.hot ? Color.background : Color.foreground
           opacity: parent.hot || parent.strong ? 1.0 : 0.35
           font.family: Style.font.family
-          font.pixelSize: Style.font.title
+          font.pixelSize: parent.ws > 0 ? Style.font.title : Style.font.body
           font.bold: parent.hot || parent.isCurrent
         }
       }
