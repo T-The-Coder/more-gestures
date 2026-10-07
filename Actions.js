@@ -87,6 +87,69 @@ function workspaceLua(n) {
   ].join("\n")
 }
 
+// Layers for four fingers up/down. Each swipe looks at what is open right now, so the
+// opposite swipe always undoes the last step (the first version toggled with the same
+// direction, which felt wrong):
+//   nothing open:      down = wallpaper,      up = Exposé
+//   Exposé open:       down = close Exposé,   up = app launcher
+//   launcher open:     down = close launcher, up = nothing
+//   wallpaper:         down = files,          up = back to the windows
+//   wallpaper + files: down = nothing,        up = close files
+// Files open floating in the middle of the screen, tagged so the up swipe finds them.
+var LAYER_HELPERS = [
+  'local function expose_open() return #(hl.get_layers({ namespace = "expose-window-overview" }) or {}) > 0 end',
+  'local function menu_open() return #(hl.get_layers({ namespace = "omarchy-menu" }) or {}) > 0 end',
+  'local ws = hl.get_active_workspace()',
+  'local here, hidden',
+  'if ws and not ws.special then',
+  '  here = ws.id > 0 and tostring(ws.id) or ("name:" .. ws.name)',
+  '  hidden = "special:more-gestures-desktop-" .. ws.id',
+  'end',
+  'local function tagged_files()',
+  '  local out = {}',
+  '  for _, w in ipairs(here and hl.get_workspace_windows(here) or {}) do',
+  '    local tags = type(w.tags) == "table" and w.tags or { w.tags }',
+  '    for _, t in ipairs(tags) do',
+  '      if tostring(t):gsub("%*$", "") == "more-gestures-files" then table.insert(out, w) end',
+  '    end',
+  '  end',
+  '  return out',
+  'end',
+  'local function stash() return hidden and hl.get_workspace_windows(hidden) or {} end'
+].join("\n")
+
+var STACK_DOWN_LUA = LAYER_HELPERS + "\n" + [
+  'if menu_open() then hl.exec_cmd("omarchy-shell shell hide omarchy.menu") return end',
+  'if expose_open() then hl.exec_cmd("omarchy-shell expose close") return end',
+  'if not here then return end',
+  'if #stash() > 0 or #(hl.get_workspace_windows(here) or {}) == 0 then',
+  '  if #tagged_files() == 0 then',
+  '    hl.exec_cmd("uwsm-app -- nautilus --new-window", { float = true, center = true,',
+  '      size = "monitor_w*0.6 monitor_h*0.65", tag = "+more-gestures-files" })',
+  '  end',
+  '  return',
+  'end',
+  'for _, w in ipairs(hl.get_workspace_windows(here) or {}) do',
+  '  hl.dispatch(hl.dsp.window.move({ workspace = hidden, follow = false, window = w }))',
+  'end'
+].join("\n")
+
+var STACK_UP_LUA = LAYER_HELPERS + "\n" + [
+  'if menu_open() then return end',
+  'if expose_open() then hl.exec_cmd("omarchy-menu toggle apps") return end',
+  'local files = tagged_files()',
+  'if #files > 0 then',
+  '  for _, w in ipairs(files) do hl.dispatch(hl.dsp.window.close({ window = "address:" .. w.address })) end',
+  '  return',
+  'end',
+  'local s = stash()',
+  'if #s > 0 then',
+  '  for _, w in ipairs(s) do hl.dispatch(hl.dsp.window.move({ workspace = here, follow = false, window = w })) end',
+  '  return',
+  'end',
+  'hl.dispatch(hl.dsp.event("expose.window-overview:toggle"))'
+].join("\n")
+
 // hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
 // `hyprpm reload`. Say so instead of failing silently.
 var HYPREXPO_LUA = [
@@ -133,8 +196,12 @@ var DISPATCH = {
   // Handled inside the shell (Service.qml), not by Hyprland: opens the ring menu.
   "ring-menu":           { internal: "ring", en: "Ring menu", de: "Kreismenü" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
-  // The ring shows only the part before the brackets ("Desktop").
-  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Desktop (show desktop)", de: "Desktop (Desktop anzeigen)" },
+  // The ring shows only the part before the brackets ("Wallpaper").
+  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Wallpaper (show wallpaper)", de: "Wallpaper (Hintergrund anzeigen)" },
+  // Four-finger up/down as layers: what a swipe does depends on what is open, and the
+  // opposite swipe takes it back (see STACK_DOWN_LUA / STACK_UP_LUA).
+  "stack-down":          { chunk: STACK_DOWN_LUA, en: "Down: close launcher / Exposé, wallpaper, files", de: "Runter: Launcher / Exposé zu, Wallpaper, Dateien" },
+  "stack-up":            { chunk: STACK_UP_LUA, en: "Up: close files / back, Exposé, launcher", de: "Hoch: Dateien zu / zurück, Exposé, Launcher" },
   "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" }
 }
 
@@ -207,8 +274,8 @@ function defaultBindings() {
   // Trackpad extras in the default profile. Lines without a tp entry fall back to "*:"
   // (the mouse table). Four fingers left/right are Hyprland's workspace swipe by default
   // (Config: touchpad.swipe), so they never reach these tables.
-  desktop["tp4:U"] = dispatch("expose")
-  desktop["tp4:D"] = dispatch("show-desktop")
+  desktop["tp4:U"] = dispatch("stack-up")
+  desktop["tp4:D"] = dispatch("stack-down")
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
   // No "hold and drag" on a trackpad: the ring opens to stay, tap a slot to pick it.
@@ -226,6 +293,10 @@ function defaultBindings() {
 // Ring menu (double click with the trigger, second press held): a clock face, slot 0 at
 // 12 o'clock, clockwise. Exposé at 12, workspaces 1-5 at 1-5, show desktop at 6,
 // workspaces 6-9 and 10 ("0") at 7-11.
+// Key per slot while the ring is open (Esc always closes): e = Exposé, 1-0 = workspaces,
+// w = wallpaper.
+var RING_KEYS = ["e", "1", "2", "3", "4", "5", "w", "6", "7", "8", "9", "0"]
+
 var RING_SLOTS = [
   dispatch("expose"),
   dispatch("workspace-1"), dispatch("workspace-2"), dispatch("workspace-3"),
@@ -570,7 +641,7 @@ function parseActiveWindow(text) {
 
 if (typeof module !== "undefined") module.exports = {
   KEY_HOLD_MS: KEY_HOLD_MS, SEQUENCE_GAP_MS: SEQUENCE_GAP_MS, MAX_SEQUENCE: MAX_SEQUENCE,
-  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, RESTORE_DESKTOPS_LUA: RESTORE_DESKTOPS_LUA, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
+  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, RING_KEYS: RING_KEYS, RESTORE_DESKTOPS_LUA: RESTORE_DESKTOPS_LUA, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
   GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,

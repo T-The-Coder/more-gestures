@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Changed
+- Four fingers up/down work as layers, the opposite swipe undoes the last step:
+  nothing open: down = wallpaper, up = Exposé; Exposé: down closes it, up = app
+  launcher; launcher: down closes it; wallpaper: down = Files (floating, centred,
+  60 x 65 %), up = windows back; Files: up closes them (actions "stack-down" and
+  "stack-up", the new trackpad defaults).
+- "Show desktop" is called "Wallpaper" (the ring shows "Wallpaper").
+- Smaller menu bar icon.
+
+### Added
+- Keyboard in the ring: Esc closes, 1-0 workspaces, e Exposé, w wallpaper; one key per
+  slot, set next to each slot in the settings (`ring.keys`).
+
 ### Added
 - Menu bar icon (`BarWidget.qml`, kind `bar-widget`): the mouse symbol inverted (arms cut
   out, so a transparent bar shows through), faded while gestures are off. Left click

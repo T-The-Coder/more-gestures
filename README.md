@@ -40,7 +40,9 @@ appears around the pointer. Default: Exposé at 12 o'clock, workspaces 1-5 at 1-
 show desktop at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release
 to run it; release in the middle to cancel. Released without leaving the middle, the
 ring stays open: click a slot (left or right button), or anywhere else to close it.
-On the trackpad, double tap with 4 fingers opens the ring the same way (open to stay). Workspaces 1-5 always look normal, 6-0 are
+On the trackpad, double tap with 4 fingers opens the ring the same way (open to stay).
+Keys while the ring is open: Esc closes, 1-0 workspaces, e Exposé, w wallpaper (each slot's
+key can be changed in the settings). Workspaces 1-5 always look normal, 6-0 are
 faded unless a window is on them; the current one is outlined. Every slot can be set in
 the settings (any desktop action, or empty). The daemon holds the first click back for
 the double click time, so with the ring on every ordinary click of the trigger arrives
@@ -69,6 +71,16 @@ end
 ```
 
 Remove other `hl.gesture` lines for the finger counts the plugin reads, or both act.
+
+Four fingers up/down are layers by default; the opposite swipe undoes the last step:
+
+| Open now | 4 fingers down | 4 fingers up |
+|---|---|---|
+| nothing | wallpaper | Exposé |
+| Exposé | close Exposé | app launcher |
+| app launcher | close launcher | – |
+| wallpaper | Files (floating, centred) | windows back |
+| wallpaper + Files | – | close Files |
 For the "Exposé" action install the `expose.window-overview` plugin.
 
 ### Corner taps (opt-in)

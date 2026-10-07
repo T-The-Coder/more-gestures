@@ -233,3 +233,12 @@ test("bar icon settings", () => {
   const c = Config.sanitize({ bar: { left: "ring", middle: "bogus", tooltip: false, show: false } })
   assert.deepEqual(c.bar, { show: false, left: "ring", middle: "toggle", right: "status", tooltip: false })
 })
+
+test("ring keys: defaults, cleaning, duplicates", () => {
+  assert.deepEqual(Config.defaults().ring.keys, ["e", "1", "2", "3", "4", "5", "w", "6", "7", "8", "9", "0"])
+  const keys = ["E", "1", "x", "3", "4", "5", "w", "6", "7", "8", "9", "ab"]
+  const c = Config.sanitize({ ring: { keys } })
+  assert.deepEqual(c.ring.keys, ["e", "1", "x", "3", "4", "5", "w", "6", "7", "8", "9", ""])
+  const dup = Config.sanitize({ ring: { keys: ["e", "e", "", "", "", "", "", "", "", "", "", ""] } })
+  assert.deepEqual(dup.ring.keys.slice(0, 2), ["e", ""])
+})

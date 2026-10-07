@@ -67,7 +67,7 @@ BarWidget {
 
     MouseGlyph {
       anchors.centerIn: parent
-      width: Math.round(Style.font.body * 1.05)
+      width: Math.round(Style.font.body * 0.85)  // 1.05 looked too big next to the other icons
       height: width
       inverted: true
       color: button.foreground

@@ -265,6 +265,12 @@ Item {
     return opts
   }
 
+  function setRingKey(index, value) {
+    var keys = root.working.ring.keys.slice()
+    keys[index] = String(value || "").toLowerCase()
+    root.setRing("keys", keys)  // Config.cleanRingKeys drops invalid and duplicate keys
+  }
+
   function setSlot(index, value) {
     if (value === "custom") return
     var slots = Config.clone(root.working.ring.slots)
@@ -531,12 +537,24 @@ Item {
                         font.bold: true
                       }
                       Dropdown {
-                        width: Style.space(260)
+                        width: Style.space(220)
                         showLabel: false
                         fontFamily: root.fontFamily
                         options: root.slotOptions(modelData)
                         value: root.slotValue(modelData)
                         onChanged: function(v) { root.setSlot(index, v) }
+                      }
+                      TextField {
+                        width: Style.space(44)
+                        text: root.working.ring.keys[index] || ""
+                        placeholderText: "–"
+                        maximumLength: 1
+                        horizontalAlignment: Text.AlignHCenter
+                        foreground: root.foreground
+                        accent: root.accent
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.body
+                        onEditingFinished: root.setRingKey(index, text)
                       }
                     }
                   }

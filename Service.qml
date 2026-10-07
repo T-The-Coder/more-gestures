@@ -248,6 +248,7 @@ Item {
     id: ring
     lang: root.lang
     slots: root.config.ring ? root.config.ring.slots : Actions.RING_SLOTS
+    keys: root.config.ring ? root.config.ring.keys : Actions.RING_KEYS
     onChosen: function(action) { root.runRingSlot(action) }
   }
 

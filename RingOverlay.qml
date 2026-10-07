@@ -22,6 +22,8 @@ Item {
 
   property string lang: "en"
   property var slots: Actions.RING_SLOTS
+  // One key per slot while the ring is open ("" = none); Esc always closes.
+  property var keys: Actions.RING_KEYS
   readonly property int count: slots.length
 
   property bool opened: false
@@ -202,8 +204,25 @@ Item {
     color: "transparent"
     WlrLayershell.namespace: "more-gestures-ring"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    // Keys pick slots too (1-0, e, w by default), so the ring takes the keyboard while
+    // it is open.
+    WlrLayershell.keyboardFocus: root.opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+
+    Item {
+      id: keyCatcher
+      anchors.fill: parent
+      focus: true
+      Keys.onPressed: function(event) {
+        event.accepted = true
+        if (event.key === Qt.Key_Escape) { root.cancel(); return }
+        var k = String(event.text || "").toLowerCase()
+        if (k === "") return
+        var i = root.keys.indexOf(k)
+        if (i >= 0 && root.slots[i] && root.slots[i].type !== "none") root.finish(root.slots[i])
+      }
+    }
+    onVisibleChanged: if (visible) keyCatcher.forceActiveFocus()
 
     MouseArea {
       anchors.fill: parent
@@ -273,6 +292,20 @@ Item {
         color: hot ? Color.accent : "transparent"
         border.width: isCurrent ? Math.max(2, Style.space(3)) : 0
         border.color: Color.accent
+        // The key for a slot whose label does not already say it (e for Exposé, w for
+        // Wallpaper), small in the corner.
+        Text {
+          visible: parent.ws === 0 && (root.keys[index] || "") !== ""
+          anchors.right: parent.right
+          anchors.top: parent.top
+          anchors.rightMargin: Style.space(8)
+          anchors.topMargin: Style.space(2)
+          text: root.keys[index] || ""
+          color: parent.hot ? Color.background : Color.foreground
+          opacity: 0.6
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+        }
         Text {
           id: label
           anchors.centerIn: parent

@@ -43,7 +43,19 @@ function cleanBar(raw) {
 // `slots`: 12 actions, slot 0 at 12 o'clock, clockwise; {type: "none"} leaves it empty.
 function ringDefaults(actions) {
   var A = actionsModule(actions)
-  return { enabled: false, doubleMs: LIMITS.doubleMs.def, slots: clone(A.RING_SLOTS) }
+  return { enabled: false, doubleMs: LIMITS.doubleMs.def, slots: clone(A.RING_SLOTS), keys: A.RING_KEYS.slice() }
+}
+
+// One lowercase letter or digit per slot, "" for none; a key used twice keeps its first slot.
+function cleanRingKeys(raw, defaults) {
+  if (!Array.isArray(raw) || raw.length !== defaults.length) return defaults.slice()
+  var seen = {}
+  return raw.map(function (k) {
+    var key = typeof k === "string" ? k.toLowerCase().trim() : ""
+    if (!/^[a-z0-9]$/.test(key) || seen[key]) return ""
+    seen[key] = true
+    return key
+  })
 }
 
 function cleanRing(raw, actions) {
@@ -57,7 +69,8 @@ function cleanRing(raw, actions) {
       return v.ok ? v.action : d.slots[i]
     })
   }
-  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs), slots: slots }
+  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs), slots: slots,
+           keys: cleanRingKeys(raw.keys, d.keys) }
 }
 
 // Corner taps need the touchpad grabbed (to swallow the taps' clicks), so they are
