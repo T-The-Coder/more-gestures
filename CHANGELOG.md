@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- Ring: releasing without having left the middle keeps the ring open, then a click on
+  a slot runs it (in the first test the numbers "could not be clicked"). When no hover
+  position arrived, the release asks Hyprland for the pointer position.
+- The ring shows "Desktop" for show desktop (the settings keep the longer name).
+
 ### Changed
 - The ring is a clock face with 12 slots: Exposé at 12, workspaces 1-5 at 1-5, show
   desktop at 6, workspaces 6-0 at 7-11. Each slot can be set in the settings

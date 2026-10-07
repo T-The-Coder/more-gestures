@@ -34,6 +34,16 @@ Item {
   property real px: 0
   property real py: 0
   property bool havePointer: false
+  property real originX: 0           // top-left of targetScreen in layout coordinates
+  property real originY: 0
+  // The pointer left the middle at least once: releasing in the middle then cancels.
+  // If it never did, the release only ends the double click and the ring stays open
+  // for a click on a slot ("the numbers could not be clicked" in the first test).
+  property bool leftMiddle: false
+  property bool sticky: false
+  property bool releasePending: false
+
+  signal chosen(var action)
   property var occupied: []
   property int current: 0
 
@@ -46,18 +56,63 @@ Item {
   function open() {
     root.armed = true
     root.havePointer = false
+    root.leftMiddle = false
+    root.sticky = false
+    root.releasePending = false
     root.current = Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
     if (!cursorProbe.running) cursorProbe.running = true
     if (!workspaceProbe.running) workspaceProbe.running = true
   }
 
-  // Returns the chosen slot's action, or null when cancelled.
-  function close() {
-    var pick = root.opened && root.selected >= 0 ? root.slots[root.selected] : null
-    root.armed = false
-    root.opened = false
-    safety.stop()
-    return pick
+  // The trigger was released.
+  function release() {
+    if (!root.armed) return
+    if (!root.opened) { root.releasePending = true; return }  // placed later, then sticky
+    if (!root.havePointer) {
+      // No hover position arrived: ask Hyprland where the pointer is now.
+      if (!releaseProbe.running) releaseProbe.running = true
+      return
+    }
+    root.decide(root.px, root.py)
+  }
+
+  function decide(x, y) {
+    var raw = Ring.sectorFor(x - root.cx, y - root.cy, root.deadzone, root.count)
+    var pick = raw >= 0 && root.slots[raw].type !== "none" ? root.slots[raw] : null
+    if (pick) { root.finish(pick); return }
+    if (!root.leftMiddle && raw < 0) {
+      root.sticky = true
+      safety.restart()
+      return
+    }
+    root.cancel()
+  }
+
+  function finish(action) {
+    root.cancel()
+    root.chosen(action)
+  }
+
+  function track(x, y) {
+    root.px = x
+    root.py = y
+    root.havePointer = true
+    if (Math.sqrt((x - root.cx) * (x - root.cx) + (y - root.cy) * (y - root.cy)) >= root.deadzone)
+      root.leftMiddle = true
+  }
+
+  Process {
+    id: releaseProbe
+    command: ["hyprctl", "cursorpos", "-j"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var pos = Actions.parseCursorPos(text)
+        if (!root.opened) return
+        if (pos) root.decide(pos.x - root.originX, pos.y - root.originY)
+        else root.cancel()
+      }
+    }
   }
 
   // "Exposé (all windows)" -> "Exposé": the ring has little room, the part in brackets
@@ -68,6 +123,8 @@ Item {
 
   function cancel() {
     root.armed = false
+    root.sticky = false
+    root.releasePending = false
     root.opened = false
     safety.stop()
   }
@@ -106,6 +163,8 @@ Item {
     if (!screen && screens.length > 0) screen = screens[0]
     if (!screen) return
     root.targetScreen = screen
+    root.originX = screen.x
+    root.originY = screen.y
     // Keep the whole ring on screen near the edges.
     var margin = root.radius + Style.space(40)
     var lx = pos ? pos.x - screen.x : screen.width / 2
@@ -116,6 +175,8 @@ Item {
     root.py = ly
     root.opened = true
     safety.restart()
+    // Released while hyprctl was answering: the pointer never moved, keep it open.
+    if (root.releasePending) { root.releasePending = false; root.sticky = true }
   }
 
   PanelWindow {
@@ -132,9 +193,17 @@ Item {
     MouseArea {
       anchors.fill: parent
       hoverEnabled: true
-      acceptedButtons: Qt.NoButton
-      onPositionChanged: function(mouse) { root.px = mouse.x; root.py = mouse.y; root.havePointer = true }
-      onEntered: { root.px = mouseX; root.py = mouseY; root.havePointer = true }
+      // Clicks only while the ring stays open after the release (sticky); a click on a
+      // slot runs it, anywhere else closes the ring.
+      acceptedButtons: root.sticky ? (Qt.LeftButton | Qt.RightButton) : Qt.NoButton
+      onPositionChanged: function(mouse) { root.track(mouse.x, mouse.y) }
+      onEntered: root.track(mouseX, mouseY)
+      onClicked: function(mouse) {
+        root.track(mouse.x, mouse.y)
+        var raw = Ring.sectorFor(mouse.x - root.cx, mouse.y - root.cy, root.deadzone, root.count)
+        if (raw >= 0 && root.slots[raw].type !== "none") root.finish(root.slots[raw])
+        else root.cancel()
+      }
     }
 
     // Backdrop disc.

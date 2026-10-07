@@ -192,7 +192,7 @@ Item {
     }
     if (event.type === "ring") {
       if (event.phase === "open") { root.probeActiveWindow(); ring.open() }
-      else if (event.phase === "close") root.runRingSlot(ring.close())
+      else if (event.phase === "close") ring.release()
       else ring.cancel()
       return
     }
@@ -229,6 +229,7 @@ Item {
     id: ring
     lang: root.lang
     slots: root.config.ring ? root.config.ring.slots : Actions.RING_SLOTS
+    onChosen: function(action) { root.runRingSlot(action) }
   }
 
   GestureOverlay {

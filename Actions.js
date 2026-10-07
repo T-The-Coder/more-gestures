@@ -100,7 +100,8 @@ var DISPATCH = {
   "workspace-9":         { lua: 'hl.dsp.focus({ workspace = "9" })', en: "Workspace 9", de: "Arbeitsfläche 9" },
   "workspace-10":        { lua: 'hl.dsp.focus({ workspace = "10" })', en: "Workspace 10", de: "Arbeitsfläche 10" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
-  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Show desktop", de: "Desktop anzeigen" },
+  // The ring shows only the part before the brackets ("Desktop").
+  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Desktop (show desktop)", de: "Desktop (Desktop anzeigen)" },
   "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" }
 }
 
