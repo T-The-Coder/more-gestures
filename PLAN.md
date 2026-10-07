@@ -92,8 +92,17 @@ Maus ──evdev (exklusiv gegriffen)──▶ gesture-daemon (Python) ──uin
 - Zeigt die Pfeile der bisher erkannten Segmente und darunter den Namen der Aktion, die
   beim Loslassen ausgeführt würde. Ist die Geste unbekannt, steht dort „—“.
   Farben kommen aus dem Theme (`Color`/`Style` der Shell).
-- Eine Zeichenspur der Mausbewegung ist bewusst nicht vorgesehen: Der Daemon kennt nur relative
-  Rohwerte ohne die Mausbeschleunigung des Compositors, die Spur würde deshalb abweichen.
+- **Echte Linie wie bei Opera (geändert nach Nutzer-Feedback 2026-10-07):** Sobald `start` kommt (Schwelle
+  überschritten, Tastendruck schon zurückgehalten), zeigt das Overlay eine durchsichtige Vollbild-Fläche
+  auf dem Monitor unter dem Zeiger, die Zeigerereignisse annimmt (`MouseArea { hoverEnabled: true }`). Da
+  kein Programm den Druck gesehen hat, gibt es keinen impliziten Griff, und die Fläche bekommt die exakten
+  Zeigerpositionen von Hyprland. Daraus wird die Linie gezeichnet (Shape/Canvas, Theme-Akzentfarbe,
+  ca. 4 px, abgerundet, am Ende ausblendend). Das erste Stück vor der Schwelle wird aus den
+  Rohwerten rückwärts ergänzt (Startpunkt = erste Position minus aufsummierte Deltas, skaliert),
+  oder einfach ab der ersten Position gezeichnet.
+- Bei `end`/`cancel` verschwindet die Fläche sofort (Ausblenden ≤ 150 ms ohne Eingabe), damit der
+  nächste Klick wieder beim Programm landet. Sicherheitsnetz: Fläche schließt sich spätestens nach
+  10 s oder wenn 1 s lang kein Ereignis vom Daemon kam, solange keine Geste läuft.
 
 ### 4. `Actions.js` (reine Funktionen, unter Node testbar)
 Aktionsarten:
@@ -241,7 +250,7 @@ angemeldet. Diese Sitzung übernimmt Orchestrierung, Prüfung und Freigabe.
   ohne Eingabe.
 - **Was:**
   1. Ein kleiner Ring zeigt „Geste aktiv“. Daneben steht ein Symbol für die Quelle: Maus oder Hand mit „3“ bzw. „4“.
-  2. Eine schematische Spur: jedes erkannte Segment als Pfeil. Das aktuelle Segment wächst sichtbar, bis es die
+  2. Die echte Linie (siehe Abschnitt 3) und dazu die erkannten Segmente als Pfeile. Das aktuelle Segment wächst sichtbar, bis es die
      Schwelle erreicht (dafür sendet der Daemon `progress {dir, ratio}` mit höchstens 30 Hz).
   3. Darunter steht der Name der Aktion, die beim Loslassen ausgeführt würde. Für Tastenkombinationen
      steht dort die Kombination, z. B. „Strg+Umschalt+T“.
