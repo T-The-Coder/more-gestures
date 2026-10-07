@@ -211,6 +211,11 @@ class SettingsTest(unittest.TestCase):
         self.assertFalse(classify_touchpad(caps, props=[tp.INPUT_PROP_DIRECT]))
         self.assertFalse(classify_touchpad({EV_ABS: [ABS_MT_POSITION_X], EV_KEY: []}))
 
+    def test_own_clone_is_not_a_touchpad(self):
+        caps = {EV_ABS: [(ABS_MT_POSITION_X, None), (ABS_MT_POSITION_Y, None)],
+                EV_KEY: [BTN_TOOL_TRIPLETAP]}
+        self.assertFalse(classify_touchpad(caps, name="more-gestures virtual (SYNA Touchpad)"))
+
 
 if __name__ == "__main__":
     unittest.main()

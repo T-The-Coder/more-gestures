@@ -98,8 +98,14 @@ def update_settings(settings, data):
     return rejected
 
 
-def classify_touchpad(caps, props=()):
-    """True for a touchpad: multitouch positions plus a 3-finger tool bit, not direct."""
+def classify_touchpad(caps, props=(), name=""):
+    """True for a touchpad: multitouch positions plus a 3-finger tool bit, not direct.
+
+    Our own uinput clones are never touchpads to us: in the first live test of corner
+    taps the daemon grabbed its clone, cloned that, and so on (event27 ... event301).
+    """
+    if name.startswith(core.VIRTUAL_NAME_PREFIX):
+        return False
     if INPUT_PROP_DIRECT in props:
         return False
     abs_codes = core._codes(caps, EV_ABS)

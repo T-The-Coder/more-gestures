@@ -124,8 +124,13 @@ class Daemon:
             # nicht merken, der nächste Abgleich versucht es erneut.
             log(f"cannot open {path}: {e}")
             return
+        if dev.name.startswith(core.VIRTUAL_NAME_PREFIX):
+            # Our own clones (mouse or touchpad): grabbing them would loop.
+            self.rejected.add(path)
+            dev.close()
+            return
         caps = dev.capabilities()
-        if tpc.classify_touchpad(caps, dev.input_props()):
+        if tpc.classify_touchpad(caps, dev.input_props(), dev.name):
             self.add_touchpad(path, dev)
             return
         kind = core.classify(dev.name, caps, self.config.trigger,
