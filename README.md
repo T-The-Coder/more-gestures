@@ -26,6 +26,13 @@ of that profile. "Remove" on a built-in gesture stores `none` for it (switched o
 "Reset" restores the built-in action. Key combinations can be recorded (press them) or
 typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
 
+## Menu bar icon
+
+The inverted mouse symbol sits in the bar (right section), faded while gestures are off.
+Left click opens the settings, middle click switches gestures on/off (saved), right
+click shows a status notification; set each button (or hide the icon) under "Menu bar"
+in the settings. Over IPC: `omarchy-shell more-gestures toggleSaved | openRing | notifyStatus`.
+
 ## Ring menu
 
 Double click the trigger and keep the second press held: a clock face of twelve slots

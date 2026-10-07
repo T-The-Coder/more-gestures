@@ -47,11 +47,26 @@ Item {
   property var occupied: []
   property int current: 0
 
-  readonly property real radius: Style.space(110)
-  readonly property real deadzone: radius * 0.35
+  // Slots 50 % larger than the first version (44 px), the ring wide enough that twelve
+  // of them do not touch.
+  readonly property real slotSize: Style.space(66)
+  readonly property real radius: Style.space(165)
+  readonly property real deadzone: radius * 0.3
   readonly property int rawSelected: havePointer ? Ring.sectorFor(px - cx, py - cy, deadzone, count) : -1
-  // An empty slot cannot be picked: releasing there cancels like the middle.
-  readonly property int selected: rawSelected >= 0 && slots[rawSelected].type !== "none" ? rawSelected : -1
+  // Dragging picks by direction (fast, works blind). Once the ring stays open for
+  // clicking, only a slot itself counts: a click anywhere else just closes the ring.
+  readonly property int selected: sticky ? (havePointer ? slotAt(px, py) : -1)
+    : (rawSelected >= 0 && slots[rawSelected].type !== "none" ? rawSelected : -1)
+
+  // Index of the visible slot under (x, y) in window coordinates, or -1.
+  function slotAt(x, y) {
+    for (var i = 0; i < slotRepeater.count; i++) {
+      var it = slotRepeater.itemAt(i)
+      if (it && it.visible && x >= it.x && x < it.x + it.width && y >= it.y && y < it.y + it.height)
+        return i
+    }
+    return -1
+  }
 
   function open() {
     root.armed = true
@@ -166,7 +181,7 @@ Item {
     root.originX = screen.x
     root.originY = screen.y
     // Keep the whole ring on screen near the edges.
-    var margin = root.radius + Style.space(40)
+    var margin = root.radius + root.slotSize / 2 + Style.space(20)
     var lx = pos ? pos.x - screen.x : screen.width / 2
     var ly = pos ? pos.y - screen.y : screen.height / 2
     root.cx = Math.max(margin, Math.min(screen.width - margin, lx))
@@ -200,9 +215,9 @@ Item {
       onEntered: root.track(mouseX, mouseY)
       onClicked: function(mouse) {
         root.track(mouse.x, mouse.y)
-        var raw = Ring.sectorFor(mouse.x - root.cx, mouse.y - root.cy, root.deadzone, root.count)
-        if (raw >= 0 && root.slots[raw].type !== "none") root.finish(root.slots[raw])
-        else root.cancel()
+        var hit = root.slotAt(mouse.x, mouse.y)
+        if (hit >= 0) root.finish(root.slots[hit])
+        else root.cancel()  // outside every slot: close, do nothing
       }
     }
 
@@ -210,7 +225,7 @@ Item {
     Rectangle {
       x: root.cx - width / 2
       y: root.cy - height / 2
-      width: (root.radius + Style.space(34)) * 2
+      width: (root.radius + root.slotSize / 2 + Style.space(12)) * 2
       height: width
       radius: width / 2
       color: Util.alpha(Color.background, 0.82)
@@ -238,6 +253,7 @@ Item {
     }
 
     Repeater {
+      id: slotRepeater
       model: root.count
       delegate: Rectangle {
         required property int index
@@ -249,8 +265,8 @@ Item {
         readonly property bool isCurrent: ws > 0 && ws === root.current
         visible: action.type !== "none"
         // Workspaces are round number chips; other actions a pill with their name.
-        width: ws > 0 ? Style.space(44) : Math.max(Style.space(44), label.implicitWidth + Style.space(20))
-        height: Style.space(44)
+        width: ws > 0 ? root.slotSize : Math.max(root.slotSize, label.implicitWidth + Style.space(28))
+        height: root.slotSize
         radius: height / 2
         x: root.cx + pos.x - width / 2
         y: root.cy + pos.y - height / 2
@@ -264,7 +280,7 @@ Item {
           color: parent.hot ? Color.background : Color.foreground
           opacity: parent.hot || parent.strong ? 1.0 : 0.35
           font.family: Style.font.family
-          font.pixelSize: parent.ws > 0 ? Style.font.title : Style.font.body
+          font.pixelSize: parent.ws > 0 ? Math.round(Style.font.title * 1.4) : Math.round(Style.font.body * 1.2)
           font.bold: parent.hot || parent.isCurrent
         }
       }

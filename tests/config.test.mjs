@@ -227,3 +227,9 @@ test("ring settings: off by default, clamped", () => {
   assert.equal(Config.daemonConfig(c).ring, true)
   assert.equal(Config.daemonConfig(c).double_ms, 100)
 })
+
+test("bar icon settings", () => {
+  assert.deepEqual(Config.defaults().bar, { show: true, left: "settings", middle: "toggle", right: "status", tooltip: true })
+  const c = Config.sanitize({ bar: { left: "ring", middle: "bogus", tooltip: false, show: false } })
+  assert.deepEqual(c.bar, { show: false, left: "ring", middle: "toggle", right: "status", tooltip: false })
+})

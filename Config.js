@@ -26,6 +26,18 @@ var LIMITS = {
   doubleMs: { min: 100, max: 800, def: 250 }
 }
 
+// Menu bar icon: what each mouse button does on it, and the tooltip.
+var BAR_ACTIONS = ["settings", "toggle", "status", "ring", "none"]
+function barDefaults() { return { show: true, left: "settings", middle: "toggle", right: "status", tooltip: true } }
+
+function cleanBar(raw) {
+  var d = barDefaults()
+  if (!isPlainObject(raw)) return d
+  var pick = function (v, def) { return BAR_ACTIONS.indexOf(v) >= 0 ? v : def }
+  return { show: raw.show !== false, left: pick(raw.left, d.left), middle: pick(raw.middle, d.middle),
+           right: pick(raw.right, d.right), tooltip: raw.tooltip !== false }
+}
+
 // Workspace ring (double click with the trigger, second press held). Off by default:
 // it delays every ordinary click of the trigger button by doubleMs.
 // `slots`: 12 actions, slot 0 at 12 o'clock, clockwise; {type: "none"} leaves it empty.
@@ -179,6 +191,7 @@ function defaults(actions) {
     touchpad: touchpadDefaults(),
     taps: tapsDefaults(),
     ring: ringDefaults(A),
+    bar: barDefaults(),
     exclude: A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings({}, A)
   }
@@ -201,6 +214,7 @@ function sanitize(raw, actions) {
     touchpad: cleanTouchpad(raw.touchpad),
     taps: cleanTaps(raw.taps),
     ring: cleanRing(raw.ring, A),
+    bar: cleanBar(raw.bar),
     exclude: Array.isArray(raw.exclude) ? cleanExcludes(raw.exclude) : A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings(raw.bindings, A)
   }
@@ -330,7 +344,8 @@ function removeExclude(list, index) {
 
 if (typeof module !== "undefined") module.exports = {
   PATH_SUFFIX: PATH_SUFFIX, VERSION: VERSION, HYPR_FILE_SUFFIX: HYPR_FILE_SUFFIX, FINGERS: FINGERS,
-  touchpadDefaults: touchpadDefaults, ringDefaults: ringDefaults, cleanRing: cleanRing, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
+  touchpadDefaults: touchpadDefaults, ringDefaults: ringDefaults, cleanRing: cleanRing,
+  BAR_ACTIONS: BAR_ACTIONS, barDefaults: barDefaults, cleanBar: cleanBar, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
   clone: clone, clampInt: clampInt, defaults: defaults, sanitize: sanitize, parse: parse,
   serialize: serialize, needsRestart: needsRestart, daemonConfig: daemonConfig,
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,

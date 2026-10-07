@@ -239,6 +239,12 @@ Item {
     root.working = Config.sanitize(next, Actions)
   }
 
+  function setBar(key, value) {
+    var next = Config.clone(root.working.bar)
+    next[key] = value
+    root.set("bar", next)
+  }
+
   function setRing(key, value) {
     var next = Config.clone(root.working.ring)
     next[key] = Config.clone(value)
@@ -548,6 +554,59 @@ Item {
                 checked: root.working.wheel
                 foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                 onClicked: root.set("wheel", !root.working.wheel)
+              }
+            }
+
+            // ---------------------------------------------------- menu bar
+            Column {
+              width: parent.width
+              spacing: Style.spacing.md
+
+              PanelSectionHeader { text: root.tr("menubar"); foreground: root.foreground; fontFamily: root.fontFamily }
+
+              Toggle {
+                width: parent.width
+                label: root.tr("barShow")
+                description: root.tr("barShowHint")
+                checked: root.working.bar.show
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onClicked: root.setBar("show", !root.working.bar.show)
+              }
+
+              Repeater {
+                // A new object per change recreates the rows, so the Dropdowns show the
+                // stored value again after a reload.
+                model: root.working.bar.show ? [{ key: "left" }, { key: "middle" }, { key: "right" }] : []
+                delegate: Row {
+                  required property var modelData
+                  spacing: Style.spacing.md
+                  Text {
+                    width: Style.space(150)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.tr("bar_" + modelData.key)
+                    color: root.muted
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: true
+                  }
+                  Dropdown {
+                    width: Style.space(260)
+                    showLabel: false
+                    fontFamily: root.fontFamily
+                    options: Config.BAR_ACTIONS.map(function(a) { return { value: a, label: root.tr("barAction_" + a) } })
+                    value: root.working.bar[modelData.key]
+                    onChanged: function(v) { root.setBar(modelData.key, v) }
+                  }
+                }
+              }
+
+              Toggle {
+                width: parent.width
+                visible: root.working.bar.show
+                label: root.tr("barTooltip")
+                checked: root.working.bar.tooltip
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onClicked: root.setBar("tooltip", !root.working.bar.tooltip)
               }
             }
 

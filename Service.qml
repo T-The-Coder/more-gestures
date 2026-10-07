@@ -347,6 +347,36 @@ Item {
     function enable(): string { root.enabled = true; return "enabled" }
     function disable(): string { root.enabled = false; return "disabled" }
     function toggle(): string { root.enabled = !root.enabled; return root.enabled ? "enabled" : "disabled" }
+
+    // Persistent on/off (bar icon, middle click): written to the settings file, which
+    // this service watches and applies like any other change.
+    function toggleSaved(): string {
+      var next = Config.clone(root.config)
+      next.enabled = !next.enabled
+      stateFile.setText(Config.serialize(next, Actions))
+      return next.enabled ? "enabled" : "disabled"
+    }
+
+    // Opens the ring to stay (bar icon or a keybinding): pick a slot with a click.
+    function openRing(): string { ring.open(); ring.release(); return "ok" }
+
+    // A short summary as a desktop notification (bar icon, right click).
+    function notifyStatus(): string {
+      var c = root.config
+      var de = Actions.lang(root.lang) === "de"
+      var on = function (b) { return b ? (de ? "an" : "on") : (de ? "aus" : "off") }
+      var title = "More Gestures: " + on(c.enabled && root.enabled)
+      var lines = [
+        (de ? "Maus: " : "Mouse: ") + (c.enabled ? (de ? "Taste " : "button ") + c.button : on(false)),
+        (de ? "Trackpad: " : "Trackpad: ") + on(c.touchpad.enabled),
+        (de ? "Ecken-Tipps: " : "Corner taps: ") + on(c.taps.enabled),
+        (de ? "Kreismenü: " : "Ring menu: ") + on(c.ring.enabled)
+      ]
+      if (root.lastGesture) lines.push((de ? "Zuletzt: " : "Last: ") + root.lastGesture + (root.lastAction ? " → " + root.lastAction : ""))
+      if (root.passWanted) lines.push(de ? "Pausiert für dieses Fenster (Ausschlussliste)" : "Paused for this window (exclusions)")
+      Quickshell.execDetached(["omarchy-notification-send", title, lines.join("\n")])
+      return "ok"
+    }
     // Opens the settings overlay (same as the launcher entry from bin/install-app-entry).
     function settings(): string {
       Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "more-gestures"])

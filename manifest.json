@@ -7,11 +7,20 @@
   "description": "Opera-style mouse gestures for Omarchy: hold the right button, drag a line, release.",
   "kinds": [
     "service",
-    "overlay"
+    "overlay",
+    "bar-widget"
   ],
   "keepLoaded": true,
   "entryPoints": {
     "service": "Service.qml",
-    "overlay": "Settings.qml"
+    "overlay": "Settings.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "More Gestures",
+    "description": "Mouse and trackpad gestures: settings, on/off and status from the bar",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
   }
 }
