@@ -678,3 +678,63 @@ class CommandTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RingTest(unittest.TestCase):
+    """Double click with the second press held opens the workspace ring."""
+
+    def setUp(self):
+        self.e = Engine(Config(ring=True))
+
+    def test_double_click_hold_opens_and_closes_ring(self):
+        press(self.e, 0.0)
+        self.assertEqual(release(self.e, 0.05), [])  # first click held back
+        self.assertEqual(payloads(press(self.e, 0.15)), [{"type": "ring", "phase": "open"}])
+        move(self.e, 80, 0, 0.3)  # pointer moves on, no line gesture
+        self.assertEqual(payloads(release(self.e, 0.5)), [{"type": "ring", "phase": "close"}])
+        self.assertEqual(self.e.state, "idle")
+
+    def test_single_click_is_replayed_after_double_time(self):
+        press(self.e, 0.0)
+        release(self.e, 0.05)
+        self.assertEqual(self.e.tick(0.2), [])
+        out = self.e.tick(0.31)
+        self.assertEqual([a for a in out if isinstance(a, Emit) and a.etype == EV_KEY],
+                         [Emit(EV_KEY, BTN_RIGHT, 1), Emit(EV_KEY, BTN_RIGHT, 0)])
+
+    def test_other_button_flushes_held_click_first(self):
+        press(self.e, 0.0)
+        release(self.e, 0.05)
+        out = left(self.e, 1, 0.1)
+        keys = [(a.code, a.value) for a in out if isinstance(a, Emit) and a.etype == EV_KEY]
+        self.assertEqual(keys, [(BTN_RIGHT, 1), (BTN_RIGHT, 0), (BTN_LEFT, 1)])
+
+    def test_ring_swallows_wheel(self):
+        press(self.e, 0.0)
+        release(self.e, 0.05)
+        press(self.e, 0.1)
+        self.assertEqual(self.e.handle(0.2, EV_REL, REL_WHEEL, 1), [])
+
+    def test_modifier_releases_held_click(self):
+        press(self.e, 0.0)
+        release(self.e, 0.05)
+        out = self.e.set_modifiers(0.1, True)
+        self.assertEqual(len([a for a in out if isinstance(a, Emit) and a.etype == EV_KEY]), 2)
+
+    def test_ring_off_keeps_immediate_click(self):
+        e = Engine(Config(ring=False))
+        press(e, 0.0)
+        self.assertEqual(len(release(e, 0.05)), 3)
+
+    def test_gesture_still_works_with_ring_on(self):
+        press(self.e, 0.0)
+        for i in range(10):
+            move(self.e, -10, 0, 0.01 * i)
+        self.assertEqual(payloads(release(self.e, 0.3))[-1]["gesture"], "L")
+
+    def test_config_keys(self):
+        cfg = Config()
+        self.assertEqual(update_config(cfg, {"ring": True, "double_ms": 300}), [])
+        self.assertTrue(cfg.ring)
+        self.assertAlmostEqual(cfg.double_time, 0.3)
+        self.assertEqual(update_config(cfg, {"double_ms": 5000}), ["double_ms"])

@@ -169,6 +169,7 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   assert.equal(Config.needsRestart(a, b), false)
   assert.equal(Config.daemonConfigChanged(a, b), true)
   assert.equal(Config.daemonConfigLine(b), 'config {"threshold":40,"hold_ms":350,"rocker":false,'
+    + '"ring":false,"double_ms":250,'
     + '"touchpad":{"enabled":true,"threshold_mm":8,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}},'
     + '"taps":{"enabled":false,"corner_mm":14,"bound":[]}}')
   b.button = "middle"
@@ -205,4 +206,12 @@ test("corner taps: opt-in, bound list from all profiles", () => {
     ["bl2", "bl3", "br2", "br3", "tl2", "tl3", "tr2", "tr3"])
   const r = Config.setBinding(on, "default", "tap:tl3", { type: "none" }, A)
   assert.ok(!Config.daemonConfig(r.config, A).taps.bound.includes("tl3"))
+})
+
+test("ring settings: off by default, clamped", () => {
+  assert.deepEqual(Config.defaults().ring, { enabled: false, doubleMs: 250 })
+  const c = Config.sanitize({ ring: { enabled: true, doubleMs: 5 } })
+  assert.deepEqual(c.ring, { enabled: true, doubleMs: 100 })
+  assert.equal(Config.daemonConfig(c).ring, true)
+  assert.equal(Config.daemonConfig(c).double_ms, 100)
 })

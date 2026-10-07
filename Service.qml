@@ -190,6 +190,12 @@ Item {
       overlay.cancel()
       return
     }
+    if (event.type === "ring") {
+      if (event.phase === "open") { root.probeActiveWindow(); ring.open() }
+      else if (event.phase === "close") root.switchWorkspace(ring.close())
+      else ring.cancel()
+      return
+    }
     // The daemon swallows the wheel while the trigger is held; with the wheel setting off
     // the step is simply dropped instead of acting.
     if (event.type === "wheel" && !root.config.wheel) return
@@ -209,6 +215,19 @@ Item {
     var cmd = Actions.buildCommand(hit.action)
     if (cmd) Quickshell.execDetached(cmd.argv)
     return cmd !== null
+  }
+
+  function switchWorkspace(ws) {
+    if (!(ws >= 1 && ws <= 10)) return
+    root.lastGesture = "ring"
+    root.lastAction = "workspace " + ws
+    var cmd = Actions.buildCommand({ type: "dispatch", id: "workspace-" + ws })
+    if (cmd) Quickshell.execDetached(cmd.argv)
+  }
+
+  RingOverlay {
+    id: ring
+    lang: root.lang
   }
 
   GestureOverlay {
@@ -235,11 +254,13 @@ Item {
     onStarted: {
       root.daemonReady = false
       overlay.cancel()
+      ring.cancel()
       readyTimer.restart()
     }
     onExited: function(exitCode) {
-      // A dead daemon will never send `end`; the input surface must not stay up.
+      // A dead daemon will never send `end`; the input surfaces must not stay up.
       overlay.cancel()
+      ring.cancel()
       root.daemonReady = false
       root.lastExitCode = exitCode
       readyTimer.stop()

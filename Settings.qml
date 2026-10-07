@@ -85,6 +85,7 @@ Item {
     holdField.field.value = root.working.holdMs
     mmField.field.value = root.working.touchpad.thresholdMm
     cornerField.field.value = root.working.taps.cornerMm
+    doubleField.field.value = root.working.ring.doubleMs
   }
 
   function save() {
@@ -448,6 +449,26 @@ Item {
                 foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                 onClicked: root.set("rocker", !root.working.rocker)
               }
+              Toggle {
+                width: parent.width
+                label: root.tr("ring")
+                description: root.tr("ringHint")
+                checked: root.working.ring.enabled
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onClicked: root.set("ring", { enabled: !root.working.ring.enabled, doubleMs: root.working.ring.doubleMs })
+              }
+              NumberField {
+                id: doubleField
+                visible: root.working.ring.enabled
+                label: root.tr("doubleMs")
+                from: Config.LIMITS.doubleMs.min
+                to: Config.LIMITS.doubleMs.max
+                stepSize: 25
+                value: root.working.ring.doubleMs
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onModified: function(v) { root.set("ring", { enabled: root.working.ring.enabled, doubleMs: v }) }
+              }
+
               Toggle {
                 width: parent.width
                 label: root.tr("wheel")

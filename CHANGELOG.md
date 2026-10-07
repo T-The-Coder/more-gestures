@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added (workspace ring)
+- Double click the trigger and hold the second press: a ring with workspaces 1-0 around
+  the pointer (1 at the top, clockwise). Move towards one and release to switch, release
+  in the middle to cancel. 1-5 always normal, 6-0 faded unless a window is on them; the
+  current workspace is outlined (`RingOverlay.qml`, `Ring.js`).
+- Opt-in setting "Workspace ring" with the double click time (default 250 ms): ordinary
+  clicks of the trigger are delayed by that time while it is on.
+
 ### Added (corner taps)
 - Corner taps on the trackpad (`lib/tap_core.py`, opt-in "Corner taps (experimental)"):
   the daemon grabs the touchpad, forwards every frame through a uinput clone and holds

@@ -56,6 +56,8 @@ UNDECIDED = "undecided"  # Auslösetaste gedrückt und zurückgehalten
 GESTURE = "gesture"  # Schwelle überschritten, Druck verworfen
 PASSED = "passed"  # Druck wurde ausgeliefert, Loslassen geht ebenfalls durch
 SWALLOW = "swallow"  # Notbremse: das späte Loslassen des verworfenen Drucks schlucken
+CLICK_WAIT = "click-wait"  # Klick erkannt, zurückgehalten: kommt gleich ein zweiter Druck?
+RING = "ring"  # Doppelklick mit gehaltenem zweiten Druck: Kreismenü offen
 
 
 # Ein Segment gilt nur, wenn die Nebenachse höchstens so viel der Hauptachse hat
@@ -76,6 +78,11 @@ class Config:
     # Wippgesten (Auslösetaste + Linksklick und umgekehrt). Standard aus: Wer mit
     # gedrückter linker Taste markiert und dann rechts klickt, will ein Kontextmenü.
     rocker: bool = False
+    # Kreismenü: Klick, dann sofort wieder drücken und halten. Kostet jeden normalen
+    # Klick der Auslösetaste `double_time` Verzögerung (der erste Klick wird
+    # zurückgehalten, bis klar ist, ob ein zweiter Druck folgt).
+    ring: bool = False
+    double_time: float = 0.25
 
 
 def _number(value, low, high):
@@ -98,6 +105,10 @@ def update_config(config, data):
             config.hold_time = value / 1000.0
         elif key == "rocker" and isinstance(value, bool):
             config.rocker = value
+        elif key == "ring" and isinstance(value, bool):
+            config.ring = value
+        elif key == "double_ms" and _number(value, 100, 800):
+            config.double_time = value / 1000.0
         else:
             rejected.append(key)
     return rejected
@@ -279,6 +290,7 @@ class Engine:
         self.passthrough = False  # `pass on`: alles direkt durchreichen
         self.recognizer = Recognizer(self.config)
         self._pressed_at = 0.0
+        self._click_at = 0.0
         self._fx = self._fy = 0  # Bewegung des laufenden Pakets (bis SYN_REPORT)
         self._consumed = False  # Rad oder Wippe haben die Liniengeste ersetzt
         self._left_down = False  # Linke Taste wurde an die Anwendung geliefert
@@ -294,6 +306,12 @@ class Engine:
         """Ein Ereignis des Zeigegeräts verarbeiten, Aktionen zurückgeben."""
         if etype == EV_KEY and code == self.config.trigger and value in (0, 1):
             return self._trigger(now, value)
+        if self.state == CLICK_WAIT and etype == EV_KEY:
+            # Another button while a click is held back: the click happened first, so it
+            # goes out first, then this button as usual.
+            return self._replay_click() + self.handle(now, etype, code, value)
+        if self.state == RING and etype == EV_REL and code in WHEEL_CODES:
+            return []  # the ring is open: the wheel must not scroll the window below
         if etype == EV_KEY and code == BTN_LEFT and value in (0, 1):
             return self._left(value)
         if etype == EV_REL and self.state in (UNDECIDED, GESTURE):
@@ -319,14 +337,21 @@ class Engine:
             return self._flush_press()
         if self.state == GESTURE and now - self._pressed_at >= self.config.emergency_time:
             return self._emergency()
+        if self.state == CLICK_WAIT and now - self._click_at >= self.config.double_time:
+            return self._replay_click()  # no second press: it was an ordinary click
+        if self.state == RING and now - self._pressed_at >= self.config.emergency_time:
+            self.state = SWALLOW
+            return [Message({"type": "ring", "phase": "cancel"})]
         return []
 
     def deadline(self):
         """Zeitpunkt des nächsten `tick`-Übergangs oder None."""
         if self.state == UNDECIDED:
             return self._pressed_at + self.config.hold_time
-        if self.state == GESTURE:
+        if self.state in (GESTURE, RING):
             return self._pressed_at + self.config.emergency_time
+        if self.state == CLICK_WAIT:
+            return self._click_at + self.config.double_time
         return None
 
     def set_modifiers(self, now, active):
@@ -346,9 +371,9 @@ class Engine:
         reicht Loslassen durch); ein zurückgehaltener Druck wird verworfen und sein
         Loslassen geschluckt.
         """
-        if self.state in (UNDECIDED, GESTURE):
+        if self.state in (UNDECIDED, GESTURE, RING):
             self.state = SWALLOW
-        elif self.state == PASSED:
+        elif self.state in (PASSED, CLICK_WAIT):
             self.state = IDLE
         self._fx = self._fy = 0
         self._left_down = self._left_swallowed = False
@@ -358,12 +383,16 @@ class Engine:
         actions = []
         if self.state == PASSED:
             actions += [Emit(EV_KEY, self.config.trigger, 0), Emit(EV_SYN, 0, 0)]
+        elif self.state == CLICK_WAIT:
+            actions += self._replay_click()
         self.state = IDLE
         return actions
 
     # --- Übergänge ----------------------------------------------------------
 
     def _bypass_changed(self):
+        if self.bypass and self.state == CLICK_WAIT:
+            return self._replay_click()
         if self.bypass and self.state == UNDECIDED:
             # Super+Rechtsziehen ist in Omarchy „Fenstergröße ändern“: Hyprland braucht
             # den Druck sofort, sonst bleibt das Ziehen ohne Wirkung.
@@ -380,6 +409,14 @@ class Engine:
     def _trigger(self, now, value):
         trig = self.config.trigger
         if value == 1:
+            if self.state == CLICK_WAIT:
+                if self.bypass:
+                    return self._replay_click() + self._trigger(now, value)
+                # Second press right after a click, held: the ring opens. The first
+                # click is dropped, it was only the first half of the double click.
+                self.state = RING
+                self._pressed_at = now
+                return [Message({"type": "ring", "phase": "open"})]
             if self.state in (IDLE, SWALLOW):
                 # SWALLOW + neuer Druck heißt: das Loslassen ging verloren, neu beginnen.
                 if self.bypass:
@@ -398,10 +435,19 @@ class Engine:
         # Bewegung noch ins Segment zählt.
         out = self._flush_frame(now)
         if self.state == UNDECIDED:
+            if self.config.ring and not self.bypass:
+                # Maybe the first half of a double click: hold the click back for
+                # double_time (tick replays it when no second press comes).
+                self.state = CLICK_WAIT
+                self._click_at = now
+                return []
             # Klick ohne Bewegung: nachsenden. SYN dazwischen, damit Druck und
             # Loslassen als getrennte Pakete ankommen und nicht verschmelzen.
             self.state = IDLE
             return [Emit(EV_KEY, trig, 1), Emit(EV_SYN, 0, 0), Emit(EV_KEY, trig, 0)]
+        if self.state == RING:
+            self.state = IDLE
+            return [Message({"type": "ring", "phase": "close"})]
         if self.state == GESTURE:
             self.state = IDLE
             if self._consumed:
@@ -462,6 +508,11 @@ class Engine:
         if self.recognizer.started:
             self.state = GESTURE
         return out
+
+    def _replay_click(self):
+        trig = self.config.trigger
+        self.state = IDLE
+        return [Emit(EV_KEY, trig, 1), Emit(EV_SYN, 0, 0), Emit(EV_KEY, trig, 0), Emit(EV_SYN, 0, 0)]
 
     def _flush_press(self):
         self.state = PASSED

@@ -22,7 +22,17 @@ var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
   holdMs: { min: 0, max: 5000, def: 350 },
   thresholdMm: { min: 4, max: 60, def: 8 },
-  cornerMm: { min: 4, max: 40, def: 14 }
+  cornerMm: { min: 4, max: 40, def: 14 },
+  doubleMs: { min: 100, max: 800, def: 250 }
+}
+
+// Workspace ring (double click with the trigger, second press held). Off by default:
+// it delays every ordinary click of the trigger button by doubleMs.
+function ringDefaults() { return { enabled: false, doubleMs: LIMITS.doubleMs.def } }
+
+function cleanRing(raw) {
+  if (!isPlainObject(raw)) return ringDefaults()
+  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs) }
 }
 
 // Corner taps need the touchpad grabbed (to swallow the taps' clicks), so they are
@@ -155,6 +165,7 @@ function defaults(actions) {
     animations: true,
     touchpad: touchpadDefaults(),
     taps: tapsDefaults(),
+    ring: ringDefaults(),
     exclude: A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings({}, A)
   }
@@ -176,6 +187,7 @@ function sanitize(raw, actions) {
     animations: raw.animations !== false,
     touchpad: cleanTouchpad(raw.touchpad),
     taps: cleanTaps(raw.taps),
+    ring: cleanRing(raw.ring),
     exclude: Array.isArray(raw.exclude) ? cleanExcludes(raw.exclude) : A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings(raw.bindings, A)
   }
@@ -206,7 +218,9 @@ function daemonConfig(config, actions) {
     native[f.slice(2)] = t.swipe[f] ? ["L", "R"] : []
     if (t.fingers[f]) fingers.push(Number(f.slice(2)))
   })
+  var ring = config.ring || ringDefaults()
   return { threshold: config.threshold, hold_ms: config.holdMs, rocker: config.rocker,
+           ring: ring.enabled, double_ms: ring.doubleMs,
            touchpad: { enabled: t.enabled && fingers.length > 0, threshold_mm: t.thresholdMm,
                        fingers: fingers, native: native },
            taps: tapsDaemon(config, actions) }
@@ -303,7 +317,7 @@ function removeExclude(list, index) {
 
 if (typeof module !== "undefined") module.exports = {
   PATH_SUFFIX: PATH_SUFFIX, VERSION: VERSION, HYPR_FILE_SUFFIX: HYPR_FILE_SUFFIX, FINGERS: FINGERS,
-  touchpadDefaults: touchpadDefaults, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
+  touchpadDefaults: touchpadDefaults, ringDefaults: ringDefaults, cleanRing: cleanRing, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
   clone: clone, clampInt: clampInt, defaults: defaults, sanitize: sanitize, parse: parse,
   serialize: serialize, needsRestart: needsRestart, daemonConfig: daemonConfig,
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,

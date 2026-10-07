@@ -26,6 +26,14 @@ of that profile. "Remove" on a built-in gesture stores `none` for it (switched o
 "Reset" restores the built-in action. Key combinations can be recorded (press them) or
 typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
 
+## Workspace ring
+
+Double click the trigger and keep the second press held: ten workspaces appear around
+the pointer, 1 at the top and clockwise to 0 (= 10) left of it. Move towards one and
+release to switch; release in the middle to cancel. 1-5 always look normal, 6-0 are faded
+unless a window is on them. The daemon holds the first click back for the double click
+time, so with the ring on every ordinary click of the trigger arrives that much later.
+
 ## Trackpad
 
 Touchpads are read, never grabbed: libinput and Hyprland keep every event, so scrolling,
