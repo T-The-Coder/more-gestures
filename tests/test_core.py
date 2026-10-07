@@ -72,6 +72,14 @@ class ClassifyTest(unittest.TestCase):
     def test_own_virtual_device_is_excluded(self):
         self.assertIsNone(classify("more-gestures virtual (Mouse)", self.MOUSE))
 
+    def test_pointing_stick_skipped_unless_included(self):
+        self.assertIsNone(classify("TrackPoint", self.MOUSE, pointing_stick=True))
+        self.assertEqual(classify("TrackPoint", self.MOUSE, pointing_stick=True,
+                                  include_sticks=True), "pointer")
+
+    def test_rocker_off_by_default(self):
+        self.assertFalse(Config().rocker)
+
     def test_no_rel_is_not_pointer(self):
         self.assertIsNone(classify("Tablet", {EV_KEY: [BTN_RIGHT]}))
 
@@ -519,7 +527,7 @@ class WheelTest(unittest.TestCase):
 
 class RockerTest(unittest.TestCase):
     def setUp(self):
-        self.e = Engine(Config())
+        self.e = Engine(Config(rocker=True))
 
     def test_left_click_while_trigger_held(self):
         press(self.e)

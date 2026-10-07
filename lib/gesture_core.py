@@ -73,7 +73,9 @@ class Config:
     hold_time: float = 0.350  # Sekunden bis zum Nachsenden des Drucks
     emergency_time: float = 10.0  # Sekunden bis zum Zurücksetzen einer Geste
     max_segments: int = 4
-    rocker: bool = True  # Wippgesten (Auslösetaste + Linksklick und umgekehrt)
+    # Wippgesten (Auslösetaste + Linksklick und umgekehrt). Standard aus: Wer mit
+    # gedrückter linker Taste markiert und dann rechts klickt, will ein Kontextmenü.
+    rocker: bool = False
 
 
 def _number(value, low, high):
@@ -124,14 +126,20 @@ def _codes(caps, etype):
     return result
 
 
-def classify(name, caps, trigger=BTN_RIGHT):
+def classify(name, caps, trigger=BTN_RIGHT, pointing_stick=False, include_sticks=False):
     """Ordnet ein Gerät ein: "pointer", "keyboard" oder None.
+
+    Pointing-Sticks (TrackPoint) bleiben ohne `include_sticks` ungegriffen: Im
+    Live-Test ging über den uinput-Klon das Scrollen mit der mittleren Taste verloren,
+    obwohl udev den Klon als ID_INPUT_POINTINGSTICK erkennt.
 
     `caps` ist `InputDevice.capabilities()` (Typ -> Codes). Zeigegeräte haben REL_X,
     REL_Y und die Auslösetaste, aber kein ABS_MT: Touchpads und Touchscreens bleiben
     unberührt. Das eigene uinput-Gerät wird über den Namen ausgeschlossen.
     """
     if name.startswith(VIRTUAL_NAME_PREFIX):
+        return None
+    if pointing_stick and not include_sticks:
         return None
     rel = _codes(caps, EV_REL)
     keys = _codes(caps, EV_KEY)

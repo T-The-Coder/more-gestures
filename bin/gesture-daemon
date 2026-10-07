@@ -42,6 +42,19 @@ class Pointer:
         self.last_state = engine.state
 
 
+def is_pointing_stick(dev):
+    """INPUT_PROP_POINTING_STICK oder udevs ID_INPUT_POINTINGSTICK (hwdb setzt das auch
+    für Geräte ohne das Property-Bit, z. B. die SYNA-„Mouse“-Schnittstelle)."""
+    if ecodes.INPUT_PROP_POINTING_STICK in dev.input_props():
+        return True
+    try:
+        rdev = os.stat(dev.path).st_rdev
+        with open(f"/run/udev/data/c{os.major(rdev)}:{os.minor(rdev)}") as f:
+            return "E:ID_INPUT_POINTINGSTICK=1" in f.read().split("\n")
+    except OSError:
+        return False
+
+
 class Daemon:
     def __init__(self, args):
         self.dry_run = args.dry_run
@@ -50,8 +63,9 @@ class Daemon:
             threshold=args.threshold,
             hold_time=args.hold_ms / 1000.0,
             emergency_time=args.emergency_s,
-            rocker=not args.no_rocker,
+            rocker=args.rocker,
         )
+        self.include_sticks = args.include_pointing_sticks
         self.passthrough = False  # `pass on` gilt auch für später angesteckte Geräte
         self.stdin_buf = b""
         self.sel = selectors.DefaultSelector()
@@ -90,7 +104,8 @@ class Daemon:
             # nicht merken, der nächste Abgleich versucht es erneut.
             log(f"cannot open {path}: {e}")
             return
-        kind = core.classify(dev.name, dev.capabilities(), self.config.trigger)
+        kind = core.classify(dev.name, dev.capabilities(), self.config.trigger,
+                             is_pointing_stick(dev), self.include_sticks)
         if kind == "pointer":
             self.add_pointer(path, dev)
         elif kind == "keyboard":
@@ -293,8 +308,10 @@ def parse_args(argv):
                     help="hold time before the press is replayed (default: %(default)s)")
     ap.add_argument("--emergency-s", type=float, default=core.Config.emergency_time,
                     help="reset a gesture held longer than this (default: %(default)s)")
-    ap.add_argument("--no-rocker", action="store_true",
-                    help="disable rocker gestures (trigger + left click and vice versa)")
+    ap.add_argument("--rocker", action="store_true",
+                    help="enable rocker gestures (trigger + left click and vice versa)")
+    ap.add_argument("--include-pointing-sticks", action="store_true",
+                    help="also grab pointing sticks such as a TrackPoint (off by default)")
     return ap.parse_args(argv)
 
 

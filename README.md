@@ -64,7 +64,7 @@ stdout, one JSON object per line. Gesture events carry `"source":"mouse"`:
 Wheel and rocker replace the line gesture: if a path was already running it is cancelled
 first, and the press is discarded (no right click). Once the press has been replayed
 (held > 350 ms, i.e. a context menu is open) wheel and left clicks go to the application.
-Rocker gestures can be switched off (`--no-rocker`, `config`). Both are ignored while a
+Rocker gestures are off by default; switch them on with `--rocker` or `config`. Both are ignored while a
 modifier is down or `pass on` is active.
 
 stdin, one command per line:
@@ -77,7 +77,7 @@ stdin, one command per line:
 
 ```
 bin/gesture-daemon --dry-run          # grabs nothing, prints devices and state changes
-bin/gesture-daemon [--button right|middle|side|extra] [--threshold N] [--hold-ms N] [--emergency-s N] [--no-rocker]
+bin/gesture-daemon [--button right|middle|side|extra] [--threshold N] [--hold-ms N] [--emergency-s N] [--rocker] [--include-pointing-sticks]
 ```
 
 `--dry-run` still opens the devices for reading (needed to observe the state changes)
