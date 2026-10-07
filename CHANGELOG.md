@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+- "Show desktop" ends when another workspace is shown: on every workspace switch the
+  stashed windows go back to their workspace (the active one is left alone), so it
+  looks as expected when you come back.
+
 ### Fixed
 - Ring: releasing without having left the middle keeps the ring open, then a click on
   a slot runs it (in the first test the numbers "could not be clicked"). When no hover

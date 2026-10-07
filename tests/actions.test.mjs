@@ -396,3 +396,8 @@ test("corner taps resolve to workspaces", () => {
   assert.equal(A.GESTURE_KEY_PATTERN.test("tap:L"), false)
   assert.equal(A.tapText("tr3"), "↗ 3×")
 })
+
+test("restore chunk targets only our stash workspaces", () => {
+  assert.match(A.RESTORE_DESKTOPS_LUA, /more%-gestures%-desktop%-/)
+  assert.match(A.RESTORE_DESKTOPS_LUA, /^local active = hl\.get_active_workspace\(\)/)
+})

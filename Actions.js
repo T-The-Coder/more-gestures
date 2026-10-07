@@ -56,6 +56,24 @@ var SHOW_DESKTOP_LUA = [
   'end'
 ].join("\n")
 
+// Ends "show desktop" everywhere but on the active workspace: run by Service.qml on every
+// workspace switch. Without it, switching away and back later found the workspace empty
+// although nobody had asked to keep it cleared.
+var RESTORE_DESKTOPS_LUA = [
+  'local active = hl.get_active_workspace()',
+  'for _, w in ipairs(hl.get_workspaces() or {}) do',
+  '  local id = string.match(w.name or "", "more%-gestures%-desktop%-(%-?%d+)$")',
+  '  if id and w.windows > 0 and not (active and tostring(active.id) == id) then',
+  '    local target = tonumber(id) > 0 and id or nil',
+  '    if target then',
+  '      for _, win in ipairs(hl.get_workspace_windows("special:more-gestures-desktop-" .. id) or {}) do',
+  '        hl.dispatch(hl.dsp.window.move({ workspace = target, follow = false, window = win }))',
+  '      end',
+  '    end',
+  '  end',
+  'end'
+].join("\n")
+
 // hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
 // `hyprpm reload`. Say so instead of failing silently.
 var HYPREXPO_LUA = [
@@ -526,7 +544,7 @@ function parseActiveWindow(text) {
 
 if (typeof module !== "undefined") module.exports = {
   KEY_HOLD_MS: KEY_HOLD_MS, SEQUENCE_GAP_MS: SEQUENCE_GAP_MS, MAX_SEQUENCE: MAX_SEQUENCE,
-  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
+  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, RESTORE_DESKTOPS_LUA: RESTORE_DESKTOPS_LUA, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
   GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,

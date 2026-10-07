@@ -225,6 +225,19 @@ Item {
     if (cmd) Quickshell.execDetached(cmd.argv)
   }
 
+  // "Show desktop" ends when another workspace is shown: the stashed windows go back to
+  // their workspace (the Lua skips the active one). Debounced, a switch can come as
+  // several property changes.
+  Connections {
+    target: Hyprland
+    function onFocusedWorkspaceChanged() { restoreTimer.restart() }
+  }
+  Timer {
+    id: restoreTimer
+    interval: 150
+    onTriggered: Quickshell.execDetached(["hyprctl", "eval", Actions.RESTORE_DESKTOPS_LUA])
+  }
+
   RingOverlay {
     id: ring
     lang: root.lang
