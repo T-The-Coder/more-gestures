@@ -101,8 +101,15 @@ class Daemon:
         uinput = None
         if not self.dry_run:
             try:
+                # from_device copies only capabilities. Without the input props and
+                # ids, libinput no longer sees a TrackPoint (props 0x21) as a pointing
+                # stick: middle-button scrolling and its acceleration profile break,
+                # and hwdb/quirk entries keyed on vendor/product stop matching.
                 uinput = evdev.UInput.from_device(
-                    dev, name=f"{core.VIRTUAL_NAME_PREFIX} ({dev.name})"[:79]
+                    dev, name=f"{core.VIRTUAL_NAME_PREFIX} ({dev.name})"[:79],
+                    input_props=dev.input_props(),
+                    vendor=dev.info.vendor, product=dev.info.product,
+                    version=dev.info.version, bustype=dev.info.bustype,
                 )
                 dev.grab()
             except OSError as e:

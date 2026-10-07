@@ -192,3 +192,87 @@ angemeldet. Diese Sitzung übernimmt Orchestrierung, Prüfung und Freigabe.
 - `qs ipc call more-gestures status` zeigt Daemon-Zustand, Geräte und die letzte Geste.
 - Absturztest: Daemon mit `kill -9` beenden. Die Maus muss sofort wieder gehen, der Service
   startet ihn neu.
+
+---
+
+## Erweiterung (Nachtrag 2026-10-07): Trackpad, Indikator, eigene Tastenkombinationen
+
+### Ausgangslage auf diesem Rechner
+- Geräte: `SYNA8017 Touchpad` (props 0x5), `Apple Magic Trackpad` (Bluetooth, props 0x5),
+  `TPPS/2 Elan TrackPoint` (props 0x21 = POINTER|POINTING_STICK) und `SYNA8017 Mouse`.
+- In `~/.config/hypr/input.lua` sind schon eigene Hyprland-Gesten eingerichtet: 3 Finger links/rechts für Alt+Left/Right
+  (Zurück/Vor), 4 Finger waagerecht für die Arbeitsfläche (mit Animation), 4 Finger hoch für Exposé, runter für Hyprexpo
+  und Zusammenziehen für das App-Menü.
+- Wichtig für den Maus-Daemon: Der Klon über uinput muss die Input-Properties übernehmen
+  (`input_props`, besonders POINTING_STICK). Sonst erkennt libinput den TrackPoint nicht mehr, und Scrollen mit der
+  mittleren Taste sowie die TrackPoint-Beschleunigung gehen verloren. Hilft das nicht, werden Pointing-Sticks
+  standardmäßig vom Griff ausgenommen (Einstellung „TrackPoint einbeziehen“).
+
+### A. Trackpad-Gesten mit 3 oder 4 Fingern
+- **Mitlesen ohne Griff:** Der Daemon liest Touchpads (`ABS_MT_*`) zusätzlich nur passiv, mit Lesezugriff und ohne `grab()`.
+  libinput und Hyprland bekommen weiterhin alles. Scrollen, Tippen und die vorhandenen Hyprland-Gesten
+  bleiben unberührt.
+- **Erkennung:** Die Fingerzahl kommt aus `BTN_TOOL_TRIPLETAP`/`BTN_TOOL_QUADTAP`. Die Position ist der Mittelpunkt
+  der aktiven Slots, umgerechnet in mm über `absinfo.resolution`. Die Schwelle ist in mm angegeben (Standard 12 mm
+  je Segment), damit sie auf jedem Touchpad gleich wirkt. Es gibt dieselben Segmente U/D/L/R wie bei der Maus und dieselbe
+  Erkennung (gemeinsames, evdev-freies Modul). Eine Geste endet, wenn die Finger angehoben werden. Ändert sich die
+  Fingerzahl mitten in der Geste, wird abgebrochen.
+- **Ereignisse** bekommen eine Quelle: `{"type":"end","source":"touchpad","fingers":3,"gesture":"DR"}`. In der Belegung
+  stehen Gesten als `mouse:DR`, `tp3:DR` und `tp4:DR`. Fehlt ein Eintrag, gilt die gemeinsame Belegung `*:DR`.
+  Eine Belegung reicht so für alle Geräte, Abweichungen sind trotzdem möglich.
+- **Konflikt mit nativen Hyprland-Gesten:** Für jede Fingerzahl gibt es in den Einstellungen einen Modus:
+  - **Hyprland** (Standard für 4 Finger): Das Plugin ignoriert diese Fingerzahl. Die Wischgeste für die
+    Arbeitsfläche folgt dort den Fingern, und das kann das Plugin nicht nachbauen.
+  - **More Gestures** (Empfehlung für 3 Finger): Das Plugin wertet die Fingerzahl aus. Die bisherigen nativen
+    3-Finger-Gesten (Zurück/Vor) stecken in der Standardbelegung schon als L und R. Neu kommen Formen wie DR (Tab schließen),
+    UD (neu laden) und LU (geschlossenen Tab öffnen) hinzu.
+  - Damit nichts doppelt ausgelöst wird, müssen bei „More Gestures“ die nativen `hl.gesture`-Einträge dieser Fingerzahl
+    raus. Das macht man nicht zur Laufzeit mit „unset“, denn die Einträge kämen bei jedem Neuladen von Hyprland zurück,
+    sondern einmalig in der Konfiguration. Auf diesem Rechner heißt das: die zwei 3-Finger-Zeilen in `input.lua`
+    (Zeilen 80 und 81) auskommentieren, nach einem Backup und erst nach Rückfrage. `status()` meldet eine Warnung, wenn
+    Hyprland für eine vom Plugin genutzte Fingerzahl noch native Gesten meldet (soweit sich das per `hyprctl eval`
+    abfragen lässt, sonst ein Hinweis in den Einstellungen).
+- Das Mausrad hat beim Trackpad kein Gegenstück. Wippgesten gibt es nur bei der Maus.
+
+### B. Indikator „Geste wird erkannt“
+- **Wann:** Bei der Maus erst, wenn die Bewegungsschwelle überschritten ist. So blinkt bei normalen Rechtsklicks nichts.
+  Beim Trackpad, sobald 3 oder 4 Finger aufliegen und sich bewegen.
+- **Wo:** an der Zeigerposition beim Start (`hyprctl cursorpos`), auf dem Monitor unter dem Zeiger, als Layer-Overlay
+  ohne Eingabe.
+- **Was:**
+  1. Ein kleiner Ring zeigt „Geste aktiv“. Daneben steht ein Symbol für die Quelle: Maus oder Hand mit „3“ bzw. „4“.
+  2. Eine schematische Spur: jedes erkannte Segment als Pfeil. Das aktuelle Segment wächst sichtbar, bis es die
+     Schwelle erreicht (dafür sendet der Daemon `progress {dir, ratio}` mit höchstens 30 Hz).
+  3. Darunter steht der Name der Aktion, die beim Loslassen ausgeführt würde. Für Tastenkombinationen
+     steht dort die Kombination, z. B. „Strg+Umschalt+T“.
+  4. Farben aus dem Theme: neutral, solange erkannt wird, Akzentfarbe bei einer gültigen Aktion, gedimmt mit „—“ bei einer
+     unbekannten Geste. Beim Auslösen gibt es eine kurze Bestätigung (Häkchen, 150 ms), beim Abbrechen ein Ausblenden.
+- **Einstellung „Indikator“:** aus, minimal (nur Ring und Aktionsname) oder vollständig.
+  Das Überblenden lässt sich abschalten (Barrierefreiheit).
+
+### C. Tastenkombination als Aktion (für Maus und Trackpad)
+- Neue Aktionsart `keys`: `{ "type": "keys", "combo": ["CTRL SHIFT", "T"], "sequence": [...] }`.
+  - Eine Kombination: Modifier (SUPER, CTRL, ALT, SHIFT) plus eine Taste (xkb-Name: Buchstabe, Ziffer, F1–F24, Pfeile,
+    Tab, Return, Escape, Space, Prior/Next, Home/End, Delete, BackSpace, XF86-Medientasten).
+  - Optional eine **Folge** aus bis zu 4 Kombinationen mit 80 ms Abstand (z. B. Strg+K, Strg+S für VS Code).
+  - Optional **Ziel**: das aktive Fenster (Standard) oder eine Fensterklasse.
+- **Senden:** wie in `clipboard.lua` über `hl.dsp.send_key_state` erst „down“, nach 50 ms „up“, je Kombination, über `hyprctl eval`.
+  Einen Ziel-Parameter für eine Fensterklasse nur nutzen, wenn `send_key_state` ihn wirklich anbietet.
+  Das muss geprüft werden, sonst entfällt die Option.
+- **Sicherheit:** Modifier und Tastennamen werden in `Actions.js` gegen eine Positivliste bzw. die Regex `^[A-Za-z0-9_]+$`
+  geprüft. Der Lua-Text wird nur aus geprüften Teilen zusammengesetzt, damit keine Lua-Injektion über die Einstellungsdatei möglich ist.
+- **Einstellungen:** Im Feld „Aktion“ gibt es die Auswahl „Tastenkombination…“ mit einem Aufnahmefeld. Man klickt hinein
+  und drückt die Kombination, das Feld fängt sie als Qt-Tastenereignis ab und wandelt sie in Modifier und xkb-Namen um.
+  Alternativ lässt sie sich als Text eingeben („Strg+Umschalt+T“ oder „CTRL+SHIFT+T“). Ungültige Eingaben werden
+  sofort angezeigt.
+- Die Standard-Browserbelegung (Zurück, Tab schließen …) wird intern auf genau diese Aktionsart umgestellt. Es gibt
+  dann nur noch einen Weg, Tasten zu senden.
+
+### Auswirkung auf die Reihenfolge
+- Schritt 2 (Erkennung): Die Erkennung wird von Anfang an quellenneutral gebaut (Einheiten: Maus-Einheiten bzw. mm),
+  mit `progress`-Ereignissen.
+- Schritt 3 (Service/Actions): Aktionsart `keys` mit Folge und Validierung. Gestenschlüssel mit Quelle und Rückfall auf `*:`.
+- Schritt 4 (Overlay): Der Indikator wird wie unter B beschrieben gebaut.
+- **Neuer Schritt 4b:** Trackpad mitlesen (Touchpad-Erkennung, Fingerzahl, mm-Umrechnung, Modus je Fingerzahl) samt Tests
+  mit aufgezeichneten Mehrfinger-Folgen. Danach mit Rückfrage die 3-Finger-Zeilen in `input.lua` auskommentieren.
+- Schritt 5 (Einstellungen): dazu Aufnahmefeld für Tastenkombinationen, Modus je Fingerzahl, Indikatorstil, TrackPoint-Option.
