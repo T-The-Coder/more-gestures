@@ -443,6 +443,7 @@ function parseActiveWindow(text) {
 if (typeof module !== "undefined") module.exports = {
   KEY_HOLD_MS: KEY_HOLD_MS, SEQUENCE_GAP_MS: SEQUENCE_GAP_MS, MAX_SEQUENCE: MAX_SEQUENCE,
   MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
+  GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, keysLua: keysLua,

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import "Actions.js" as Actions
+import "Config.js" as Config
 
 // Gesture service: runs bin/gesture-daemon, turns its JSON lines into actions.
 //
@@ -16,9 +17,9 @@ Item {
   readonly property string daemonPath: decodeURIComponent(Qt.resolvedUrl("bin/gesture-daemon").toString().replace(/^file:\/\//, ""))
   readonly property string lang: Qt.locale().name
 
-  // Settings come from the state file (written by the settings UI in a later step).
+  // Settings come from the state file, written by Settings.qml (shared contract: Config.js).
   // Broken or missing JSON yields the defaults instead of an error.
-  property var config: parseConfig("")
+  property var config: Config.defaults(Actions)
   // Runtime switch from IPC; deliberately not persisted.
   property bool enabled: true
 
@@ -37,51 +38,31 @@ Item {
 
   readonly property bool shouldRun: enabled && configLoaded && config.enabled
 
-  function parseConfig(text) {
-    var raw = {}
-    try { raw = JSON.parse(text) } catch (e) { raw = {} }
-    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) raw = {}
-    function num(v, lo, hi, fallback) {
-      var n = Number(v)
-      return isFinite(n) && n >= lo && n <= hi ? n : fallback
-    }
-    var buttons = ["right", "middle", "side", "extra"]
-    return {
-      enabled: raw.enabled !== false,
-      button: buttons.indexOf(raw.button) >= 0 ? raw.button : "right",
-      threshold: num(raw.threshold, 1, 5000, 20),
-      holdMs: num(raw.holdMs, 0, 5000, 350),
-      rocker: raw.rocker === true,
-      indicator: Actions.normalizeIndicator(raw.indicator),
-      animations: raw.animations !== false,
-      exclude: Array.isArray(raw.exclude) ? raw.exclude : Actions.DEFAULT_EXCLUDES,
-      bindings: raw.bindings
-    }
-  }
-
   FileView {
     id: stateFile
     path: root.statePath
     watchChanges: true
     atomicWrites: true
     printErrors: false
-    onLoaded: { root.applyConfig(root.parseConfig(text())); root.configLoaded = true }
-    onLoadFailed: { root.applyConfig(root.parseConfig("")); root.configLoaded = true }
+    onLoaded: { root.applyConfig(Config.parse(text(), Actions)); root.configLoaded = true }
+    onLoadFailed: { root.applyConfig(Config.defaults(Actions)); root.configLoaded = true }
     onFileChanged: reload()
   }
 
-  // The trigger button is a daemon start argument, so only a change of it (or of the
-  // other start values) needs a restart; bindings and exclusions apply at once.
+  // The trigger button decides which devices the daemon grabs, so only a change of it
+  // restarts the daemon. Threshold, hold time and rocker go to the running daemon as
+  // `config {json}`; bindings, exclusions, indicator and wheel apply at once here.
   function applyConfig(next) {
-    var restart = next.button !== root.config.button
-      || next.threshold !== root.config.threshold
-      || next.holdMs !== root.config.holdMs
-      || next.rocker !== root.config.rocker
+    var prev = root.config
     root.config = next
     root.syncPass(true)
-    if (restart && daemon.running) {
-      root.restarts = 0
-      daemon.running = false  // onExited starts it again
+    if (Config.needsRestart(prev, next)) {
+      if (daemon.running) {
+        root.restarts = 0
+        daemon.running = false  // onExited starts it again with the new arguments
+      }
+    } else if (Config.daemonConfigChanged(prev, next)) {
+      root.sendLine(Config.daemonConfigLine(next))
     }
   }
 
@@ -173,6 +154,9 @@ Item {
       overlay.cancel()
       return
     }
+    // The daemon swallows the wheel while the trigger is held; with the wheel setting off
+    // the step is simply dropped instead of acting.
+    if (event.type === "wheel" && !root.config.wheel) return
     var gesture = Actions.eventGesture(event)
     if (gesture === "") return
     var fired = root.fire(event, gesture)
@@ -282,6 +266,11 @@ Item {
     function enable(): string { root.enabled = true; return "enabled" }
     function disable(): string { root.enabled = false; return "disabled" }
     function toggle(): string { root.enabled = !root.enabled; return root.enabled ? "enabled" : "disabled" }
+    // Opens the settings overlay (same as the launcher entry from bin/install-app-entry).
+    function settings(): string {
+      Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "more-gestures"])
+      return "ok"
+    }
 
     // JSON for diagnosis: daemon state, active window, last gesture.
     function status(): string {

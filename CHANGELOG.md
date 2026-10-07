@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Added (step 5, mouse only)
+- `Settings.qml`: settings overlay (`omarchy-shell shell toggle more-gestures`, IPC
+  `more-gestures settings`). On/off, trigger button, threshold, hold time, rocker, wheel,
+  indicator, animations; gesture → action per profile (desktop, browser, terminal) with
+  arrow buttons, desktop actions, key combinations (record or type, up to 4 steps), command
+  or nothing; exclusion list. Writes only on Save; the service applies the file live.
+- `Config.js` (settings contract, sanitising, binding edits), `Keys.js` (Qt key events and
+  typed text → xkb combos), `I18n.js` (English/German).
+- App icon: a schematic mouse (square split by a cross without its lower arm).
+  `bin/app-icon` renders it in the theme's colors, `bin/install-app-entry` adds a launcher
+  entry and a theme-set hook that recolors it (`--remove` undoes all three).
+  `MouseGlyph.qml` draws the same symbol in the settings header.
+
+### Changed
+- The trail starts on the ring's outer edge and ends in an arrowhead; the ring uses the
+  trail's stroke width (`Trail.js`).
+
 ### Added (step 4)
 - `GestureOverlay.qml`: real gesture line drawn from hover positions of a transparent
   full-screen layer-shell surface on the monitor under the pointer, plus an indicator (ring,

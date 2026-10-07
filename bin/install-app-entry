@@ -1,0 +1,43 @@
+#!/bin/bash
+# Adds More Gestures to the app launcher: an icon in the theme's colors, a .desktop
+# entry that opens the settings overlay, and a theme-set hook that recolors the icon
+# on every theme change. `--remove` takes all three away again.
+
+set -eu
+
+dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+desktop="$HOME/.local/share/applications/more-gestures.desktop"
+hook="$HOME/.config/omarchy/hooks/theme-set.d/more-gestures-icon-hook"
+icon="$HOME/.local/share/icons/hicolor/scalable/apps/more-gestures.svg"
+
+if [[ ${1:-} == --remove ]]; then
+  rm -f "$desktop" "$hook" "$icon"
+  echo "More Gestures app entry removed"
+  exit 0
+fi
+
+"$dir/app-icon"
+
+mkdir -p "$(dirname "$desktop")"
+cat >"$desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=More Gestures
+Comment=Mouse gestures: trigger button, actions, indicator
+Exec=omarchy-shell shell toggle more-gestures
+Icon=more-gestures
+Terminal=false
+Categories=Settings;Utility;
+Keywords=Mouse;Gestures;Maus;Gesten;Opera;
+DESKTOP
+
+mkdir -p "$(dirname "$hook")"
+cat >"$hook" <<HOOK
+#!/bin/bash
+# Recolor the More Gestures app icon to the newly applied theme.
+[[ -x "$dir/app-icon" ]] && exec "$dir/app-icon"
+HOOK
+chmod +x "$hook"
+
+echo "More Gestures app entry installed"

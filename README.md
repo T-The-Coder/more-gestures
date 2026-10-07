@@ -13,6 +13,19 @@ Plugin-Service, Aktionen mit Standardbelegung und Overlay (echte Linie + Indikat
 Einstellungsoberfläche fehlt noch (`Settings.qml` ist ein Platzhalter, `indicator` und
 `animations` stehen vorerst nur in der Zustandsdatei).
 
+## Settings (`Settings.qml`)
+
+Open with `omarchy-shell shell toggle more-gestures`, `qs ipc -p /usr/share/omarchy/shell
+call more-gestures settings`, or the launcher entry "More Gestures" (install it once with
+`bin/install-app-entry`; `bin/install-app-entry --remove` takes it away). Changes are
+written to `~/.local/state/omarchy/settings/more-gestures.json` on Save and applied live:
+a new trigger button restarts the daemon, everything else applies at once.
+
+Per profile, the list shows only entries that differ from the defaults plus the defaults
+of that profile. "Remove" on a built-in gesture stores `none` for it (switched off),
+"Reset" restores the built-in action. Key combinations can be recorded (press them) or
+typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
+
 ## Overlay (`GestureOverlay.qml`)
 
 Created by `Service.qml`; lives only while a gesture runs.
