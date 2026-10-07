@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added (step 4b, trackpad)
+- Trackpad gestures with 3 or 4 fingers (`lib/touchpad_core.py`): the daemon reads
+  touchpads passively (no grab), counts fingers, measures in mm, recognises lines, shapes
+  and pinch in/out. Gesture keys `tp3:`/`tp4:` per gesture, falling back to `*:`.
+- Hyprland's workspace swipe (follows the fingers) stays native: the plugin writes
+  `~/.local/state/omarchy/settings/more-gestures-hypr.lua`, which `input.lua` loads with
+  `dofile`; the daemon ignores left/right for those finger counts.
+- Actions "Show desktop" (windows of the workspace to a hidden special workspace and
+  back), "Exposé" (expose.window-overview plugin) and "Hyprexpo" (with a notice when the
+  hyprpm plugin is not loaded). Trackpad defaults: 4 fingers up Exposé, down show desktop,
+  pinch in apps menu, pinch out Hyprexpo.
+- Settings: trackpad section (on/off, finger counts, native swipe per count, segment
+  length in mm, Exposé plugin tip), device choice and pinch buttons in the editor.
+
 ### Added (step 5, mouse only)
 - `Settings.qml`: settings overlay (`omarchy-shell shell toggle more-gestures`, IPC
   `more-gestures settings`). On/off, trigger button, threshold, hold time, rocker, wheel,

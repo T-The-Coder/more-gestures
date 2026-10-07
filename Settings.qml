@@ -33,6 +33,7 @@ Item {
   property bool editorOpen: false
   property string editKey: ""
   property string editGesture: ""
+  property string editSource: "*"       // "*", "mouse", "tp3", "tp4"
   property string editType: "dispatch"
   property string editDispatch: "workspace-prev"
   property var editSteps: [""]          // keys: one text per combination
@@ -42,6 +43,8 @@ Item {
   property int recordingStep: -1        // index of the step being recorded, -1 = none
 
   readonly property string statePath: Quickshell.env("HOME") + Config.PATH_SUFFIX
+  // Exposé is an action here, but it needs the expose.window-overview plugin.
+  property bool exposeInstalled: true
 
   // Shares the [menu] surface tokens like the other Omarchy overlays.
   readonly property color background: Color.menu.background
@@ -56,6 +59,7 @@ Item {
   // ------------------------------------------------------------------ lifecycle
 
   function open(payloadJson) {
+    exposeProbe.running = true
     stateFile.reload()
     root.working = Config.parse(stateFile.text(), Actions)
     root.profile = "default"
@@ -77,6 +81,7 @@ Item {
   function syncControls() {
     thresholdField.field.value = root.working.threshold
     holdField.field.value = root.working.holdMs
+    mmField.field.value = root.working.touchpad.thresholdMm
   }
 
   function save() {
@@ -105,6 +110,7 @@ Item {
     if (!row) {
       root.editKey = ""
       root.editGesture = ""
+      root.editSource = "*"
       root.editType = "dispatch"
       root.editDispatch = "workspace-prev"
       root.editSteps = [""]
@@ -115,6 +121,7 @@ Item {
       var action = a.ok ? a.action : { type: "none" }
       root.editKey = row.key
       root.editGesture = row.gesture
+      root.editSource = row.source
       root.editType = action.type
       root.editDispatch = action.type === "dispatch" ? action.id : "workspace-prev"
       root.editSteps = action.type === "keys"
@@ -136,7 +143,8 @@ Item {
   }
 
   function addDir(d) {
-    if (root.editGesture.length >= 4 || /^(wheel|rocker)-/.test(root.editGesture)) return
+    if (/^(wheel|rocker|pinch)/.test(root.editGesture)) root.editGesture = ""
+    if (root.editGesture.length >= 4) return
     // Equal neighbours merge in the recogniser, so "LL" could never be drawn.
     if (root.editGesture.slice(-1) === d) return
     root.editGesture += d
@@ -176,9 +184,7 @@ Item {
   }
 
   function applyEditor() {
-    // Existing rows keep their device scope; new gestures apply to all devices.
-    var source = root.editKey !== "" ? root.editKey.split(":")[0] : "*"
-    var key = Config.gestureKeyFor(source, root.editGesture, Actions)
+    var key = Config.gestureKeyFor(root.editSource, root.editGesture, Actions)
     if (key === "") { root.editError = root.tr("err_gesture"); return }
     var built = root.editorAction()
     if (!built.ok) { root.editError = built.error; return }
@@ -203,11 +209,30 @@ Item {
 
   // wheel-up / rocker-left read as "Wheel ↑" / "Rocker ←" instead of internal ids.
   function gestureText(g) {
-    if (/^[UDLR]+$/.test(g)) return Actions.arrowText(g)
+    if (/^[UDLR]+$/.test(g) || /^pinch/.test(g)) return Actions.arrowText(g)
     var m = /^(wheel|rocker)-(up|down|left|right)$/.exec(g)
     if (!m) return g
     var arrow = { up: "↑", down: "↓", left: "←", right: "→" }[m[2]]
     return root.tr("gesture_" + m[1]) + " " + arrow
+  }
+
+  function setTouchpad(key, sub, value) {
+    var next = Config.clone(root.working)
+    if (sub) next.touchpad[key][sub] = value
+    else next.touchpad[key] = value
+    root.working = Config.sanitize(next, Actions)
+  }
+
+  function sourceText(source) {
+    return source === "mouse" ? root.tr("source_mouse")
+      : source === "tp3" ? root.tr("source_tp3")
+      : source === "tp4" ? root.tr("source_tp4") : ""
+  }
+
+  Process {
+    id: exposeProbe
+    command: ["test", "-d", Quickshell.env("HOME") + "/.config/omarchy/plugins/expose.window-overview"]
+    onExited: function(code) { root.exposeInstalled = code === 0 }
   }
 
   // ------------------------------------------------------------------- storage
@@ -446,6 +471,68 @@ Item {
               }
             }
 
+            // ----------------------------------------------------- trackpad
+            Column {
+              width: parent.width
+              spacing: Style.spacing.md
+
+              PanelSectionHeader { text: root.tr("trackpad"); foreground: root.foreground; fontFamily: root.fontFamily }
+
+              Toggle {
+                width: parent.width
+                label: root.tr("trackpadEnabled")
+                description: root.tr("trackpadHint")
+                checked: root.working.touchpad.enabled
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onClicked: root.setTouchpad("enabled", "", !root.working.touchpad.enabled)
+              }
+
+              Repeater {
+                model: Config.FINGERS
+                delegate: Column {
+                  required property string modelData
+                  width: content.width
+                  spacing: Style.spacing.sm
+                  visible: root.working.touchpad.enabled
+                  Toggle {
+                    width: parent.width
+                    label: root.tr("fingers_" + modelData)
+                    description: root.tr("fingersHint")
+                    checked: root.working.touchpad.fingers[modelData]
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onClicked: root.setTouchpad("fingers", modelData, !root.working.touchpad.fingers[modelData])
+                  }
+                  Toggle {
+                    width: parent.width
+                    label: root.tr("swipe_" + modelData)
+                    description: root.tr("swipeHint")
+                    checked: root.working.touchpad.swipe[modelData]
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onClicked: root.setTouchpad("swipe", modelData, !root.working.touchpad.swipe[modelData])
+                  }
+                }
+              }
+
+              NumberField {
+                id: mmField
+                visible: root.working.touchpad.enabled
+                label: root.tr("thresholdMm")
+                from: Config.LIMITS.thresholdMm.min
+                to: Config.LIMITS.thresholdMm.max
+                value: root.working.touchpad.thresholdMm
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onModified: function(v) { root.setTouchpad("thresholdMm", "", v) }
+              }
+
+              Hint { width: parent.width; visible: root.working.touchpad.enabled; text: root.tr("swipeFileHint") }
+              Hint {
+                width: parent.width
+                visible: !root.exposeInstalled
+                color: root.accent
+                text: root.tr("exposeRecommend")
+              }
+            }
+
             // ----------------------------------------------------- bindings
             Column {
               width: parent.width
@@ -494,7 +581,7 @@ Item {
                     elide: Text.ElideRight
                     text: Actions.actionName(modelData.action, root.lang)
                       + (modelData.overridden ? "  ·  " + root.tr("custom") : "")
-                      + (modelData.source !== "*" ? "  ·  " + modelData.source : "")
+                      + (modelData.source !== "*" ? "  ·  " + root.sourceText(modelData.source) : "")
                     color: root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.body
@@ -542,6 +629,22 @@ Item {
                   anchors.margins: Style.spacing.lg
                   spacing: Style.spacing.md
 
+                  Label { text: root.tr("source") }
+                  ButtonGroup {
+                    value: root.editSource
+                    options: [
+                      { value: "*", label: root.tr("source_all") },
+                      { value: "mouse", label: root.tr("source_mouse") },
+                      { value: "tp3", label: root.tr("source_tp3") },
+                      { value: "tp4", label: root.tr("source_tp4") }
+                    ]
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onChanged: function(v) {
+                      root.editSource = v
+                      if (/^pinch/.test(root.editGesture) && v.indexOf("tp") !== 0 && v !== "*") root.editGesture = ""
+                    }
+                  }
+
                   Label { text: root.tr("gesture") }
                   Row {
                     spacing: Style.spacing.sm
@@ -553,7 +656,22 @@ Item {
                         onClicked: root.addDir(modelData)
                       }
                     }
-                    SmallButton { text: "⌫"; onClicked: root.editGesture = root.editGesture.slice(0, -1) }
+                    SmallButton {
+                      text: "→←"
+                      tooltipText: root.tr("pinchin")
+                      visible: root.editSource !== "mouse"
+                      onClicked: root.editGesture = "pinchin"
+                    }
+                    SmallButton {
+                      text: "←→"
+                      tooltipText: root.tr("pinchout")
+                      visible: root.editSource !== "mouse"
+                      onClicked: root.editGesture = "pinchout"
+                    }
+                    SmallButton {
+                      text: "⌫"
+                      onClicked: root.editGesture = /^pinch/.test(root.editGesture) ? "" : root.editGesture.slice(0, -1)
+                    }
                     SmallButton { text: root.tr("clear"); onClicked: root.editGesture = "" }
                     Text {
                       anchors.verticalCenter: parent.verticalCenter

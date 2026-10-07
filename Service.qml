@@ -44,8 +44,8 @@ Item {
     watchChanges: true
     atomicWrites: true
     printErrors: false
-    onLoaded: { root.applyConfig(Config.parse(text(), Actions)); root.configLoaded = true }
-    onLoadFailed: { root.applyConfig(Config.defaults(Actions)); root.configLoaded = true }
+    onLoaded: { root.applyConfig(Config.parse(text(), Actions)); root.configLoaded = true; root.syncHyprFile() }
+    onLoadFailed: { root.applyConfig(Config.defaults(Actions)); root.configLoaded = true; root.syncHyprFile() }
     onFileChanged: reload()
   }
 
@@ -56,6 +56,7 @@ Item {
     var prev = root.config
     root.config = next
     root.syncPass(true)
+    root.syncHyprFile()
     if (Config.needsRestart(prev, next)) {
       if (daemon.running) {
         root.restarts = 0
@@ -64,6 +65,41 @@ Item {
     } else if (Config.daemonConfigChanged(prev, next)) {
       root.sendLine(Config.daemonConfigLine(next))
     }
+  }
+
+  // ------------------------------------------------- native Hyprland gestures
+
+  // Hyprland's workspace swipe follows the fingers, which the plugin cannot do, so it
+  // stays native: Config.hyprLua writes the hl.gesture lines into a file that
+  // ~/.config/hypr/input.lua loads with dofile. Rewritten (and Hyprland reloaded) only
+  // when its content changes, so an ordinary start never reloads Hyprland.
+  readonly property string hyprPath: Quickshell.env("HOME") + Config.HYPR_FILE_SUFFIX
+  property bool hyprLoaded: false
+  property bool hyprReloadPending: false
+
+  FileView {
+    id: hyprFile
+    path: root.hyprPath
+    blockAllReads: true
+    atomicWrites: true
+    printErrors: false
+    onLoaded: { root.hyprLoaded = true; root.syncHyprFile() }
+    onLoadFailed: { root.hyprLoaded = true; root.syncHyprFile() }
+    onSaved: {
+      if (!root.hyprReloadPending) return
+      root.hyprReloadPending = false
+      Quickshell.execDetached(["hyprctl", "reload"])
+    }
+  }
+
+  function syncHyprFile() {
+    if (!root.hyprLoaded || !root.configLoaded) return
+    var wanted = Config.hyprLua(root.config)
+    var current = ""
+    try { current = hyprFile.text() } catch (e) { current = "" }
+    if (current === wanted) return
+    root.hyprReloadPending = true
+    hyprFile.setText(wanted)
   }
 
   // ------------------------------------------------------------ active window
@@ -225,6 +261,9 @@ Item {
       root.daemonReady = true
       stableTimer.restart()
       root.syncPass(true)
+      // The command line only carries button, threshold and hold time; everything else
+      // (touchpad, rocker) reaches a fresh daemon this way.
+      root.sendLine(Config.daemonConfigLine(root.config))
       var queued = root.pendingLines
       root.pendingLines = []
       // syncPass above already covers queued pass lines; replay anything else.

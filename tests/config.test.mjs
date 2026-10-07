@@ -168,7 +168,8 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   b.threshold = 40
   assert.equal(Config.needsRestart(a, b), false)
   assert.equal(Config.daemonConfigChanged(a, b), true)
-  assert.equal(Config.daemonConfigLine(b), 'config {"threshold":40,"hold_ms":350,"rocker":false}')
+  assert.equal(Config.daemonConfigLine(b), 'config {"threshold":40,"hold_ms":350,"rocker":false,'
+    + '"touchpad":{"enabled":true,"threshold_mm":12,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}}}')
   b.button = "middle"
   assert.equal(Config.needsRestart(a, b), true)
   // indicator, exclusions, bindings, wheel never touch the daemon
@@ -176,4 +177,18 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   c.indicator = "off"; c.exclude = []; c.wheel = false
   assert.equal(Config.daemonConfigChanged(a, c), false)
   assert.equal(Config.needsRestart(a, c), false)
+})
+
+test("touchpad settings are cleaned and drive the native swipe file", () => {
+  const c = Config.sanitize({ touchpad: { thresholdMm: 999, swipe: { tp3: true, tp4: "yes" }, fingers: { tp3: false } } })
+  assert.equal(c.touchpad.thresholdMm, Config.LIMITS.thresholdMm.max)
+  assert.deepEqual(c.touchpad.swipe, { tp3: true, tp4: true })
+  assert.deepEqual(c.touchpad.fingers, { tp3: false, tp4: true })
+  const lua = Config.hyprLua(c)
+  assert.match(lua, /fingers = 3, direction = "horizontal", action = "workspace"/)
+  assert.match(lua, /fingers = 4, direction = "horizontal"/)
+  const off = Config.sanitize({ touchpad: { enabled: false } })
+  assert.doesNotMatch(Config.hyprLua(off), /hl\.gesture/)
+  assert.deepEqual(Config.daemonConfig(c).touchpad.fingers, [4])
+  assert.deepEqual(Config.daemonConfig(c).touchpad.native, { 3: ["L", "R"], 4: ["L", "R"] })
 })

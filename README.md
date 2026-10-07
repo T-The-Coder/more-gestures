@@ -26,6 +26,31 @@ of that profile. "Remove" on a built-in gesture stores `none` for it (switched o
 "Reset" restores the built-in action. Key combinations can be recorded (press them) or
 typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
 
+## Trackpad
+
+Touchpads are read, never grabbed: libinput and Hyprland keep every event, so scrolling,
+tapping and Hyprland's own gestures keep working. With 3 or 4 fingers the daemon
+recognises lines and shapes (segment length in mm) and pinch in/out; a gesture ends when
+the fingers lift. Bindings use `tp3:` / `tp4:` per gesture and fall back to the shared
+`*:` entries.
+
+Hyprland's workspace swipe follows the fingers, which a gesture recogniser cannot do, so
+it stays native. The plugin writes the `hl.gesture` lines for it into
+`~/.local/state/omarchy/settings/more-gestures-hypr.lua` (only when they change, then
+`hyprctl reload`). Load that file from `~/.config/hypr/input.lua`:
+
+```lua
+local more_gestures = os.getenv("HOME") .. "/.local/state/omarchy/settings/more-gestures-hypr.lua"
+local more_gestures_file = io.open(more_gestures, "r")
+if more_gestures_file then
+  more_gestures_file:close()
+  dofile(more_gestures)
+end
+```
+
+Remove other `hl.gesture` lines for the finger counts the plugin reads, or both act.
+For the "Exposé" action install the `expose.window-overview` plugin.
+
 ## Overlay (`GestureOverlay.qml`)
 
 Created by `Service.qml`; lives only while a gesture runs.

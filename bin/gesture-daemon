@@ -22,6 +22,7 @@ import evdev  # noqa: E402
 from evdev import ecodes  # noqa: E402
 
 import gesture_core as core  # noqa: E402
+import touchpad_core as tpc  # noqa: E402
 
 RESCAN_INTERVAL = 2.0  # Sekunden zwischen den Hotplug-Abgleichen von /dev/input
 
@@ -71,6 +72,9 @@ class Daemon:
         self.sel = selectors.DefaultSelector()
         self.pointers = {}  # Pfad -> Pointer
         self.keyboards = {}  # Pfad -> (Gerät, gedrückte Modifier-Codes)
+        # Touchpads are only read, never grabbed: libinput and Hyprland keep everything.
+        self.touchpads = {}  # Pfad -> (Gerät, TouchpadEngine)
+        self.tp_settings = tpc.TouchpadSettings(enabled=not args.no_touchpad)
         self.rejected = set()  # Pfade ohne passendes Gerät, nicht jede 2 s neu öffnen
         self.next_scan = 0.0
 
@@ -93,7 +97,10 @@ class Daemon:
             self.drop_pointer(path)
         for path in set(self.keyboards) - paths:
             self.drop_keyboard(path)
-        for path in sorted(paths - set(self.pointers) - set(self.keyboards) - self.rejected):
+        for path in set(self.touchpads) - paths:
+            self.drop_touchpad(path)
+        known = set(self.pointers) | set(self.keyboards) | set(self.touchpads)
+        for path in sorted(paths - known - self.rejected):
             self.add_device(path)
 
     def add_device(self, path):
@@ -104,7 +111,11 @@ class Daemon:
             # nicht merken, der nächste Abgleich versucht es erneut.
             log(f"cannot open {path}: {e}")
             return
-        kind = core.classify(dev.name, dev.capabilities(), self.config.trigger,
+        caps = dev.capabilities()
+        if tpc.classify_touchpad(caps, dev.input_props()):
+            self.add_touchpad(path, dev)
+            return
+        kind = core.classify(dev.name, caps, self.config.trigger,
                              is_pointing_stick(dev), self.include_sticks)
         if kind == "pointer":
             self.add_pointer(path, dev)
@@ -169,6 +180,43 @@ class Daemon:
                 step()
             except OSError:
                 pass  # Gerät ist schon weg
+
+    def add_touchpad(self, path, dev):
+        def res(code):
+            try:
+                return dev.absinfo(code).resolution or 1
+            except (OSError, KeyError):
+                return 1
+        engine = tpc.TouchpadEngine(self.tp_settings, res(tpc.ABS_MT_POSITION_X),
+                                    res(tpc.ABS_MT_POSITION_Y))
+        engine.set_passthrough(self.passthrough)
+        self.touchpads[path] = (dev, engine)
+        self.sel.register(dev.fd, selectors.EVENT_READ, ("touchpad", path))
+        self.say(f"touchpad (read only): {dev.name} [{path}]")
+        log(f"watching touchpad {dev.name} [{path}]")
+
+    def drop_touchpad(self, path):
+        dev, engine = self.touchpads.pop(path)
+        try:
+            self.sel.unregister(dev.fd)
+        except (KeyError, ValueError):
+            pass
+        for m in engine.reset():
+            self.send(m.payload)
+        try:
+            dev.close()
+        except OSError:
+            pass
+
+    def read_touchpad(self, path):
+        dev, engine = self.touchpads[path]
+        for ev in dev.read():
+            if ev.type == core.EV_SYN and ev.code == ecodes.SYN_DROPPED:
+                for m in engine.reset():
+                    self.send(m.payload)
+                continue
+            for m in engine.handle(time.monotonic(), ev.type, ev.code, ev.value):
+                self.send(m.payload)
 
     def drop_keyboard(self, path):
         dev, _ = self.keyboards.pop(path)
@@ -245,8 +293,17 @@ class Daemon:
             now = time.monotonic()
             for p in self.pointers.values():
                 self.apply(p, p.engine.set_passthrough(now, value))
+            for _, engine in self.touchpads.values():
+                for m in engine.set_passthrough(value):
+                    self.send(m.payload)
             self.say(f"pass {'on' if value else 'off'}")
         else:
+            value = dict(value)
+            touchpad = value.pop("touchpad", None)
+            if isinstance(touchpad, dict):
+                bad = tpc.update_settings(self.tp_settings, touchpad)
+                if bad:
+                    log(f"config: ignored invalid touchpad entries: {', '.join(map(str, bad))}")
             rejected = core.update_config(self.config, value)
             if rejected:
                 log(f"config: ignored invalid entries: {', '.join(map(str, rejected))}")
@@ -277,6 +334,8 @@ class Daemon:
                             return  # Dienst weg oder Pipe zu: sauber beenden
                     elif kind == "pointer":
                         self.read_pointer(path)
+                    elif kind == "touchpad":
+                        self.read_touchpad(path)
                     else:
                         self.read_keyboard(path)
                 except OSError as e:
@@ -287,6 +346,8 @@ class Daemon:
                         self.drop_pointer(path)
                     elif kind == "keyboard" and path in self.keyboards:
                         self.drop_keyboard(path)
+                    elif kind == "touchpad" and path in self.touchpads:
+                        self.drop_touchpad(path)
                     self.rejected.discard(path)
 
     def close(self):
@@ -294,6 +355,8 @@ class Daemon:
             self.drop_pointer(path)
         for path in list(self.keyboards):
             self.drop_keyboard(path)
+        for path in list(self.touchpads):
+            self.drop_touchpad(path)
 
 
 def parse_args(argv):
@@ -310,6 +373,8 @@ def parse_args(argv):
                     help="reset a gesture held longer than this (default: %(default)s)")
     ap.add_argument("--rocker", action="store_true",
                     help="enable rocker gestures (trigger + left click and vice versa)")
+    ap.add_argument("--no-touchpad", action="store_true",
+                    help="do not read touchpads (3/4-finger gestures off)")
     ap.add_argument("--include-pointing-sticks", action="store_true",
                     help="also grab pointing sticks such as a TrackPoint (off by default)")
     return ap.parse_args(argv)

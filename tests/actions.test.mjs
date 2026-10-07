@@ -296,8 +296,30 @@ test("every default action is valid and has a name in both languages", () => {
   }
   for (const [id, d] of Object.entries(A.DISPATCH)) {
     assert.ok(d.en && d.de, id)
-    assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
+    // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
+    // hyprexpo) that is passed to `hyprctl eval` as is.
+    if (d.chunk) assert.match(d.chunk, /^local /, id)
+    else assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
   }
+})
+
+test("pinch gestures and trackpad defaults resolve", () => {
+  const cfg = { bindings: {} }
+  const ev = (fingers, gesture) => ({ type: "end", source: "touchpad", fingers, gesture })
+  assert.equal(A.gestureKey(ev(4, "pinchout")), "tp4:pinchout")
+  assert.equal(A.resolve(ev(4, "pinchout"), {}, cfg).action.id, "hyprexpo")
+  assert.equal(A.resolve(ev(4, "D"), {}, cfg).action.id, "show-desktop")
+  assert.equal(A.resolve(ev(4, "U"), {}, cfg).action.id, "expose")
+  // Three fingers fall back to the shared "*:" table, in the browser to back/forward.
+  assert.equal(A.resolve(ev(3, "L"), { tags: ["chromium-based-browser"] }, cfg).action.label, "back")
+  assert.deepEqual(A.arrowList("pinchin"), ["→←"])
+})
+
+test("chunk dispatchers are passed through unchanged", () => {
+  const cmd = A.buildCommand({ type: "dispatch", id: "show-desktop" })
+  assert.equal(cmd.argv[0], "hyprctl")
+  assert.equal(cmd.argv[2], A.DISPATCH["show-desktop"].chunk)
+  assert.match(cmd.argv[2], /special:more-gestures-desktop-/)
 })
 
 test("isExcluded: class, tag, prefix, case", () => {

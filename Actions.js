@@ -29,12 +29,40 @@ var PROFILE_TAGS = [
 ]
 
 var SOURCES = ["*", "mouse", "tp3", "tp4"]
-var GESTURE_KEY_PATTERN = /^(\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right)$/
+var GESTURE_KEY_PATTERN = /^(\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)$/
 
 // Windows the plugin must not touch (games, VMs). Trailing "*" is a prefix match.
 var DEFAULT_EXCLUDES = ["steam_app_*", "retroarch", "qemu*", "virt-manager", "gamescope"]
 
 // ------------------------------------------------------------------ dispatchers
+
+// Hyprland has no "show desktop" dispatcher. Toggle: the windows of the active workspace
+// move to a hidden special workspace and back. The decision is made from what is on that
+// special workspace, not from remembered state, so a Hyprland reload in between cannot
+// strand the windows there.
+var SHOW_DESKTOP_LUA = [
+  'local ws = hl.get_active_workspace()',
+  'if not ws or ws.special then return end',
+  'local here = ws.id > 0 and tostring(ws.id) or ("name:" .. ws.name)',
+  'local hidden = "special:more-gestures-desktop-" .. ws.id',
+  'local stash = hl.get_workspace_windows(hidden) or {}',
+  'if #stash > 0 then',
+  '  for _, w in ipairs(stash) do hl.dispatch(hl.dsp.window.move({ workspace = here, follow = false, window = w })) end',
+  'else',
+  '  for _, w in ipairs(hl.get_workspace_windows(here) or {}) do',
+  '    hl.dispatch(hl.dsp.window.move({ workspace = hidden, follow = false, window = w }))',
+  '  end',
+  'end'
+].join("\n")
+
+// hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
+// `hyprpm reload`. Say so instead of failing silently.
+var HYPREXPO_LUA = [
+  'local x = hl.plugin and hl.plugin.hyprexpo',
+  'if x then x.expo("toggle") else',
+  '  hl.exec_cmd("notify-send \'More Gestures\' \'Hyprexpo is not loaded. Run: hyprpm reload\'")',
+  'end'
+].join("\n")
 
 // id -> { lua, en, de }. `lua` is a complete hl.dsp expression; copied from the
 // shapes used in /usr/share/omarchy/default/hypr/bindings/tiling.lua.
@@ -58,7 +86,11 @@ var DISPATCH = {
   "window-prev":         { lua: 'hl.dsp.window.cycle_next({ next = false })', en: "Previous window", de: "Vorheriges Fenster" },
   "group-next":          { lua: 'hl.dsp.group.next()', en: "Next window in group", de: "Nächstes Fenster in Gruppe" },
   "group-prev":          { lua: 'hl.dsp.group.prev()', en: "Previous window in group", de: "Vorheriges Fenster in Gruppe" },
-  "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")', en: "Toggle scratchpad", de: "Notizblock umschalten" }
+  "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")', en: "Toggle scratchpad", de: "Notizblock umschalten" },
+  // Event the expose.window-overview plugin listens for (same as its CTRL+ALT+TAB bind).
+  "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
+  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Show desktop", de: "Desktop anzeigen" },
+  "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" }
 }
 
 // Names for the default key combos; anything else shows the combo itself.
@@ -127,6 +159,13 @@ function defaultBindings() {
   var terminal = {
     "*:DR": dispatch("window-close")
   }
+  // Trackpad extras in the default profile. Lines without a tp entry fall back to "*:"
+  // (the mouse table). Four fingers left/right are Hyprland's workspace swipe by default
+  // (Config: touchpad.swipe), so they never reach these tables.
+  desktop["tp4:U"] = dispatch("expose")
+  desktop["tp4:D"] = dispatch("show-desktop")
+  desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
+  desktop["tp4:pinchout"] = dispatch("hyprexpo")
   return { "default": desktop, browser: browser, terminal: terminal }
 }
 
@@ -238,8 +277,10 @@ function buildCommand(raw) {
   if (!v.ok) return null
   var a = v.action
   if (a.type === "none") return null
-  if (a.type === "dispatch")
-    return { argv: ["hyprctl", "eval", "hl.dispatch(" + DISPATCH[a.id].lua + ")"] }
+  if (a.type === "dispatch") {
+    var d = DISPATCH[a.id]
+    return { argv: ["hyprctl", "eval", d.chunk ? d.chunk : "hl.dispatch(" + d.lua + ")"] }
+  }
   if (a.type === "exec")
     return { argv: ["bash", "-lc", a.command] }
   return { argv: ["hyprctl", "eval", keysLua(a.sequence)] }
@@ -288,6 +329,9 @@ function arrowFor(dir) { return Object.prototype.hasOwnProperty.call(ARROWS, dir
 
 // "DR" -> ["↓", "→"]; unknown letters are dropped.
 function arrowList(dirs) {
+  // Pinches are not lines: fingers moving towards / away from each other.
+  if (dirs === "pinchin") return ["→←"]
+  if (dirs === "pinchout") return ["←→"]
   return String(dirs || "").split("").map(arrowFor).filter(function (a) { return a !== "" })
 }
 
