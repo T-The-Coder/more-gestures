@@ -51,6 +51,15 @@ end
 Remove other `hl.gesture` lines for the finger counts the plugin reads, or both act.
 For the "Exposé" action install the `expose.window-overview` plugin.
 
+### Corner taps (opt-in)
+
+With "Corner taps (experimental)" on, the touchpad is grabbed like the mouse and forwarded
+through a uinput clone. Only touches that start in a corner with a bound tap gesture are
+held back (up to the tap time, 180 ms) and counted; double tap top-left/top-right/
+bottom-left/bottom-right = workspaces 1-4, triple tap = 5-8 (`tap:tl2` …). Counts without
+an action are replayed, so a single tap in a corner still clicks, a moment later.
+Our own clones are never grabbed (they are recognised by name).
+
 ## Overlay (`GestureOverlay.qml`)
 
 Created by `Service.qml`; lives only while a gesture runs.
