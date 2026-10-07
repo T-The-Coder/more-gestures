@@ -4,6 +4,7 @@
 Greift Zeigegeräte exklusiv, reicht alles über ein eigenes uinput-Gerät 1:1 weiter und
 hält nur die Auslösetaste zurück. JSON-Zeilen für den Dienst gehen nach stdout.
 Mit --dry-run wird nichts gegriffen und nichts weitergereicht.
+Befehle des Dienstes über stdin: `pass on|off` und `config {json}`.
 """
 
 import argparse
@@ -49,7 +50,10 @@ class Daemon:
             threshold=args.threshold,
             hold_time=args.hold_ms / 1000.0,
             emergency_time=args.emergency_s,
+            rocker=not args.no_rocker,
         )
+        self.passthrough = False  # `pass on` gilt auch für später angesteckte Geräte
+        self.stdin_buf = b""
         self.sel = selectors.DefaultSelector()
         self.pointers = {}  # Pfad -> Pointer
         self.keyboards = {}  # Pfad -> (Gerät, gedrückte Modifier-Codes)
@@ -119,7 +123,9 @@ class Daemon:
                 dev.close()
                 self.rejected.add(path)
                 return
-        self.pointers[path] = Pointer(dev, core.Engine(self.config), uinput)
+        engine = core.Engine(self.config)  # Config wird geteilt: `config {...}` wirkt überall
+        engine.passthrough = self.passthrough
+        self.pointers[path] = Pointer(dev, engine, uinput)
         self.sel.register(dev.fd, selectors.EVENT_READ, ("pointer", path))
         self.say(f"pointer: {dev.name} [{path}]")
         log(f"{'watching' if self.dry_run else 'grabbed'} {dev.name} [{path}]")
@@ -200,6 +206,37 @@ class Daemon:
             if p.engine.modifiers != active:
                 self.apply(p, p.engine.set_modifiers(now or time.monotonic(), active))
 
+    def read_stdin(self, fd):
+        """Befehle des Dienstes lesen; False bei EOF (Dienst weg)."""
+        data = os.read(fd, 4096)
+        if not data:
+            return False
+        self.stdin_buf += data
+        *lines, self.stdin_buf = self.stdin_buf.split(b"\n")
+        self.stdin_buf = self.stdin_buf[-65536:]  # Zeile ohne Ende darf nicht unbegrenzt wachsen
+        for line in lines:
+            self.command(line.decode("utf-8", "replace"))
+        return True
+
+    def command(self, line):
+        cmd = core.parse_command(line)
+        if cmd is None:
+            if line.strip():
+                log(f"ignoring unknown command: {line.strip()[:80]}")
+            return
+        kind, value = cmd
+        if kind == "pass":
+            self.passthrough = value
+            now = time.monotonic()
+            for p in self.pointers.values():
+                self.apply(p, p.engine.set_passthrough(now, value))
+            self.say(f"pass {'on' if value else 'off'}")
+        else:
+            rejected = core.update_config(self.config, value)
+            if rejected:
+                log(f"config: ignored invalid entries: {', '.join(map(str, rejected))}")
+            self.say(f"config: {self.config}")
+
     # --- Hauptschleife ------------------------------------------------------
 
     def run(self):
@@ -221,7 +258,7 @@ class Daemon:
                 kind, path = key.data
                 try:
                     if kind == "stdin":
-                        if not os.read(stdin_fd, 4096):
+                        if not self.read_stdin(stdin_fd):
                             return  # Dienst weg oder Pipe zu: sauber beenden
                     elif kind == "pointer":
                         self.read_pointer(path)
@@ -256,6 +293,8 @@ def parse_args(argv):
                     help="hold time before the press is replayed (default: %(default)s)")
     ap.add_argument("--emergency-s", type=float, default=core.Config.emergency_time,
                     help="reset a gesture held longer than this (default: %(default)s)")
+    ap.add_argument("--no-rocker", action="store_true",
+                    help="disable rocker gestures (trigger + left click and vice versa)")
     return ap.parse_args(argv)
 
 
