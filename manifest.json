@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "more-gestures",
+  "name": "More Gestures",
+  "version": "0.3.0",
+  "author": "Timo",
+  "description": "Opera-style mouse gestures for Omarchy: hold the right button, drag a line, release.",
+  "kinds": [
+    "service",
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "overlay": "Settings.qml"
+  }
+}

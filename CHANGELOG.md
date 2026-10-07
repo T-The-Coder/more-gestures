@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added (step 3)
+- `manifest.json` (id `more-gestures`, service + overlay, `keepLoaded`), `Settings.qml` placeholder.
+- `Actions.js`: profiles from window tags, gesture keys with source (`mouse:`, `tp3:`, `tp4:`,
+  fallback `*:`), default bindings, action types `dispatch`/`keys`/`exec`/`none`, key
+  combinations and sequences up to 4, strict validation (modifier allow-list, key regex),
+  Lua generation for `hyprctl eval` from validated parts only, German/English action names,
+  exclusion matching.
+- `Service.qml`: daemon via `Process` with backoff restart, JSON line parsing, active window
+  with class and tags, `pass on|off` from the exclusion list, action execution, state file
+  reading, `IpcHandler` `more-gestures` (`enable`, `disable`, `toggle`, `status`).
+- `tests/actions.test.mjs` including injection attempts.
+
 ### Added (step 2)
 - Direction recognition (`Recognizer`, source-neutral, threshold as a parameter): segments
   U/D/L/R, equal directions merged, at most 4, tolerant of diagonal and jittery movement.

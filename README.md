@@ -3,11 +3,72 @@
 Opera-style mouse gestures for Omarchy (Hyprland + Quickshell shell): hold the right
 button, drag a line, release. See `PLAN.md` for the full plan.
 
-**Status:** step 2 of 6 – the input daemon with direction recognition and JSON events.
-There is no plugin (service, actions) and no UI yet.
+**Status:** step 3 of 6 – daemon, direction recognition, plugin service and actions with the
+default bindings. No indicator overlay and no settings UI yet (`Settings.qml` is a placeholder).
 
-*Deutsch:* Opera-artige Mausgesten für Omarchy. Stand: Schritt 2 von 6, Eingabe-Daemon mit
-Richtungserkennung und JSON-Ereignissen; Service, Aktionen und Oberfläche fehlen noch.
+*Deutsch:* Opera-artige Mausgesten für Omarchy. Stand: Schritt 3 von 6, Daemon, Erkennung,
+Plugin-Service und Aktionen mit Standardbelegung; Indikator und Einstellungen fehlen noch
+(`Settings.qml` ist ein Platzhalter).
+
+## Plugin (`manifest.json`, `Service.qml`, `Actions.js`)
+
+Plugin id `more-gestures`, kinds `service` + `overlay`, `keepLoaded`. The service:
+
+- starts `bin/gesture-daemon` relative to the plugin directory (`python3`, trigger button,
+  threshold, hold time and rocker as arguments) and reads its JSON lines; the daemon only
+  ever lives as a child of the shell (stdin is its leash). A crashed daemon is restarted
+  with 1, 2, 4 … 30 s backoff; ten seconds of uptime reset it,
+- tracks the active window (`hyprctl activewindow -j`, read-only, refreshed on Hyprland
+  focus events and on gesture start) with class and tags, and sends `pass on|off` when
+  class or tag is on the exclusion list (default: `steam_app_*`, `retroarch`, `qemu*`,
+  `virt-manager`, `gamescope`; a trailing `*` is a prefix match),
+- on `end`, `wheel` and `rocker` calls `Actions.resolve` and runs the result,
+- reads `~/.local/state/omarchy/settings/more-gestures.json` (watched; broken JSON gives
+  defaults): `enabled`, `button`, `threshold`, `holdMs`, `rocker`, `exclude`, `bindings`.
+  Nothing writes it yet (step 5),
+- offers `qs ipc call more-gestures enable|disable|toggle|status`. `enable`/`disable` are
+  runtime only; `status` returns JSON (daemon state, active window and profiles, last
+  gesture and action).
+
+### Actions
+
+| Type | Fields | Runs |
+|---|---|---|
+| `dispatch` | `id` from a fixed table (`workspace-prev`, `window-close`, …) | `hyprctl eval 'hl.dispatch(hl.dsp…)'` |
+| `keys` | `combo: ["CTRL SHIFT", "T"]`, optional `sequence` of up to 4 combos, `label` | `hyprctl eval` with `hl.dsp.send_key_state` down, 50 ms later up (as `clipboard.lua`); sequence steps 80 ms apart |
+| `exec` | `command`, `label` | `bash -lc command` (runs arbitrary code by design, like hotcorners) |
+| `none` | | nothing; in a profile it also blocks inheriting the desktop binding |
+
+Lua text is built only from fixed strings and validated parts: modifiers from the allow-list
+`SUPER CTRL ALT SHIFT`, keys against `^[A-Za-z0-9_]{1,32}$`. Invalid actions are rejected as a
+whole, so a hand-edited settings file cannot inject Lua. Not offered: a target window for
+`keys` – `send_key_state` has no documented window parameter in the Hyprland stubs.
+
+Gesture keys are `<source>:<gesture>`, source `mouse`, `tp3`, `tp4` or `*` (all);
+gestures are `U D L R` (up to 4) plus `wheel-up`, `wheel-down`, `rocker-left`, `rocker-right`.
+Profiles come from window tags (`chromium-based-browser`/`firefox-based-browser` → `browser`,
+`terminal` → `terminal`), the first match wins, `default` is last. Lookup order: profile
+before `default`; within a profile `<source>:G` before `*:G`. User `bindings`
+(`{ "browser": { "*:DR": {…} } }`) are layered over the defaults entry by entry.
+
+Defaults (desktop / browser; the browser inherits what it does not set):
+
+| Gesture | Desktop | Browser |
+|---|---|---|
+| L / R | workspace left / right | Alt+Left / Alt+Right |
+| U | app launcher | inherits |
+| D | new terminal | Ctrl+T |
+| DR | close window | Ctrl+W |
+| UD | – | F5 |
+| LU | – | Ctrl+Shift+T |
+| DU | toggle floating | duplicate tab (Ctrl+L, Alt+Enter) |
+| RU | toggle fullscreen | inherits |
+| UL / UR | move window to workspace left / right | inherits |
+| wheel | workspace left / right | Ctrl+Shift+Tab / Ctrl+Tab |
+| rocker left / right | like L / R | Alt+Left / Alt+Right |
+
+Terminal: only DR is set (close window, never Ctrl+W); everything else inherits.
+Action names are available in German and English (`Actions.actionName(action, lang)`).
 
 ## Daemon (`bin/gesture-daemon`)
 
@@ -89,10 +150,13 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
 - `lib/gesture_core.py` – decision logic (state machine, direction recognizer, command
   parsing, device classification), no evdev dependency.
 - `bin/gesture-daemon` – thin evdev/uinput wrapper.
-- `tests/test_core.py` – unit tests.
+- `manifest.json`, `Service.qml`, `Settings.qml` (placeholder) – the Omarchy plugin.
+- `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building.
+- `tests/test_core.py`, `tests/actions.test.mjs` – unit tests.
 
 ## Tests
 
 ```
 python -m unittest discover -s tests
+mise x node@24.21.0 -- node --test tests/*.test.mjs
 ```
