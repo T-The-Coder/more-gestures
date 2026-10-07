@@ -23,6 +23,7 @@ from evdev import ecodes  # noqa: E402
 
 import gesture_core as core  # noqa: E402
 import touchpad_core as tpc  # noqa: E402
+import tap_core  # noqa: E402
 
 RESCAN_INTERVAL = 2.0  # Sekunden zwischen den Hotplug-Abgleichen von /dev/input
 
@@ -56,6 +57,17 @@ def is_pointing_stick(dev):
         return False
 
 
+class Touchpad:
+    """A touchpad: always analysed for 3/4-finger gestures; grabbed only for corner taps."""
+
+    def __init__(self, dev, engine):
+        self.dev = dev
+        self.engine = engine
+        self.uinput = None
+        self.filter = None
+        self.frame = []  # events of the current frame (grabbed only)
+
+
 class Daemon:
     def __init__(self, args):
         self.dry_run = args.dry_run
@@ -75,6 +87,7 @@ class Daemon:
         # Touchpads are only read, never grabbed: libinput and Hyprland keep everything.
         self.touchpads = {}  # Pfad -> (Gerät, TouchpadEngine)
         self.tp_settings = tpc.TouchpadSettings(enabled=not args.no_touchpad)
+        self.tap_settings = tap_core.TapSettings()
         self.rejected = set()  # Pfade ohne passendes Gerät, nicht jede 2 s neu öffnen
         self.next_scan = 0.0
 
@@ -181,42 +194,113 @@ class Daemon:
             except OSError:
                 pass  # Gerät ist schon weg
 
+    def tap_grab_wanted(self):
+        # Grabbing is only worth its risk when a corner tap can actually do something.
+        return self.tap_settings.enabled and bool(self.tap_settings.bound) and not self.dry_run
+
     def add_touchpad(self, path, dev):
-        def res(code):
+        def axis(code):
             try:
-                return dev.absinfo(code).resolution or 1
+                a = dev.absinfo(code)
+                return tap_core.Axis(a.min, a.max, a.resolution or 1)
             except (OSError, KeyError):
-                return 1
-        engine = tpc.TouchpadEngine(self.tp_settings, res(tpc.ABS_MT_POSITION_X),
-                                    res(tpc.ABS_MT_POSITION_Y))
+                return tap_core.Axis(0, 1, 1)
+        ax, ay = axis(tpc.ABS_MT_POSITION_X), axis(tpc.ABS_MT_POSITION_Y)
+        engine = tpc.TouchpadEngine(self.tp_settings, ax.resolution, ay.resolution)
         engine.set_passthrough(self.passthrough)
-        self.touchpads[path] = (dev, engine)
+        pad = Touchpad(dev, engine)
+        if self.tap_grab_wanted():
+            try:
+                # Same care as for mice: props (BUTTONPAD, POINTER) and ids, so libinput
+                # treats the clone as the touchpad it is (clickpad, palm and quirks).
+                pad.uinput = evdev.UInput.from_device(
+                    dev, name=f"{core.VIRTUAL_NAME_PREFIX} ({dev.name})"[:79],
+                    input_props=dev.input_props(),
+                    vendor=dev.info.vendor, product=dev.info.product,
+                    version=dev.info.version, bustype=dev.info.bustype,
+                )
+                dev.grab()
+                pad.filter = tap_core.TapFilter(self.tap_settings, ax, ay)
+                pad.filter.set_passthrough(self.passthrough)
+            except OSError as e:
+                log(f"cannot grab touchpad {dev.name} [{path}], reading only: {e}")
+                if pad.uinput:
+                    pad.uinput.close()
+                pad.uinput = None
+                pad.filter = None
+        self.touchpads[path] = pad
         self.sel.register(dev.fd, selectors.EVENT_READ, ("touchpad", path))
-        self.say(f"touchpad (read only): {dev.name} [{path}]")
-        log(f"watching touchpad {dev.name} [{path}]")
+        mode = "grabbed for corner taps" if pad.filter else "read only"
+        self.say(f"touchpad ({mode}): {dev.name} [{path}]")
+        log(f"touchpad {mode}: {dev.name} [{path}]")
 
     def drop_touchpad(self, path):
-        dev, engine = self.touchpads.pop(path)
+        pad = self.touchpads.pop(path)
         try:
-            self.sel.unregister(dev.fd)
+            self.sel.unregister(pad.dev.fd)
         except (KeyError, ValueError):
             pass
-        for m in engine.reset():
+        for m in pad.engine.reset():
             self.send(m.payload)
-        try:
-            dev.close()
-        except OSError:
-            pass
+        if pad.filter:
+            try:
+                # Held taps go out before the grab ends, so no touch is lost or stuck.
+                self.write_frames(pad, pad.filter.reset())
+            except OSError:
+                pass
+        for step in (pad.dev.ungrab if pad.filter else None, pad.dev.close,
+                     pad.uinput.close if pad.uinput else None):
+            if step is None:
+                continue
+            try:
+                step()
+            except OSError:
+                pass
+
+    def reopen_touchpads(self):
+        """Grab state changed (corner taps on/off): open every touchpad again."""
+        for path in list(self.touchpads):
+            self.drop_touchpad(path)
+        self.next_scan = 0.0
+
+    def write_frames(self, pad, frames):
+        for events in frames:
+            for etype, code, value in events:
+                pad.uinput.write(etype, code, value)
+            pad.uinput.syn()
 
     def read_touchpad(self, path):
-        dev, engine = self.touchpads[path]
-        for ev in dev.read():
+        pad = self.touchpads[path]
+        for ev in pad.dev.read():
+            now = time.monotonic()
             if ev.type == core.EV_SYN and ev.code == ecodes.SYN_DROPPED:
-                for m in engine.reset():
+                for m in pad.engine.reset():
                     self.send(m.payload)
+                if pad.filter:
+                    pad.frame = []
+                    self.write_frames(pad, pad.filter.reset())
                 continue
-            for m in engine.handle(time.monotonic(), ev.type, ev.code, ev.value):
+            for m in pad.engine.handle(now, ev.type, ev.code, ev.value):
                 self.send(m.payload)
+            if not pad.filter:
+                continue
+            if ev.type == core.EV_SYN:
+                if ev.code == ecodes.SYN_REPORT:
+                    frames, msgs = pad.filter.frame(now, pad.frame)
+                    pad.frame = []
+                    self.write_frames(pad, frames)
+                    for m in msgs:
+                        self.send(m)
+                continue
+            pad.frame.append((ev.type, ev.code, ev.value))
+
+    def tick_touchpads(self, now):
+        for pad in self.touchpads.values():
+            if pad.filter:
+                frames, msgs = pad.filter.tick(now)
+                self.write_frames(pad, frames)
+                for m in msgs:
+                    self.send(m)
 
     def drop_keyboard(self, path):
         dev, _ = self.keyboards.pop(path)
@@ -293,9 +377,11 @@ class Daemon:
             now = time.monotonic()
             for p in self.pointers.values():
                 self.apply(p, p.engine.set_passthrough(now, value))
-            for _, engine in self.touchpads.values():
-                for m in engine.set_passthrough(value):
+            for pad in self.touchpads.values():
+                for m in pad.engine.set_passthrough(value):
                     self.send(m.payload)
+                if pad.filter:
+                    self.write_frames(pad, pad.filter.set_passthrough(value))
             self.say(f"pass {'on' if value else 'off'}")
         else:
             value = dict(value)
@@ -304,6 +390,14 @@ class Daemon:
                 bad = tpc.update_settings(self.tp_settings, touchpad)
                 if bad:
                     log(f"config: ignored invalid touchpad entries: {', '.join(map(str, bad))}")
+            taps = value.pop("taps", None)
+            if isinstance(taps, dict):
+                grabbed = self.tap_grab_wanted()
+                bad = tap_core.update_settings(self.tap_settings, taps)
+                if bad:
+                    log(f"config: ignored invalid tap entries: {', '.join(map(str, bad))}")
+                if self.tap_grab_wanted() != grabbed:
+                    self.reopen_touchpads()
             rejected = core.update_config(self.config, value)
             if rejected:
                 log(f"config: ignored invalid entries: {', '.join(map(str, rejected))}")
@@ -322,8 +416,11 @@ class Daemon:
                 self.next_scan = now + RESCAN_INTERVAL
             for p in self.pointers.values():
                 self.apply(p, p.engine.tick(now))
+            self.tick_touchpads(now)
             deadlines = [self.next_scan] + [
                 d for p in self.pointers.values() if (d := p.engine.deadline()) is not None
+            ] + [
+                d for t in self.touchpads.values() if t.filter and (d := t.filter.deadline()) is not None
             ]
             timeout = max(0.0, min(deadlines) - time.monotonic())
             for key, _ in self.sel.select(timeout):

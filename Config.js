@@ -21,7 +21,30 @@ var PROFILES = ["default", "browser", "terminal"]
 var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
   holdMs: { min: 0, max: 5000, def: 350 },
-  thresholdMm: { min: 4, max: 60, def: 8 }
+  thresholdMm: { min: 4, max: 60, def: 8 },
+  cornerMm: { min: 4, max: 40, def: 14 }
+}
+
+// Corner taps need the touchpad grabbed (to swallow the taps' clicks), so they are
+// opt-in: off unless switched on in the settings.
+function tapsDefaults() { return { enabled: false, cornerMm: LIMITS.cornerMm.def } }
+
+function cleanTaps(raw) {
+  if (!isPlainObject(raw)) return tapsDefaults()
+  return { enabled: raw.enabled === true, cornerMm: clampInt(raw.cornerMm, LIMITS.cornerMm) }
+}
+
+// Tap gestures with an action in any profile: only those corners are held back.
+function boundTaps(config, actions) {
+  var A = actionsModule(actions)
+  var merged = A.mergeBindings(config.bindings)
+  var out = {}
+  Object.keys(merged).forEach(function (profile) {
+    Object.keys(merged[profile]).forEach(function (key) {
+      if (key.indexOf("tap:") === 0 && merged[profile][key].type !== "none") out[key.slice(4)] = true
+    })
+  })
+  return Object.keys(out).sort()
 }
 
 var FINGERS = ["tp3", "tp4"]
@@ -131,6 +154,7 @@ function defaults(actions) {
     indicator: "full",
     animations: true,
     touchpad: touchpadDefaults(),
+    taps: tapsDefaults(),
     exclude: A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings({}, A)
   }
@@ -151,6 +175,7 @@ function sanitize(raw, actions) {
     indicator: A.normalizeIndicator(raw.indicator),
     animations: raw.animations !== false,
     touchpad: cleanTouchpad(raw.touchpad),
+    taps: cleanTaps(raw.taps),
     exclude: Array.isArray(raw.exclude) ? cleanExcludes(raw.exclude) : A.DEFAULT_EXCLUDES.slice(),
     bindings: cleanBindings(raw.bindings, A)
   }
@@ -173,7 +198,7 @@ function serialize(config, actions) {
 // everything else goes to the running daemon as `config {json}`.
 function needsRestart(prev, next) { return prev.button !== next.button }
 
-function daemonConfig(config) {
+function daemonConfig(config, actions) {
   var t = config.touchpad || touchpadDefaults()
   var native = {}
   var fingers = []
@@ -183,14 +208,22 @@ function daemonConfig(config) {
   })
   return { threshold: config.threshold, hold_ms: config.holdMs, rocker: config.rocker,
            touchpad: { enabled: t.enabled && fingers.length > 0, threshold_mm: t.thresholdMm,
-                       fingers: fingers, native: native } }
+                       fingers: fingers, native: native },
+           taps: tapsDaemon(config, actions) }
 }
 
-function daemonConfigChanged(prev, next) {
-  return JSON.stringify(daemonConfig(prev)) !== JSON.stringify(daemonConfig(next))
+function tapsDaemon(config, actions) {
+  var t = config.taps || tapsDefaults()
+  var bound = []
+  try { bound = t.enabled ? boundTaps(config, actions) : [] } catch (e) { bound = [] }
+  return { enabled: t.enabled, corner_mm: t.cornerMm, bound: bound }
 }
 
-function daemonConfigLine(config) { return "config " + JSON.stringify(daemonConfig(config)) }
+function daemonConfigChanged(prev, next, actions) {
+  return JSON.stringify(daemonConfig(prev, actions)) !== JSON.stringify(daemonConfig(next, actions))
+}
+
+function daemonConfigLine(config, actions) { return "config " + JSON.stringify(daemonConfig(config, actions)) }
 
 // ------------------------------------------------------------ binding editing
 
@@ -270,7 +303,7 @@ function removeExclude(list, index) {
 
 if (typeof module !== "undefined") module.exports = {
   PATH_SUFFIX: PATH_SUFFIX, VERSION: VERSION, HYPR_FILE_SUFFIX: HYPR_FILE_SUFFIX, FINGERS: FINGERS,
-  touchpadDefaults: touchpadDefaults, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
+  touchpadDefaults: touchpadDefaults, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
   clone: clone, clampInt: clampInt, defaults: defaults, sanitize: sanitize, parse: parse,
   serialize: serialize, needsRestart: needsRestart, daemonConfig: daemonConfig,
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,

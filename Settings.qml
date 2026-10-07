@@ -33,7 +33,9 @@ Item {
   property bool editorOpen: false
   property string editKey: ""
   property string editGesture: ""
-  property string editSource: "*"       // "*", "mouse", "tp3", "tp4"
+  property string editSource: "*"       // "*", "mouse", "tp3", "tp4", "tap"
+  property string editCorner: "tl"      // tap source: corner and count make the gesture
+  property int editCount: 2
   property string editType: "dispatch"
   property string editDispatch: "workspace-prev"
   property var editSteps: [""]          // keys: one text per combination
@@ -82,6 +84,7 @@ Item {
     thresholdField.field.value = root.working.threshold
     holdField.field.value = root.working.holdMs
     mmField.field.value = root.working.touchpad.thresholdMm
+    cornerField.field.value = root.working.taps.cornerMm
   }
 
   function save() {
@@ -122,6 +125,10 @@ Item {
       root.editKey = row.key
       root.editGesture = row.gesture
       root.editSource = row.source
+      if (row.source === "tap") {
+        root.editCorner = row.gesture.slice(0, 2)
+        root.editCount = Number(row.gesture.slice(2))
+      }
       root.editType = action.type
       root.editDispatch = action.type === "dispatch" ? action.id : "workspace-prev"
       root.editSteps = action.type === "keys"
@@ -140,6 +147,12 @@ Item {
     root.recordingStep = -1
     root.editorOpen = false
     root.editError = ""
+  }
+
+  function setTap(corner, count) {
+    root.editCorner = corner
+    root.editCount = count
+    root.editGesture = corner + count
   }
 
   function addDir(d) {
@@ -209,6 +222,7 @@ Item {
 
   // wheel-up / rocker-left read as "Wheel ↑" / "Rocker ←" instead of internal ids.
   function gestureText(g) {
+    if (/^(tl|tr|bl|br)[1-4]$/.test(g)) return Actions.tapText(g)
     if (/^[UDLR]+$/.test(g) || /^pinch/.test(g)) return Actions.arrowText(g)
     var m = /^(wheel|rocker)-(up|down|left|right)$/.exec(g)
     if (!m) return g
@@ -226,7 +240,8 @@ Item {
   function sourceText(source) {
     return source === "mouse" ? root.tr("source_mouse")
       : source === "tp3" ? root.tr("source_tp3")
-      : source === "tp4" ? root.tr("source_tp4") : ""
+      : source === "tp4" ? root.tr("source_tp4")
+      : source === "tap" ? root.tr("source_tap") : ""
   }
 
   Process {
@@ -531,6 +546,25 @@ Item {
                 color: root.accent
                 text: root.tr("exposeRecommend")
               }
+
+              Toggle {
+                width: parent.width
+                label: root.tr("taps")
+                description: root.tr("tapsHint")
+                checked: root.working.taps.enabled
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onClicked: root.set("taps", { enabled: !root.working.taps.enabled, cornerMm: root.working.taps.cornerMm })
+              }
+              NumberField {
+                id: cornerField
+                visible: root.working.taps.enabled
+                label: root.tr("cornerMm")
+                from: Config.LIMITS.cornerMm.min
+                to: Config.LIMITS.cornerMm.max
+                value: root.working.taps.cornerMm
+                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                onModified: function(v) { root.set("taps", { enabled: root.working.taps.enabled, cornerMm: v }) }
+              }
             }
 
             // ----------------------------------------------------- bindings
@@ -636,10 +670,15 @@ Item {
                       { value: "*", label: root.tr("source_all") },
                       { value: "mouse", label: root.tr("source_mouse") },
                       { value: "tp3", label: root.tr("source_tp3") },
-                      { value: "tp4", label: root.tr("source_tp4") }
+                      { value: "tp4", label: root.tr("source_tp4") },
+                      { value: "tap", label: root.tr("source_tap") }
                     ]
                     foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                     onChanged: function(v) {
+                      // Tap gestures and line gestures never share a name: switching
+                      // between them starts the gesture over.
+                      if ((v === "tap") !== (root.editSource === "tap"))
+                        root.editGesture = v === "tap" ? root.editCorner + root.editCount : ""
                       root.editSource = v
                       if (/^pinch/.test(root.editGesture) && v.indexOf("tp") !== 0 && v !== "*") root.editGesture = ""
                     }
@@ -647,6 +686,29 @@ Item {
 
                   Label { text: root.tr("gesture") }
                   Row {
+                    visible: root.editSource === "tap"
+                    spacing: Style.spacing.lg
+                    ButtonGroup {
+                      value: root.editCorner
+                      options: [
+                        { value: "tl", label: "↖" }, { value: "tr", label: "↗" },
+                        { value: "bl", label: "↙" }, { value: "br", label: "↘" }
+                      ]
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onChanged: function(v) { root.setTap(v, root.editCount) }
+                    }
+                    ButtonGroup {
+                      value: String(root.editCount)
+                      options: [
+                        { value: "1", label: "1×" }, { value: "2", label: "2×" },
+                        { value: "3", label: "3×" }, { value: "4", label: "4×" }
+                      ]
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onChanged: function(v) { root.setTap(root.editCorner, Number(v)) }
+                    }
+                  }
+                  Row {
+                    visible: root.editSource !== "tap"
                     spacing: Style.spacing.sm
                     Repeater {
                       model: ["U", "D", "L", "R"]
@@ -683,7 +745,7 @@ Item {
                       font.bold: root.editGesture !== ""
                     }
                   }
-                  Hint { width: parent.width; text: root.tr("gestureHint") }
+                  Hint { width: parent.width; text: root.editSource === "tap" ? root.tr("tapGestureHint") : root.tr("gestureHint") }
 
                   Label { text: root.tr("action") }
                   ButtonGroup {

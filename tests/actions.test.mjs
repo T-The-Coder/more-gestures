@@ -292,7 +292,7 @@ test("every default action is valid and has a name in both languages", () => {
   for (const profile of Object.keys(table)) for (const [key, action] of Object.entries(table[profile])) {
     assert.ok(A.validateAction(action).ok, `${profile} ${key}`)
     for (const l of ["en", "de"]) assert.ok(A.actionName(action, l).length > 0, `${profile} ${key} ${l}`)
-    assert.match(key, /^(\*|mouse|tp3|tp4):/)
+    assert.match(key, /^(\*|mouse|tp3|tp4|tap):/)
   }
   for (const [id, d] of Object.entries(A.DISPATCH)) {
     assert.ok(d.en && d.de, id)
@@ -381,4 +381,18 @@ test("parseCursorPos: JSON, plain text, garbage", () => {
   assert.deepEqual(A.parseCursorPos("-12, 34\n"), { x: -12, y: 34 })
   assert.deepEqual(A.parseCursorPos("1.5,2"), { x: 1.5, y: 2 })
   for (const bad of ["", "null", "12", "{}", "a, b", '{"x":"q","y":1}']) assert.equal(A.parseCursorPos(bad), null)
+})
+
+test("corner taps resolve to workspaces", () => {
+  const cfg = { bindings: {} }
+  const tap = (gesture) => ({ type: "end", source: "tap", gesture })
+  assert.equal(A.gestureKey(tap("tl2")), "tap:tl2")
+  assert.equal(A.resolve(tap("tl2"), {}, cfg).action.id, "workspace-1")
+  assert.equal(A.resolve(tap("br2"), {}, cfg).action.id, "workspace-4")
+  assert.equal(A.resolve(tap("tl3"), {}, cfg).action.id, "workspace-5")
+  assert.equal(A.resolve(tap("br3"), {}, cfg).action.id, "workspace-8")
+  // Tap names only exist with the tap source, and lines never with it.
+  assert.equal(A.GESTURE_KEY_PATTERN.test("*:tl2"), false)
+  assert.equal(A.GESTURE_KEY_PATTERN.test("tap:L"), false)
+  assert.equal(A.tapText("tr3"), "↗ 3×")
 })

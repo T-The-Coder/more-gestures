@@ -169,7 +169,8 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   assert.equal(Config.needsRestart(a, b), false)
   assert.equal(Config.daemonConfigChanged(a, b), true)
   assert.equal(Config.daemonConfigLine(b), 'config {"threshold":40,"hold_ms":350,"rocker":false,'
-    + '"touchpad":{"enabled":true,"threshold_mm":8,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}}}')
+    + '"touchpad":{"enabled":true,"threshold_mm":8,"fingers":[3,4],"native":{"3":[],"4":["L","R"]}},'
+    + '"taps":{"enabled":false,"corner_mm":14,"bound":[]}}')
   b.button = "middle"
   assert.equal(Config.needsRestart(a, b), true)
   // indicator, exclusions, bindings, wheel never touch the daemon
@@ -191,4 +192,17 @@ test("touchpad settings are cleaned and drive the native swipe file", () => {
   assert.doesNotMatch(Config.hyprLua(off), /hl\.gesture/)
   assert.deepEqual(Config.daemonConfig(c).touchpad.fingers, [4])
   assert.deepEqual(Config.daemonConfig(c).touchpad.native, { 3: ["L", "R"], 4: ["L", "R"] })
+})
+
+test("corner taps: opt-in, bound list from all profiles", () => {
+  const A = load("Actions.js")
+  const off = Config.defaults(A)
+  assert.equal(off.taps.enabled, false)
+  assert.deepEqual(Config.daemonConfig(off, A).taps.bound, [])
+  const on = Config.sanitize({ taps: { enabled: true, cornerMm: 99 } }, A)
+  assert.equal(on.taps.cornerMm, Config.LIMITS.cornerMm.max)
+  assert.deepEqual(Config.daemonConfig(on, A).taps.bound,
+    ["bl2", "bl3", "br2", "br3", "tl2", "tl3", "tr2", "tr3"])
+  const r = Config.setBinding(on, "default", "tap:tl3", { type: "none" }, A)
+  assert.ok(!Config.daemonConfig(r.config, A).taps.bound.includes("tl3"))
 })

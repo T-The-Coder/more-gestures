@@ -28,8 +28,9 @@ var PROFILE_TAGS = [
   { profile: "terminal", tags: ["terminal"] }
 ]
 
-var SOURCES = ["*", "mouse", "tp3", "tp4"]
-var GESTURE_KEY_PATTERN = /^(\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)$/
+var SOURCES = ["*", "mouse", "tp3", "tp4", "tap"]
+// Corner taps (source "tap") have their own gesture names: corner + count, e.g. "tl2".
+var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4])$/
 
 // Windows the plugin must not touch (games, VMs). Trailing "*" is a prefix match.
 var DEFAULT_EXCLUDES = ["steam_app_*", "retroarch", "qemu*", "virt-manager", "gamescope"]
@@ -88,6 +89,16 @@ var DISPATCH = {
   "group-prev":          { lua: 'hl.dsp.group.prev()', en: "Previous window in group", de: "Vorheriges Fenster in Gruppe" },
   "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")', en: "Toggle scratchpad", de: "Notizblock umschalten" },
   // Event the expose.window-overview plugin listens for (same as its CTRL+ALT+TAB bind).
+  "workspace-1":         { lua: 'hl.dsp.focus({ workspace = "1" })', en: "Workspace 1", de: "Arbeitsfläche 1" },
+  "workspace-2":         { lua: 'hl.dsp.focus({ workspace = "2" })', en: "Workspace 2", de: "Arbeitsfläche 2" },
+  "workspace-3":         { lua: 'hl.dsp.focus({ workspace = "3" })', en: "Workspace 3", de: "Arbeitsfläche 3" },
+  "workspace-4":         { lua: 'hl.dsp.focus({ workspace = "4" })', en: "Workspace 4", de: "Arbeitsfläche 4" },
+  "workspace-5":         { lua: 'hl.dsp.focus({ workspace = "5" })', en: "Workspace 5", de: "Arbeitsfläche 5" },
+  "workspace-6":         { lua: 'hl.dsp.focus({ workspace = "6" })', en: "Workspace 6", de: "Arbeitsfläche 6" },
+  "workspace-7":         { lua: 'hl.dsp.focus({ workspace = "7" })', en: "Workspace 7", de: "Arbeitsfläche 7" },
+  "workspace-8":         { lua: 'hl.dsp.focus({ workspace = "8" })', en: "Workspace 8", de: "Arbeitsfläche 8" },
+  "workspace-9":         { lua: 'hl.dsp.focus({ workspace = "9" })', en: "Workspace 9", de: "Arbeitsfläche 9" },
+  "workspace-10":        { lua: 'hl.dsp.focus({ workspace = "10" })', en: "Workspace 10", de: "Arbeitsfläche 10" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
   "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Show desktop", de: "Desktop anzeigen" },
   "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" }
@@ -167,6 +178,13 @@ function defaultBindings() {
   desktop["tp4:D"] = dispatch("scratchpad-toggle")
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
+  // Corner taps (touchpad, needs "corner taps" on): double tap = workspaces 1-4 in the
+  // order top-left, top-right, bottom-left, bottom-right; triple tap = 5-8.
+  var corners = ["tl", "tr", "bl", "br"]
+  for (var c = 0; c < corners.length; c++) {
+    desktop["tap:" + corners[c] + "2"] = dispatch("workspace-" + (c + 1))
+    desktop["tap:" + corners[c] + "3"] = dispatch("workspace-" + (c + 5))
+  }
   return { "default": desktop, browser: browser, terminal: terminal }
 }
 
@@ -329,6 +347,14 @@ function normalizeIndicator(v) { return INDICATOR_MODES.indexOf(v) >= 0 ? v : "f
 function arrowFor(dir) { return Object.prototype.hasOwnProperty.call(ARROWS, dir) ? ARROWS[dir] : "" }
 
 // "DR" -> ["↓", "→"]; unknown letters are dropped.
+var CORNER_ARROWS = { tl: "↖", tr: "↗", bl: "↙", br: "↘" }
+
+// "tl2" -> "↖ 2×"; "" for anything else.
+function tapText(gesture) {
+  var m = /^(tl|tr|bl|br)([1-4])$/.exec(String(gesture || ""))
+  return m ? CORNER_ARROWS[m[1]] + " " + m[2] + "×" : ""
+}
+
 function arrowList(dirs) {
   // Pinches are not lines: fingers moving towards / away from each other.
   if (dirs === "pinchin") return ["→←"]
@@ -389,6 +415,7 @@ function gestureKey(event) {
   var prefix = ""
   if (event.source === "mouse" || event.source === undefined) prefix = "mouse"
   else if (event.source === "touchpad" && (event.fingers === 3 || event.fingers === 4)) prefix = "tp" + event.fingers
+  else if (event.source === "tap") prefix = "tap"
   if (!prefix || !GESTURE_KEY_PATTERN.test(prefix + ":" + gesture)) return ""
   return prefix + ":" + gesture
 }
@@ -494,7 +521,7 @@ if (typeof module !== "undefined") module.exports = {
   validateAction: validateAction, buildCommand: buildCommand, keysLua: keysLua,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
-  arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText,
+  arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText, tapText: tapText, SOURCES: SOURCES,
   preview: preview, parseCursorPos: parseCursorPos,
   profilesFor: profilesFor, gestureKey: gestureKey, eventGesture: eventGesture, resolve: resolve,
   isExcluded: isExcluded, parseActiveWindow: parseActiveWindow

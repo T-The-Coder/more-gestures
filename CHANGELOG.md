@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added (corner taps)
+- Corner taps on the trackpad (`lib/tap_core.py`, opt-in "Corner taps (experimental)"):
+  the daemon grabs the touchpad, forwards every frame through a uinput clone and holds
+  back only touches that start in a bound corner. Double tap top-left/top-right/
+  bottom-left/bottom-right = workspaces 1-4, triple tap = 5-8 (gesture keys `tap:tl2`
+  etc.). Unbound counts are replayed as normal taps; ABS_MT_SLOT is re-sent where a
+  swallowed frame changed it. Workspace actions 1-10.
+
 ### Changed
 - Trackpad shapes are easier to draw: 8 mm per segment (was 12) and a more lenient
   direction test (0.9 instead of the mouse's 0.7).

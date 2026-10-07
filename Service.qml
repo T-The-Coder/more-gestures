@@ -62,8 +62,8 @@ Item {
         root.restarts = 0
         daemon.running = false  // onExited starts it again with the new arguments
       }
-    } else if (Config.daemonConfigChanged(prev, next)) {
-      root.sendLine(Config.daemonConfigLine(next))
+    } else if (Config.daemonConfigChanged(prev, next, Actions)) {
+      root.sendLine(Config.daemonConfigLine(next, Actions))
     }
   }
 
@@ -263,7 +263,7 @@ Item {
       root.syncPass(true)
       // The command line only carries button, threshold and hold time; everything else
       // (touchpad, rocker) reaches a fresh daemon this way.
-      root.sendLine(Config.daemonConfigLine(root.config))
+      root.sendLine(Config.daemonConfigLine(root.config, Actions))
       var queued = root.pendingLines
       root.pendingLines = []
       // syncPass above already covers queued pass lines; replay anything else.
