@@ -8,12 +8,16 @@
 - JSON events `start`, `segment {dirs}`, `progress {dir, ratio}` (≤ 30 Hz),
   `end {source, gesture}`, `cancel`.
 - Trigger + wheel → `wheel {dir}` (wheel not forwarded); rocker gestures
-  `rocker {side}`, switchable (`--no-rocker`, `config`).
+  `rocker {side}`, switchable (`--rocker`, `config`).
 - stdin commands `pass on|off` and `config {json}` (threshold, hold time, rocker).
 - Motion is evaluated per input packet, so REL_X/REL_Y of one frame count as one step.
 
 ### Changed (step 2)
 - Replaces the interim `gesture-candidate` message.
+- Pointing sticks (TrackPoint) are no longer grabbed by default: through the uinput clone,
+  middle-button scrolling stopped working. `--include-pointing-sticks` grabs them anyway.
+- Rocker gestures are off by default (`--rocker`): marking with the left button and then
+  right-clicking should still open the context menu.
 
 ### Added
 - `bin/gesture-daemon`: device detection (REL_X/REL_Y + trigger button, no ABS_MT, own
