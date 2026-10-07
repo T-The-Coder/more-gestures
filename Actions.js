@@ -174,8 +174,7 @@ function defaultBindings() {
   // (the mouse table). Four fingers left/right are Hyprland's workspace swipe by default
   // (Config: touchpad.swipe), so they never reach these tables.
   desktop["tp4:U"] = dispatch("expose")
-  // Like SUPER+S: the scratchpad comes in, the same gesture takes it away again.
-  desktop["tp4:D"] = dispatch("scratchpad-toggle")
+  desktop["tp4:D"] = dispatch("show-desktop")
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
   // Corner taps (touchpad, needs "corner taps" on): double tap = workspaces 1-4 in the

@@ -13,8 +13,7 @@
 ### Changed
 - Trackpad shapes are easier to draw: 8 mm per segment (was 12) and a more lenient
   direction test (0.9 instead of the mouse's 0.7).
-- 4 fingers down toggles the scratchpad (like Super+S) instead of "show desktop", which
-  stays available as an action.
+- 4 fingers down: back to "show desktop" (the scratchpad toggle was a misunderstanding).
 
 ### Added (step 4b, trackpad)
 - Trackpad gestures with 3 or 4 fingers (`lib/touchpad_core.py`): the daemon reads
