@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""More Gestures: evdev/uinput-Rahmen um die Entscheidungslogik in lib/gesture_core.py.
+
+Greift Zeigegeräte exklusiv, reicht alles über ein eigenes uinput-Gerät 1:1 weiter und
+hält nur die Auslösetaste zurück. JSON-Zeilen für den Dienst gehen nach stdout.
+Mit --dry-run wird nichts gegriffen und nichts weitergereicht.
+"""
+
+import argparse
+import errno
+import json
+import os
+import selectors
+import signal
+import sys
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+
+import evdev  # noqa: E402
+from evdev import ecodes  # noqa: E402
+
+import gesture_core as core  # noqa: E402
+
+RESCAN_INTERVAL = 2.0  # Sekunden zwischen den Hotplug-Abgleichen von /dev/input
+
+
+class Stop(Exception):
+    """Wird aus dem Signalhandler geworfen, damit select() sofort abbricht."""
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+class Pointer:
+    def __init__(self, dev, engine, uinput):
+        self.dev = dev
+        self.engine = engine
+        self.uinput = uinput
+        self.last_state = engine.state
+
+
+class Daemon:
+    def __init__(self, args):
+        self.dry_run = args.dry_run
+        self.config = core.Config(
+            trigger=core.TRIGGER_BUTTONS[args.button],
+            threshold=args.threshold,
+            hold_time=args.hold_ms / 1000.0,
+            emergency_time=args.emergency_s,
+        )
+        self.sel = selectors.DefaultSelector()
+        self.pointers = {}  # Pfad -> Pointer
+        self.keyboards = {}  # Pfad -> (Gerät, gedrückte Modifier-Codes)
+        self.rejected = set()  # Pfade ohne passendes Gerät, nicht jede 2 s neu öffnen
+        self.next_scan = 0.0
+
+    # --- Ausgabe ------------------------------------------------------------
+
+    def say(self, text):
+        """Dry-run-Protokoll: nur Geräte und Zustandswechsel."""
+        if self.dry_run:
+            print(f"[dry-run] {text}", flush=True)
+
+    def send(self, payload):
+        print(json.dumps(payload, separators=(",", ":")), flush=True)
+
+    # --- Geräte -------------------------------------------------------------
+
+    def scan(self):
+        paths = set(evdev.list_devices())
+        self.rejected &= paths
+        for path in set(self.pointers) - paths:
+            self.drop_pointer(path)
+        for path in set(self.keyboards) - paths:
+            self.drop_keyboard(path)
+        for path in sorted(paths - set(self.pointers) - set(self.keyboards) - self.rejected):
+            self.add_device(path)
+
+    def add_device(self, path):
+        try:
+            dev = evdev.InputDevice(path)
+        except OSError as e:
+            # Gerät noch nicht bereit (Berechtigung der udev-Regel kommt verzögert):
+            # nicht merken, der nächste Abgleich versucht es erneut.
+            log(f"cannot open {path}: {e}")
+            return
+        kind = core.classify(dev.name, dev.capabilities(), self.config.trigger)
+        if kind == "pointer":
+            self.add_pointer(path, dev)
+        elif kind == "keyboard":
+            self.keyboards[path] = (dev, set())
+            self.sel.register(dev.fd, selectors.EVENT_READ, ("keyboard", path))
+            self.say(f"keyboard (modifiers only): {dev.name} [{path}]")
+        else:
+            self.rejected.add(path)
+            dev.close()
+
+    def add_pointer(self, path, dev):
+        uinput = None
+        if not self.dry_run:
+            try:
+                uinput = evdev.UInput.from_device(
+                    dev, name=f"{core.VIRTUAL_NAME_PREFIX} ({dev.name})"[:79]
+                )
+                dev.grab()
+            except OSError as e:
+                log(f"cannot grab {dev.name} [{path}]: {e}")
+                if uinput:
+                    uinput.close()
+                dev.close()
+                self.rejected.add(path)
+                return
+        self.pointers[path] = Pointer(dev, core.Engine(self.config), uinput)
+        self.sel.register(dev.fd, selectors.EVENT_READ, ("pointer", path))
+        self.say(f"pointer: {dev.name} [{path}]")
+        log(f"{'watching' if self.dry_run else 'grabbed'} {dev.name} [{path}]")
+
+    def drop_pointer(self, path):
+        p = self.pointers.pop(path)
+        try:
+            self.sel.unregister(p.dev.fd)
+        except (KeyError, ValueError):
+            pass
+        self.close_pointer(p)
+        self.say(f"pointer removed: [{path}]")
+        self.update_modifiers(None)
+
+    def close_pointer(self, p):
+        try:
+            if p.uinput:
+                self.apply(p, p.engine.shutdown())
+        except OSError:
+            pass
+        for step in (p.dev.ungrab if not self.dry_run else None, p.dev.close,
+                     p.uinput.close if p.uinput else None):
+            if step is None:
+                continue
+            try:
+                step()
+            except OSError:
+                pass  # Gerät ist schon weg
+
+    def drop_keyboard(self, path):
+        dev, _ = self.keyboards.pop(path)
+        try:
+            self.sel.unregister(dev.fd)
+        except (KeyError, ValueError):
+            pass
+        dev.close()
+        self.update_modifiers(time.monotonic())
+
+    # --- Ereignisse ---------------------------------------------------------
+
+    def apply(self, p, actions):
+        for a in actions:
+            if isinstance(a, core.Emit):
+                if p.uinput:
+                    p.uinput.write(a.etype, a.code, a.value)
+            else:
+                self.send(a.payload)
+        if p.engine.state != p.last_state:
+            self.say(f"{p.dev.name}: {p.last_state} -> {p.engine.state}")
+            p.last_state = p.engine.state
+
+    def read_pointer(self, path):
+        p = self.pointers[path]
+        for ev in p.dev.read():
+            if ev.type == core.EV_SYN and ev.code == ecodes.SYN_DROPPED:
+                p.engine.reset()  # Ereignisse verloren: Zustand nicht weiterschleppen
+                continue
+            if ev.type == core.EV_SYN and ev.code != ecodes.SYN_REPORT:
+                continue
+            self.apply(p, p.engine.handle(time.monotonic(), ev.type, ev.code, ev.value))
+
+    def read_keyboard(self, path):
+        dev, pressed = self.keyboards[path]
+        for ev in dev.read():
+            # Nur die vier Modifier-Familien; andere Tasten werden hier sofort
+            # verworfen und weder gespeichert noch ausgegeben.
+            if ev.type != core.EV_KEY or ev.code not in core.MODIFIER_CODES:
+                continue
+            if ev.value:
+                pressed.add(ev.code)
+            else:
+                pressed.discard(ev.code)
+        self.update_modifiers(time.monotonic())
+
+    def update_modifiers(self, now):
+        active = any(pressed for _, pressed in self.keyboards.values())
+        for p in self.pointers.values():
+            if p.engine.modifiers != active:
+                self.apply(p, p.engine.set_modifiers(now or time.monotonic(), active))
+
+    # --- Hauptschleife ------------------------------------------------------
+
+    def run(self):
+        stdin_fd = sys.stdin.fileno()
+        self.sel.register(stdin_fd, selectors.EVENT_READ, ("stdin", None))
+        self.say("start (nothing is grabbed)" if self.dry_run else "start")
+        while True:
+            now = time.monotonic()
+            if now >= self.next_scan:
+                self.scan()
+                self.next_scan = now + RESCAN_INTERVAL
+            for p in self.pointers.values():
+                self.apply(p, p.engine.tick(now))
+            deadlines = [self.next_scan] + [
+                d for p in self.pointers.values() if (d := p.engine.deadline()) is not None
+            ]
+            timeout = max(0.0, min(deadlines) - time.monotonic())
+            for key, _ in self.sel.select(timeout):
+                kind, path = key.data
+                try:
+                    if kind == "stdin":
+                        if not os.read(stdin_fd, 4096):
+                            return  # Dienst weg oder Pipe zu: sauber beenden
+                    elif kind == "pointer":
+                        self.read_pointer(path)
+                    else:
+                        self.read_keyboard(path)
+                except OSError as e:
+                    if e.errno != errno.ENODEV:
+                        log(f"{kind} {path}: {e}")
+                    # Gerät abgezogen: nächster Abgleich räumt auf
+                    if kind == "pointer" and path in self.pointers:
+                        self.drop_pointer(path)
+                    elif kind == "keyboard" and path in self.keyboards:
+                        self.drop_keyboard(path)
+                    self.rejected.discard(path)
+
+    def close(self):
+        for path in list(self.pointers):
+            self.drop_pointer(path)
+        for path in list(self.keyboards):
+            self.drop_keyboard(path)
+
+
+def parse_args(argv):
+    ap = argparse.ArgumentParser(description="More Gestures daemon")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="grab nothing, forward nothing; print detected devices and state changes")
+    ap.add_argument("--button", choices=sorted(core.TRIGGER_BUTTONS), default="right",
+                    help="trigger button (default: right)")
+    ap.add_argument("--threshold", type=float, default=core.Config.threshold,
+                    help="movement threshold in raw units (default: %(default)s)")
+    ap.add_argument("--hold-ms", type=float, default=core.Config.hold_time * 1000,
+                    help="hold time before the press is replayed (default: %(default)s)")
+    ap.add_argument("--emergency-s", type=float, default=core.Config.emergency_time,
+                    help="reset a gesture held longer than this (default: %(default)s)")
+    return ap.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    daemon = Daemon(args)
+
+    def stop(signum, frame):
+        raise Stop
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    try:
+        daemon.run()
+    except Stop:
+        pass
+    finally:
+        # Ein zweites Signal darf das Aufräumen nicht unterbrechen, sonst bliebe
+        # die Maus gegriffen, bis der Prozess endet.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        daemon.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
