@@ -189,6 +189,48 @@ class PassTest(unittest.TestCase):
         self.assertEqual([m.payload["type"] for m in out], ["cancel"])
 
 
+class Tap4Test(unittest.TestCase):
+    def tap4(self, p, hold=0.1):
+        p.down(4)
+        p.t += hold
+        p.up(4)
+
+    def test_double_tap_with_four_fingers(self):
+        p = Pad()
+        self.tap4(p)
+        p.t += 0.15
+        self.tap4(p)
+        self.assertEqual(p.payloads(), [{"type": "end", "source": "touchpad", "fingers": 4, "gesture": "tap2"}])
+
+    def test_single_tap_sends_nothing(self):
+        p = Pad()
+        self.tap4(p)
+        self.assertEqual(p.out, [])
+
+    def test_slow_taps_are_not_a_double(self):
+        p = Pad()
+        self.tap4(p)
+        p.t += 1.0
+        self.tap4(p)
+        self.assertEqual(p.out, [])
+
+    def test_long_touch_is_not_a_tap(self):
+        p = Pad()
+        self.tap4(p, hold=0.6)
+        p.t += 0.1
+        self.tap4(p)
+        self.assertEqual(p.out, [])
+
+    def test_swipe_is_not_a_tap(self):
+        p = Pad()
+        p.down(4)
+        p.move(0, 300)
+        p.up(4)
+        p.t += 0.1
+        self.tap4(p)
+        self.assertEqual([m["gesture"] for m in p.payloads() if m["type"] == "end"], ["D"])
+
+
 class SettingsTest(unittest.TestCase):
     def test_update(self):
         s = TouchpadSettings()

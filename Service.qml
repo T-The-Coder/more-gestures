@@ -212,6 +212,12 @@ Item {
     var hit = Actions.resolve(ev, root.activeWindow, root.config)
     if (!hit) { root.lastAction = ""; return false }
     root.lastAction = Actions.actionName(hit.action, root.lang)
+    if (Actions.internalOf(hit.action) === "ring") {
+      // Opened to stay (no button held on a trackpad): pick a slot with a tap or click.
+      ring.open()
+      ring.release()
+      return true
+    }
     var cmd = Actions.buildCommand(hit.action)
     if (cmd) Quickshell.execDetached(cmd.argv)
     return cmd !== null

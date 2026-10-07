@@ -43,6 +43,12 @@ INPUT_PROP_DIRECT = 0x01  # touchscreens: never ours
 
 GESTURE_FINGERS = (3, 4)
 
+# A 4-finger tap: all four down and up within this time, barely moving. libinput only
+# taps with 1-3 fingers, so a 4-finger tap clicks nothing and needs no grab.
+TAP4_TIME = 0.3
+TAP4_MOVE_MM = 3.0
+TAP4_GAP = 0.5  # max pause between the two taps of a double tap
+
 
 @dataclass
 class TouchpadSettings:
@@ -125,6 +131,8 @@ class TouchpadEngine:
         self._slots = {}  # slot -> [x, y, active]
         self._slot = 0
         self._tool = 0
+        self._last_tap4 = None  # time of the first 4-finger tap of a possible double
+        self._started_at = 0.0
         self._reset_gesture()
 
     # ----------------------------------------------------------------- input
@@ -197,13 +205,14 @@ class TouchpadEngine:
                 return self._move(now)
             if n > self.fingers:
                 return self._abort()  # another finger landed: not the gesture it started as
-            return self._finish()  # fingers lifted
+            return self._finish(now)  # fingers lifted
         if self.passthrough or not self.settings.enabled or n not in self.settings.fingers:
             return []
         points = self._active_points()
         if len(points) < 2:
             return []
         self.fingers = n
+        self._started_at = now
         self._contacts = set(points)
         self._last = self._centroid(points)
         self._base_spread = self._spread(points, self._last)
@@ -255,8 +264,18 @@ class TouchpadEngine:
         self._shown = True
         return [core.Message(self._rec.payload("start"))]
 
-    def _finish(self):
+    def _finish(self, now=0.0):
         out = []
+        if self.fingers == 4 and not self._shown and not self._pinch and \
+                self._moved < TAP4_MOVE_MM and now - self._started_at < TAP4_TIME:
+            if self._last_tap4 is not None and now - self._last_tap4 < TAP4_GAP:
+                self._last_tap4 = None
+                out.append(core.Message({"type": "end", "source": "touchpad", "fingers": 4,
+                                         "gesture": "tap2"}))
+            else:
+                self._last_tap4 = now
+            self._reset_gesture()
+            return out
         gesture = self._pinch or (self._rec.gesture if self._rec else "")
         if self._shown and gesture and not (self._blocked and not self._pinch):
             out.append(core.Message(self._rec.payload("end", gesture=gesture)))

@@ -30,7 +30,7 @@ var PROFILE_TAGS = [
 
 var SOURCES = ["*", "mouse", "tp3", "tp4", "tap"]
 // Corner taps (source "tap") have their own gesture names: corner + count, e.g. "tl2".
-var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4])$/
+var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4]|tp4:tap2)$/
 
 // Windows the plugin must not touch (games, VMs). Trailing "*" is a prefix match.
 var DEFAULT_EXCLUDES = ["steam_app_*", "retroarch", "qemu*", "virt-manager", "gamescope"]
@@ -130,6 +130,8 @@ var DISPATCH = {
   "workspace-8":         { chunk: workspaceLua(8), en: "Workspace 8", de: "Arbeitsfläche 8" },
   "workspace-9":         { chunk: workspaceLua(9), en: "Workspace 9", de: "Arbeitsfläche 9" },
   "workspace-10":        { chunk: workspaceLua(10), en: "Workspace 10", de: "Arbeitsfläche 10" },
+  // Handled inside the shell (Service.qml), not by Hyprland: opens the ring menu.
+  "ring-menu":           { internal: "ring", en: "Ring menu", de: "Kreismenü" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
   // The ring shows only the part before the brackets ("Desktop").
   "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Desktop (show desktop)", de: "Desktop (Desktop anzeigen)" },
@@ -209,6 +211,8 @@ function defaultBindings() {
   desktop["tp4:D"] = dispatch("show-desktop")
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
+  // No "hold and drag" on a trackpad: the ring opens to stay, tap a slot to pick it.
+  desktop["tp4:tap2"] = dispatch("ring-menu")
   // Corner taps (touchpad, needs "corner taps" on): double tap = workspaces 1-4 in the
   // order top-left, top-right, bottom-left, bottom-right; triple tap = 5-8.
   var corners = ["tl", "tr", "bl", "br"]
@@ -341,11 +345,19 @@ function buildCommand(raw) {
   if (a.type === "none") return null
   if (a.type === "dispatch") {
     var d = DISPATCH[a.id]
+    if (d.internal) return null  // the caller handles it (see isInternal)
     return { argv: ["hyprctl", "eval", d.chunk ? d.chunk : "hl.dispatch(" + d.lua + ")"] }
   }
   if (a.type === "exec")
     return { argv: ["bash", "-lc", a.command] }
   return { argv: ["hyprctl", "eval", keysLua(a.sequence)] }
+}
+
+// "ring" for an action the shell runs itself, "" otherwise.
+function internalOf(raw) {
+  var v = validateAction(raw)
+  if (!v.ok || v.action.type !== "dispatch") return ""
+  return DISPATCH[v.action.id].internal || ""
 }
 
 // ------------------------------------------------------------------- display
@@ -402,6 +414,7 @@ function arrowList(dirs) {
   // Pinches are not lines: fingers moving towards / away from each other.
   if (dirs === "pinchin") return ["→←"]
   if (dirs === "pinchout") return ["←→"]
+  if (dirs === "tap2") return ["••"]
   return String(dirs || "").split("").map(arrowFor).filter(function (a) { return a !== "" })
 }
 
@@ -561,7 +574,7 @@ if (typeof module !== "undefined") module.exports = {
   GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,
-  validateAction: validateAction, buildCommand: buildCommand, keysLua: keysLua,
+  validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
   arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText, tapText: tapText, SOURCES: SOURCES,
