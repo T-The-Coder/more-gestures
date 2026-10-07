@@ -201,9 +201,13 @@ Item {
     if (res.ok) root.working = res.config
   }
 
+  // wheel-up / rocker-left read as "Wheel ↑" / "Rocker ←" instead of internal ids.
   function gestureText(g) {
     if (/^[UDLR]+$/.test(g)) return Actions.arrowText(g)
-    return g
+    var m = /^(wheel|rocker)-(up|down|left|right)$/.exec(g)
+    if (!m) return g
+    var arrow = { up: "↑", down: "↓", left: "←", right: "→" }[m[2]]
+    return root.tr("gesture_" + m[1]) + " " + arrow
   }
 
   // ------------------------------------------------------------------- storage
