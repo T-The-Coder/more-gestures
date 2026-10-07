@@ -157,7 +157,7 @@ Item {
   }
 
   function addDir(d) {
-    if (/^(wheel|rocker|pinch)/.test(root.editGesture)) root.editGesture = ""
+    if (/^(wheel|rocker|pinch|tap)/.test(root.editGesture)) root.editGesture = ""
     if (root.editGesture.length >= 4) return
     // Equal neighbours merge in the recogniser, so "LL" could never be drawn.
     if (root.editGesture.slice(-1) === d) return
@@ -223,6 +223,7 @@ Item {
 
   // wheel-up / rocker-left read as "Wheel ↑" / "Rocker ←" instead of internal ids.
   function gestureText(g) {
+    if (g === "tap2") return root.tr("tap2")
     if (/^(tl|tr|bl|br)[1-4]$/.test(g)) return Actions.tapText(g)
     if (/^[UDLR]+$/.test(g) || /^pinch/.test(g)) return Actions.arrowText(g)
     var m = /^(wheel|rocker)-(up|down|left|right)$/.exec(g)
@@ -823,8 +824,13 @@ Item {
                       onClicked: root.editGesture = "pinchout"
                     }
                     SmallButton {
+                      text: root.tr("tap2")
+                      visible: root.editSource === "tp4"
+                      onClicked: root.editGesture = "tap2"
+                    }
+                    SmallButton {
                       text: "⌫"
-                      onClicked: root.editGesture = /^pinch/.test(root.editGesture) ? "" : root.editGesture.slice(0, -1)
+                      onClicked: root.editGesture = /^(pinch|tap)/.test(root.editGesture) ? "" : root.editGesture.slice(0, -1)
                     }
                     SmallButton { text: root.tr("clear"); onClicked: root.editGesture = "" }
                     Text {

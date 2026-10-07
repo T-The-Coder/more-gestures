@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- Double tap with 4 fingers on the trackpad opens the ring menu (gesture `tp4:tap2`,
+  action "Ring menu", handled in the shell). It opens to stay: tap or click a slot.
+  libinput only taps with 1-3 fingers, so this needs no grab and clicks nothing.
+
 ### Changed
 - "Show desktop" ends when another workspace is shown: on every workspace switch the
   stashed windows go back to their workspace (the active one is left alone), so it
