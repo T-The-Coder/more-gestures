@@ -6,6 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
 import "Actions.js" as Actions
+import "Trail.js" as Trail
 
 // Gesture feedback: the real line under the pointer plus the indicator (ring, arrows,
 // action name).
@@ -58,6 +59,15 @@ Item {
   property real progressRatio: 0
 
   readonly property bool showArrows: indicator === "full"
+  // Trail and ring share one stroke width so they read as one mark.
+  readonly property real lineWidth: Math.max(3, Style.space(4))
+  readonly property real ringSize: Style.space(36)
+  // Trail from the ring's outer edge to the pointer, plus its arrowhead.
+  readonly property var trailPath: haveStart
+      ? Trail.clipStart(points, startX, startY, ringSize / 2).map(function(p) { return Qt.point(p.x, p.y) })
+      : []
+  readonly property var trailHead: Trail.arrowHead(trailPath, lineWidth * 3.5)
+      .map(function(p) { return Qt.point(p.x, p.y) })
   readonly property color neutralColor: Color.foreground
   readonly property color dimColor: Util.alpha(Color.foreground, 0.45)
   readonly property color stateColor: dirs === "" ? neutralColor : (valid ? Color.accent : dimColor)
@@ -264,11 +274,19 @@ Item {
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
           strokeColor: Color.accent
-          strokeWidth: Math.max(3, Style.space(4))
+          strokeWidth: root.lineWidth
           fillColor: "transparent"
           capStyle: ShapePath.RoundCap
           joinStyle: ShapePath.RoundJoin
-          PathPolyline { path: root.points }
+          PathPolyline { path: root.trailPath }
+        }
+        ShapePath {
+          strokeColor: Color.accent
+          strokeWidth: root.lineWidth
+          fillColor: "transparent"
+          capStyle: ShapePath.RoundCap
+          joinStyle: ShapePath.RoundJoin
+          PathPolyline { path: root.trailHead }
         }
       }
 
@@ -278,7 +296,7 @@ Item {
         x: root.startX
         y: root.startY
 
-        readonly property int ringSize: Style.space(36)
+        readonly property real ringSize: root.ringSize
 
         Rectangle {
           id: ring
@@ -288,7 +306,7 @@ Item {
           y: -height / 2
           radius: width / 2
           color: Util.alpha(Color.background, 0.55)
-          border.width: Math.max(2, Style.space(2))
+          border.width: root.lineWidth
           border.color: root.done ? Color.accent : root.stateColor
 
           Text {
