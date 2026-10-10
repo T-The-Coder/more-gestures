@@ -30,7 +30,7 @@ var PROFILE_TAGS = [
 
 var SOURCES = ["*", "mouse", "tp3", "tp4", "tap"]
 // Corner taps (source "tap") have their own gesture names: corner + count, e.g. "tl2".
-var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,4}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4]|tp4:tap2)$/
+var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,5}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4]|tp4:tap2)$/
 
 // Windows the plugin must not touch (games, VMs). Trailing "*" is a prefix match.
 var DEFAULT_EXCLUDES = ["steam_app_*", "retroarch", "qemu*", "virt-manager", "gamescope"]
@@ -202,7 +202,11 @@ var DISPATCH = {
   // opposite swipe takes it back (see STACK_DOWN_LUA / STACK_UP_LUA).
   "stack-down":          { chunk: STACK_DOWN_LUA, en: "Down: close launcher / Exposé, wallpaper, files", de: "Runter: Launcher / Exposé zu, Wallpaper, Dateien" },
   "stack-up":            { chunk: STACK_UP_LUA, en: "Up: close files / back, Exposé, launcher", de: "Hoch: Dateien zu / zurück, Exposé, Launcher" },
-  "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" }
+  "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" },
+  // Programs as dispatch ids, so the ring settings can offer them in the dropdown.
+  "app-launcher":        { chunk: 'hl.exec_cmd("omarchy-menu toggle apps")', en: "App launcher", de: "App-Launcher" },
+  "new-terminal":        { chunk: 'hl.exec_cmd("omarchy-launch-terminal")', en: "New terminal", de: "Neues Terminal" },
+  "files":               { chunk: 'hl.exec_cmd("uwsm-app -- nautilus --new-window")', en: "Files", de: "Dateien" }
 }
 
 // Names for the default key combos; anything else shows the combo itself.
@@ -235,47 +239,50 @@ function none() { return { type: "none" } }
 // Gesture keys are "<source>:<gesture>"; "*" applies to every source. Profile entries
 // beat the default profile, and a specific source beats "*" within one profile.
 // A profile only lists what differs; missing gestures fall through to "default".
+//
+// One gesture language for every device and program: the mouse (trigger + movement) and
+// three fingers share the "*:" entries, so a shape learnt on one works on the other, and
+// it means the same thing everywhere:
+//   ← / →     back / forward (Alt+Left/Right, as in the browser)
+//   ↑ / ↓     layers: Exposé → launcher / wallpaper → files; the opposite way undoes
+//   ↑← / ↑→   workspace left / right ("one level up, then across")
+//   ↓→        close tab (Ctrl+W)          ↓←      close window (Super+W)
+//   ↓←↑ / ↓→↑ move the window to the workspace left / right
+//   ↓↑ new tab, ←↑ reopen closed tab, ↑↓ reload, →↑ fullscreen
+// Four fingers are the system level: left/right is Hyprland's own workspace swipe,
+// up/down the same layers, pinches and the double tap add launcher, Hyprexpo and the ring.
 function defaultBindings() {
   var desktop = {
-    "*:L": dispatch("workspace-prev"),
-    "*:R": dispatch("workspace-next"),
-    "*:U": exec("omarchy-menu toggle apps", "launcher"),
-    "*:D": exec("omarchy-launch-terminal", "terminal"),
-    "*:DR": dispatch("window-close"),
-    "*:DU": dispatch("window-float-toggle"),
-    "*:RU": dispatch("window-fullscreen"),
-    "*:UL": dispatch("window-to-workspace-prev"),
-    "*:UR": dispatch("window-to-workspace-next"),
-    "*:wheel-up": dispatch("workspace-prev"),
-    "*:wheel-down": dispatch("workspace-next"),
-    "*:rocker-left": dispatch("workspace-prev"),
-    "*:rocker-right": dispatch("workspace-next")
-  }
-  var browser = {
     "*:L": keys("ALT", "Left", "back"),
     "*:R": keys("ALT", "Right", "forward"),
-    "*:D": keys("CTRL", "T", "new-tab"),
+    "*:U": dispatch("stack-up"),
+    "*:D": dispatch("stack-down"),
+    "*:UL": dispatch("workspace-prev"),
+    "*:UR": dispatch("workspace-next"),
     "*:DR": keys("CTRL", "W", "close-tab"),
-    "*:UD": keys("", "F5", "reload"),
+    "*:DL": dispatch("window-close"),
+    "*:DLU": dispatch("window-to-workspace-prev"),
+    "*:DRU": dispatch("window-to-workspace-next"),
+    "*:DU": keys("CTRL", "T", "new-tab"),
     "*:LU": keys("CTRL SHIFT", "T", "reopen-tab"),
-    // Ctrl+L selects the address bar, Alt+Enter opens its content in a new tab:
-    // there is no dedicated "duplicate tab" shortcut in Chromium or Firefox.
-    "*:DU": { type: "keys", combo: ["CTRL", "L"], sequence: [["CTRL", "L"], ["ALT", "Return"]], label: "duplicate-tab" },
-    "*:wheel-up": keys("CTRL SHIFT", "Tab", "prev-tab"),
-    "*:wheel-down": keys("CTRL", "Tab", "next-tab"),
+    "*:UD": keys("", "F5", "reload"),
+    "*:RU": dispatch("window-fullscreen"),
+    "*:wheel-up": dispatch("workspace-prev"),
+    "*:wheel-down": dispatch("workspace-next"),
     "*:rocker-left": keys("ALT", "Left", "back"),
     "*:rocker-right": keys("ALT", "Right", "forward")
   }
-  // L/R inherit from the desktop. Ctrl+W would delete a word in many shells, so the
-  // close gesture is spelled out as a window close rather than inherited by accident.
-  var terminal = {
-    "*:DR": dispatch("window-close")
+  // The wheel switches tabs instead of workspaces; every shape stays the same.
+  var browser = {
+    "*:wheel-up": keys("CTRL SHIFT", "Tab", "prev-tab"),
+    "*:wheel-down": keys("CTRL", "Tab", "next-tab")
   }
-  // Trackpad extras in the default profile. Lines without a tp entry fall back to "*:"
-  // (the mouse table). Four fingers left/right are Hyprland's workspace swipe by default
-  // (Config: touchpad.swipe), so they never reach these tables.
-  desktop["tp4:U"] = dispatch("stack-up")
-  desktop["tp4:D"] = dispatch("stack-down")
+  // Ctrl+W deletes a word in a shell; terminals with tabs close them with Ctrl+Shift+W.
+  var terminal = {
+    "*:DR": keys("CTRL SHIFT", "W", "close-tab")
+  }
+  // Four fingers left/right are Hyprland's workspace swipe by default (Config:
+  // touchpad.swipe), so they never reach these tables; up/down use the "*:" layers.
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
   // No "hold and drag" on a trackpad: the ring opens to stay, tap a slot to pick it.
@@ -290,11 +297,13 @@ function defaultBindings() {
   return { "default": desktop, browser: browser, terminal: terminal }
 }
 
-// Ring menu (double click with the trigger, second press held): a clock face, slot 0 at
-// 12 o'clock, clockwise. Exposé at 12, workspaces 1-5 at 1-5, show desktop at 6,
-// workspaces 6-9 and 10 ("0") at 7-11.
-// Key per slot while the ring is open (Esc always closes): e = Exposé, 1-0 = workspaces,
-// w = wallpaper.
+// Ring menu: up to three rings around the pointer, each a clock face with slot 0 at the
+// top, clockwise. Ring 1 (inner, always on): Exposé at 12, workspaces 1-5 at 1-5,
+// wallpaper at 6, workspaces 6-9 and 10 ("0") at 7-11. Ring 2: window and program
+// actions. Ring 3: empty, for the user. Any action fits any ring, workspaces included.
+// Key per slot while the ring is open (Esc always closes); upper case = Shift+letter.
+var RING_COUNTS = [[8, 12, 16], [8, 12, 16, 24], [8, 12, 16, 24]]
+
 var RING_KEYS = ["e", "1", "2", "3", "4", "5", "w", "6", "7", "8", "9", "0"]
 
 var RING_SLOTS = [
@@ -305,6 +314,20 @@ var RING_SLOTS = [
   dispatch("workspace-6"), dispatch("workspace-7"), dispatch("workspace-8"),
   dispatch("workspace-9"), dispatch("workspace-10")
 ]
+
+function ringDefaultsList() {
+  return [
+    { enabled: true, count: 12, slots: RING_SLOTS, keys: RING_KEYS },
+    { enabled: false, count: 12,
+      slots: [dispatch("window-close"), dispatch("window-fullscreen"), dispatch("window-float-toggle"),
+              dispatch("window-to-workspace-prev"), dispatch("window-to-workspace-next"),
+              dispatch("scratchpad-toggle"), dispatch("new-terminal"), dispatch("files"),
+              dispatch("app-launcher"), dispatch("hyprexpo"), none(), none()],
+      keys: ["q", "f", "s", "a", "d", "n", "t", "o", "l", "x", "", ""] },
+    { enabled: false, count: 16, slots: Array.apply(null, Array(16)).map(none),
+      keys: Array.apply(null, Array(16)).map(function () { return "" }) }
+  ]
+}
 
 // ------------------------------------------------------------------ validation
 
@@ -641,7 +664,7 @@ function parseActiveWindow(text) {
 
 if (typeof module !== "undefined") module.exports = {
   KEY_HOLD_MS: KEY_HOLD_MS, SEQUENCE_GAP_MS: SEQUENCE_GAP_MS, MAX_SEQUENCE: MAX_SEQUENCE,
-  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, RING_KEYS: RING_KEYS, RESTORE_DESKTOPS_LUA: RESTORE_DESKTOPS_LUA, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
+  MODIFIERS: MODIFIERS, DISPATCH: DISPATCH, RING_SLOTS: RING_SLOTS, RING_KEYS: RING_KEYS, RING_COUNTS: RING_COUNTS, ringDefaultsList: ringDefaultsList, RESTORE_DESKTOPS_LUA: RESTORE_DESKTOPS_LUA, DEFAULT_EXCLUDES: DEFAULT_EXCLUDES,
   GESTURE_KEY_PATTERN: GESTURE_KEY_PATTERN, KEY_PATTERN: KEY_PATTERN,
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,

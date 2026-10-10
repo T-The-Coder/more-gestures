@@ -32,7 +32,7 @@ test("gestureKey: source prefixes, unknown input rejected", () => {
   assert.equal(A.gestureKey({ source: "touchpad", fingers: 4, gesture: "UD" }), "tp4:UD")
   assert.equal(A.gestureKey({ source: "touchpad", fingers: 2, gesture: "L" }), "")
   assert.equal(A.gestureKey(mouse("X")), "")
-  assert.equal(A.gestureKey(mouse("LRLRL")), "")
+  assert.equal(A.gestureKey(mouse("LRLRLR")), "")
   assert.equal(A.gestureKey(null), "")
 })
 
@@ -45,80 +45,82 @@ test("eventGesture maps daemon events", () => {
   assert.equal(A.eventGesture({ type: "wheel", dir: "sideways" }), "")
 })
 
-test("default table: desktop", () => {
+const combo = (a) => A.keysText(A.validateAction(a).action.sequence, "en")
+
+test("gesture language: one meaning for every shape", () => {
   const id = (g, w = plain) => A.resolve(mouse(g), w, {}).action
-  assert.deepEqual(id("L"), { type: "dispatch", id: "workspace-prev" })
-  assert.deepEqual(id("R"), { type: "dispatch", id: "workspace-next" })
-  assert.equal(id("U").type, "exec")
-  assert.equal(id("D").type, "exec")
-  assert.deepEqual(id("DR"), { type: "dispatch", id: "window-close" })
-  assert.deepEqual(id("DU"), { type: "dispatch", id: "window-float-toggle" })
+  assert.equal(combo(id("L")), "Alt+Left")
+  assert.equal(combo(id("R")), "Alt+Right")
+  assert.deepEqual(id("U"), { type: "dispatch", id: "stack-up" })
+  assert.deepEqual(id("D"), { type: "dispatch", id: "stack-down" })
+  assert.deepEqual(id("UL"), { type: "dispatch", id: "workspace-prev" })
+  assert.deepEqual(id("UR"), { type: "dispatch", id: "workspace-next" })
+  assert.equal(combo(id("DR")), "Ctrl+W")
+  assert.deepEqual(id("DL"), { type: "dispatch", id: "window-close" })
+  assert.deepEqual(id("DLU"), { type: "dispatch", id: "window-to-workspace-prev" })
+  assert.deepEqual(id("DRU"), { type: "dispatch", id: "window-to-workspace-next" })
+  assert.equal(combo(id("DU")), "Ctrl+T")
+  assert.equal(combo(id("LU")), "Ctrl+Shift+T")
+  assert.equal(combo(id("UD")), "F5")
   assert.deepEqual(id("RU"), { type: "dispatch", id: "window-fullscreen" })
-  assert.deepEqual(id("UL"), { type: "dispatch", id: "window-to-workspace-prev" })
-  assert.deepEqual(id("UR"), { type: "dispatch", id: "window-to-workspace-next" })
-  assert.equal(A.resolve(mouse("UD"), plain, {}), null)
 })
 
-test("default table: browser overrides and inherits", () => {
-  const r = (g) => A.resolve(mouse(g), browser, {})
-  assert.equal(r("L").profile, "browser")
-  assert.equal(A.keysText(A.validateAction(r("L").action).action.sequence, "en"), "Alt+Left")
-  assert.equal(A.keysText(A.validateAction(r("DR").action).action.sequence, "en"), "Ctrl+W")
-  assert.equal(A.keysText(A.validateAction(r("LU").action).action.sequence, "en"), "Ctrl+Shift+T")
-  assert.equal(A.keysText(A.validateAction(r("UD").action).action.sequence, "en"), "F5")
-  // U is not set for the browser, so the desktop launcher applies.
-  assert.equal(r("U").profile, "default")
-  assert.equal(r("RU").profile, "default")
-  // Duplicate tab is a two-step sequence.
-  assert.equal(A.validateAction(r("DU").action).action.sequence.length, 2)
+test("gesture language: the same shapes in the browser, mouse and three fingers alike", () => {
+  const tp3 = (g) => ({ source: "touchpad", fingers: 3, gesture: g })
+  for (const g of ["L", "R", "U", "D", "UL", "UR", "DR", "DL", "DLU", "DRU", "DU", "LU", "UD", "RU"]) {
+    const m = A.resolve(mouse(g), browser, {})
+    assert.deepEqual(m.action, A.resolve(mouse(g), plain, {}).action, g)
+    assert.deepEqual(A.resolve(tp3(g), browser, {}).action, m.action, g)
+  }
 })
 
-test("default table: terminal inherits L/R, DR closes the window", () => {
-  assert.equal(A.resolve(mouse("L"), term, {}).profile, "default")
+test("terminal: close tab is Ctrl+Shift+W, everything else shared", () => {
   const dr = A.resolve(mouse("DR"), term, {})
   assert.equal(dr.profile, "terminal")
-  assert.equal(dr.action.type, "dispatch")
+  assert.equal(combo(dr.action), "Ctrl+Shift+W")
+  assert.equal(A.resolve(mouse("L"), term, {}).profile, "default")
+  assert.equal(A.resolve(mouse("DL"), term, {}).action.id, "window-close")
 })
 
 test("wheel and rocker defaults", () => {
   const w = (g, win) => A.resolve(mouse(g), win, {}).action
   assert.deepEqual(w("wheel-down", plain), { type: "dispatch", id: "workspace-next" })
-  assert.equal(A.keysText(w("wheel-down", browser).sequence || A.validateAction(w("wheel-down", browser)).action.sequence, "en"), "Ctrl+Tab")
-  assert.equal(A.keysText(A.validateAction(w("wheel-up", browser)).action.sequence, "en"), "Ctrl+Shift+Tab")
-  assert.equal(A.keysText(A.validateAction(w("rocker-left", browser)).action.sequence, "en"), "Alt+Left")
-  assert.deepEqual(w("rocker-right", plain), { type: "dispatch", id: "workspace-next" })
+  assert.equal(combo(w("wheel-down", browser)), "Ctrl+Tab")
+  assert.equal(combo(w("wheel-up", browser)), "Ctrl+Shift+Tab")
+  assert.equal(combo(w("rocker-left", browser)), "Alt+Left")
+  assert.equal(combo(w("rocker-right", plain)), "Alt+Right")
 })
 
 test("source fallback: specific source beats *, * covers all sources", () => {
   const config = { bindings: { default: { "tp3:DR": { type: "none" }, "tp4:L": { type: "dispatch", id: "focus-left" } } } }
   const tp = (fingers, gesture) => ({ source: "touchpad", fingers, gesture })
   // "*:DR" is the shared binding: mouse and tp4 use it, tp3 is blocked by an explicit none.
-  assert.equal(A.resolve(mouse("DR"), plain, config).action.id, "window-close")
-  assert.equal(A.resolve(tp(4, "DR"), plain, config).action.id, "window-close")
+  assert.equal(A.resolve(mouse("DR"), plain, config).action.label, "close-tab")
+  assert.equal(A.resolve(tp(4, "DR"), plain, config).action.label, "close-tab")
   assert.equal(A.resolve(tp(3, "DR"), plain, config), null)
   assert.equal(A.resolve(tp(4, "L"), plain, config).action.id, "focus-left")
-  assert.equal(A.resolve(tp(3, "L"), plain, config).action.id, "workspace-prev")
+  assert.equal(A.resolve(tp(3, "L"), plain, config).action.label, "back")
 })
 
 test("profile beats source specificity of the default profile", () => {
-  const config = { bindings: { default: { "mouse:L": { type: "dispatch", id: "focus-left" } } } }
-  assert.equal(A.resolve(mouse("L"), plain, config).action.id, "focus-left")
-  // browser has "*:L", which wins over the default profile's "mouse:L".
-  assert.equal(A.resolve(mouse("L"), browser, config).profile, "browser")
+  const config = { bindings: { default: { "mouse:wheel-up": { type: "dispatch", id: "focus-left" } } } }
+  assert.equal(A.resolve(mouse("wheel-up"), plain, config).action.id, "focus-left")
+  // browser has "*:wheel-up", which wins over the default profile's "mouse:wheel-up".
+  assert.equal(A.resolve(mouse("wheel-up"), browser, config).profile, "browser")
 })
 
 test("user config: explicit none blocks inheritance, invalid entries are ignored", () => {
   const config = {
     bindings: {
       browser: { "*:U": { type: "none" }, "*:L": { type: "keys", combo: ["CTRL", "T\"})"] }, "not a key": { type: "none" } },
-      default: { "*:L": "oops" }
+      default: { "*:UL": "oops" }
     }
   }
   assert.equal(A.resolve(mouse("U"), browser, config), null)
   assert.equal(A.resolve(mouse("L"), browser, config).action.type, "keys")
   assert.equal(A.resolve(mouse("L"), browser, config).action.sequence[0].key, "Left")
-  assert.equal(A.resolve(mouse("L"), plain, config).action.id, "workspace-prev")
-  assert.equal(A.resolve(mouse("DR"), browser, { bindings: "garbage" }).profile, "browser")
+  assert.equal(A.resolve(mouse("UL"), plain, config).action.id, "workspace-prev")
+  assert.equal(A.resolve(mouse("wheel-up"), browser, { bindings: "garbage" }).profile, "browser")
 })
 
 test("parseModifiers: allow-list, canonical order, separators", () => {
@@ -299,7 +301,7 @@ test("every default action is valid and has a name in both languages", () => {
     // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
     // hyprexpo) that is passed to `hyprctl eval` as is.
     if (d.internal) assert.equal(d.internal, "ring", id)
-    else if (d.chunk) assert.match(d.chunk, /^(local |for )/, id)
+    else if (d.chunk) assert.match(d.chunk, /^(local |for |hl\.exec_cmd\("[a-z -]+"\)$)/, id)
     else assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
   }
 })
@@ -359,11 +361,11 @@ test("normalizeIndicator: known modes pass, everything else is full", () => {
 })
 
 test("preview: name and validity for the indicator", () => {
-  assert.deepEqual(A.preview(mouse("L"), plain, {}, "en"), { name: "Workspace left", valid: true })
+  assert.deepEqual(A.preview(mouse("UL"), plain, {}, "en"), { name: "Workspace left", valid: true })
   assert.deepEqual(A.preview(mouse("DR"), browser, {}, "de"), { name: "Tab schließen (Strg+W)", valid: true })
   assert.deepEqual(A.preview(mouse("LU"), browser, {}, "en"), { name: "Reopen closed tab (Ctrl+Shift+T)", valid: true })
-  // unbound on the desktop -> dash, not valid
-  assert.deepEqual(A.preview(mouse("UD"), plain, {}, "en"), { name: "—", valid: false })
+  // unbound -> dash, not valid
+  assert.deepEqual(A.preview(mouse("LRL"), plain, {}, "en"), { name: "—", valid: false })
   // explicit "none" counts as unknown too
   const cfg = { bindings: { default: { "*:L": { type: "none" } } } }
   assert.deepEqual(A.preview(mouse("L"), plain, cfg, "en"), { name: "—", valid: false })
@@ -372,9 +374,9 @@ test("preview: name and validity for the indicator", () => {
 })
 
 test("preview: key combination without label shows the combination", () => {
-  const cfg = { bindings: { default: { "*:UD": { type: "keys", combo: ["CTRL SHIFT", "T"] } } } }
-  assert.equal(A.preview(mouse("UD"), plain, cfg, "de").name, "Strg+Umschalt+T")
-  assert.equal(A.preview(mouse("UD"), plain, cfg, "en").name, "Ctrl+Shift+T")
+  const cfg = { bindings: { default: { "*:LRL": { type: "keys", combo: ["CTRL SHIFT", "T"] } } } }
+  assert.equal(A.preview(mouse("LRL"), plain, cfg, "de").name, "Strg+Umschalt+T")
+  assert.equal(A.preview(mouse("LRL"), plain, cfg, "en").name, "Ctrl+Shift+T")
 })
 
 test("parseCursorPos: JSON, plain text, garbage", () => {
@@ -416,4 +418,23 @@ test("4-finger double tap opens the ring inside the shell", () => {
   assert.equal(A.internalOf(hit.action), "ring")
   assert.equal(A.buildCommand(hit.action), null)
   assert.equal(A.GESTURE_KEY_PATTERN.test("tp3:tap2"), false)
+})
+
+test("five-stroke shapes can be bound", () => {
+  assert.equal(A.gestureKey(mouse("DRDLU")), "mouse:DRDLU")
+  const cfg = { bindings: { default: { "*:DRDLU": { type: "dispatch", id: "files" } } } }
+  assert.equal(A.resolve(mouse("DRDLU"), plain, cfg).action.id, "files")
+})
+
+test("ring defaults: three rings, slots and keys match their counts", () => {
+  const rings = A.ringDefaultsList()
+  assert.equal(rings.length, 3)
+  rings.forEach((r, i) => {
+    assert.ok(A.RING_COUNTS[i].includes(r.count), String(i))
+    assert.equal(r.slots.length, r.count)
+    assert.equal(r.keys.length, r.count)
+    r.slots.forEach(s => assert.ok(A.validateAction(s).ok))
+  })
+  const keys = rings.flatMap(r => r.keys).filter(k => k)
+  assert.equal(new Set(keys).size, keys.length)
 })

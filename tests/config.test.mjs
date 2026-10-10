@@ -100,11 +100,13 @@ test("serialize sanitizes, so the file never contains unvalidated data", () => {
 })
 
 test("listBindings: defaults, sorted, flags", () => {
-  const rows = Config.listBindings(Config.defaults(), "browser")
-  assert.deepEqual(rows.map(r => r.gesture).slice(0, 4), ["D", "L", "R", "DR"])
+  const rows = Config.listBindings(Config.defaults(), "default")
+  assert.deepEqual(rows.map(r => r.gesture).slice(0, 4), ["D", "L", "R", "U"])
   assert.ok(rows.every(r => r.hasDefault && !r.overridden))
   const wheel = rows.findIndex(r => r.gesture === "wheel-up")
-  assert.ok(wheel > rows.findIndex(r => r.gesture === "DU"))
+  assert.ok(wheel > rows.findIndex(r => r.gesture === "DLU"))
+  // The browser lists only what differs: the wheel switches tabs.
+  assert.deepEqual(Config.listBindings(Config.defaults(), "browser").map(r => r.gesture), ["wheel-down", "wheel-up"])
   assert.equal(Config.listBindings(Config.defaults(), "nope").length, 0)
 })
 
@@ -118,7 +120,7 @@ test("setBinding: override, add, and drop when equal to the built-in", () => {
   assert.ok(row.overridden && row.hasDefault)
   assert.equal(row.action.type, "none")
   // putting the built-in action back removes the override again
-  r = Config.setBinding(c, "default", "*:DR", { type: "dispatch", id: "window-close" })
+  r = Config.setBinding(c, "default", "*:DR", { type: "keys", combo: ["CTRL", "W"], label: "close-tab" })
   assert.deepEqual(r.config.bindings.default, {})
   // new gesture
   r = Config.setBinding(c, "terminal", "*:UDU", { type: "exec", command: "echo hi", label: "Hi" })
@@ -126,12 +128,13 @@ test("setBinding: override, add, and drop when equal to the built-in", () => {
   assert.ok(added.overridden && !added.hasDefault)
   // input is not modified
   assert.deepEqual(c.bindings.terminal, {})
+  assert.ok(Config.listBindings(Config.defaults(), "terminal").every(x => !x.overridden))
 })
 
 test("setBinding rejects bad input", () => {
   const c = Config.defaults()
   assert.equal(Config.setBinding(c, "nope", "*:D", { type: "none" }).ok, false)
-  assert.equal(Config.setBinding(c, "default", "*:DDDDD", { type: "none" }).ok, false)
+  assert.equal(Config.setBinding(c, "default", "*:DDDDDD", { type: "none" }).ok, false)
   assert.equal(Config.setBinding(c, "default", "*:D", { type: "exec", command: " " }).ok, false)
   assert.equal(Config.setBinding(c, "default", "*:D", { type: "keys", combo: ["CTRL", "a b"] }).ok, false)
 })
@@ -140,7 +143,7 @@ test("removeBinding: restores the built-in or deletes a custom entry", () => {
   let c = Config.setBinding(Config.defaults(), "default", "*:L", { type: "none" }).config
   c = Config.setBinding(c, "default", "*:ULD", { type: "none" }).config
   c = Config.removeBinding(c, "default", "*:L")
-  assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:L").action.type, "dispatch")
+  assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:L").action.type, "keys")
   c = Config.removeBinding(c, "default", "*:ULD")
   assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:ULD"), undefined)
 })
@@ -155,7 +158,8 @@ test("edited bindings take effect in Actions.resolve", () => {
 test("gestureKeyFor", () => {
   assert.equal(Config.gestureKeyFor("*", "UD"), "*:UD")
   assert.equal(Config.gestureKeyFor("*", ""), "")
-  assert.equal(Config.gestureKeyFor("*", "UDLRU"), "")
+  assert.equal(Config.gestureKeyFor("*", "UDLRU"), "*:UDLRU")
+  assert.equal(Config.gestureKeyFor("*", "UDLRUD"), "")
   assert.equal(Config.gestureKeyFor("tp3", "L"), "tp3:L")
   assert.equal(Config.gestureKeyFor("pen", "L"), "")
 })
@@ -208,24 +212,70 @@ test("corner taps: opt-in, bound list from all profiles", () => {
   assert.ok(!Config.daemonConfig(r.config, A).taps.bound.includes("tl3"))
 })
 
-test("ring settings: off by default, clamped", () => {
+test("ring settings: off by default, clamped, three rings", () => {
   const d = Config.defaults().ring
   assert.equal(d.enabled, false)
   assert.equal(d.doubleMs, 250)
-  assert.equal(d.slots.length, 12)
-  assert.equal(d.slots[0].id, "expose")
+  assert.equal(d.rings.length, 3)
+  assert.deepEqual(d.rings.map(r => r.enabled), [true, false, false])
+  assert.deepEqual(d.rings.map(r => r.count), [12, 12, 16])
+  assert.equal(d.rings[0].slots[0].id, "expose")
+  assert.equal(d.rings[1].slots[0].id, "window-close")
+  d.rings.forEach(r => { assert.equal(r.slots.length, r.count); assert.equal(r.keys.length, r.count) })
   const c = Config.sanitize({ ring: { enabled: true, doubleMs: 5 } })
   assert.equal(c.ring.enabled, true)
   assert.equal(c.ring.doubleMs, 100)
-  // A broken slot falls back to its default, a valid one is kept.
-  const slots = d.slots.slice()
-  slots[0] = { type: "dispatch", id: "nope" }
-  slots[6] = { type: "none" }
-  const e = Config.sanitize({ ring: { slots } })
-  assert.equal(e.ring.slots[0].id, "expose")
-  assert.deepEqual(e.ring.slots[6], { type: "none" })
+  // A broken slot becomes empty, a valid one is kept; ring 1 cannot be switched off.
+  const rings = JSON.parse(JSON.stringify(d.rings))
+  rings[0].enabled = false
+  rings[0].slots[0] = { type: "dispatch", id: "nope" }
+  rings[2].enabled = true
+  rings[2].slots[3] = { type: "dispatch", id: "workspace-7" }
+  const e = Config.sanitize({ ring: { rings } })
+  assert.equal(e.ring.rings[0].enabled, true)
+  assert.deepEqual(e.ring.rings[0].slots[0], { type: "none" })
+  assert.equal(e.ring.rings[2].slots[3].id, "workspace-7")
+  assert.deepEqual(Config.activeRings(e.ring).map(r => r.index), [0, 2])
   assert.equal(Config.daemonConfig(c).ring, true)
   assert.equal(Config.daemonConfig(c).double_ms, 100)
+})
+
+test("ring: counts per ring, resizing cuts or fills", () => {
+  const d = Config.defaults().ring
+  // Ring 1 allows 8/12/16 only; 24 falls back to the default.
+  const bad = Config.sanitize({ ring: { rings: [{ count: 24 }, { count: 7 }, { count: 24 }] } })
+  assert.deepEqual(bad.ring.rings.map(r => r.count), [12, 12, 24])
+  const small = Config.setRingCount(d, 1, 8)
+  assert.equal(small.rings[1].slots.length, 8)
+  assert.deepEqual(small.rings[1].keys, ["q", "f", "s", "a", "d", "n", "t", "o"])
+  const big = Config.setRingCount(d, 0, 16)
+  assert.equal(big.rings[0].slots.length, 16)
+  assert.deepEqual(big.rings[0].slots[15], { type: "none" })
+  assert.equal(big.rings[0].keys[15], "")
+})
+
+test("ring: old single-ring settings become ring 1", () => {
+  const old = Config.defaults().ring.rings[0]
+  const slots = JSON.parse(JSON.stringify(old.slots))
+  slots[6] = { type: "none" }
+  const c = Config.sanitize({ ring: { enabled: true, slots, keys: old.keys } })
+  assert.deepEqual(c.ring.rings[0].slots[6], { type: "none" })
+  assert.deepEqual(c.ring.rings[0].keys, old.keys)
+  assert.equal(c.ring.rings[1].enabled, false)
+})
+
+test("ring hotkey: default, off, invalid, Lua line", () => {
+  const A = load("Actions.js")
+  const d = Config.defaults(A)
+  assert.deepEqual(d.ring.hotkey, { mods: ["SUPER", "ALT"], key: "R" })
+  assert.match(Config.hyprLua(d, A), /hl\.bind\("SUPER \+ ALT \+ R", function\(\) hl\.exec_cmd\("omarchy-shell -q more-gestures openRing"\) end, \{ description = "More Gestures: ring menu" \}\)/)
+  const off = Config.sanitize({ ring: { hotkey: null } }, A)
+  assert.equal(off.ring.hotkey, null)
+  assert.doesNotMatch(Config.hyprLua(off, A), /hl\.bind/)
+  // No modifier, or anything that could break out of the Lua string: back to the default.
+  assert.deepEqual(Config.sanitize({ ring: { hotkey: { mods: [], key: "R" } } }, A).ring.hotkey, d.ring.hotkey)
+  assert.deepEqual(Config.sanitize({ ring: { hotkey: { mods: ["CTRL"], key: 'R") os.exit() --' } } }, A).ring.hotkey, d.ring.hotkey)
+  assert.equal(Config.hotkeyText({ mods: ["CTRL", "SHIFT"], key: "space" }), "CTRL + SHIFT + space")
 })
 
 test("bar icon settings", () => {
@@ -234,11 +284,17 @@ test("bar icon settings", () => {
   assert.deepEqual(c.bar, { show: false, left: "ring", middle: "toggle", right: "status", tooltip: false })
 })
 
-test("ring keys: defaults, cleaning, duplicates", () => {
-  assert.deepEqual(Config.defaults().ring.keys, ["e", "1", "2", "3", "4", "5", "w", "6", "7", "8", "9", "0"])
-  const keys = ["E", "1", "x", "3", "4", "5", "w", "6", "7", "8", "9", "ab"]
-  const c = Config.sanitize({ ring: { keys } })
-  assert.deepEqual(c.ring.keys, ["e", "1", "x", "3", "4", "5", "w", "6", "7", "8", "9", ""])
-  const dup = Config.sanitize({ ring: { keys: ["e", "e", "", "", "", "", "", "", "", "", "", ""] } })
-  assert.deepEqual(dup.ring.keys.slice(0, 2), ["e", ""])
+test("ring keys: defaults, case, duplicates across rings", () => {
+  const d = Config.defaults().ring
+  assert.deepEqual(d.rings[0].keys, ["e", "1", "2", "3", "4", "5", "w", "6", "7", "8", "9", "0"])
+  const rings = JSON.parse(JSON.stringify(d.rings))
+  rings[0].keys[2] = "X"     // Shift+x: kept as upper case
+  rings[0].keys[11] = "ab"   // not one key
+  rings[1].keys[0] = "e"     // taken by ring 1
+  rings[1].keys[1] = "x"     // lower x is another key than X
+  const c = Config.sanitize({ ring: { rings } })
+  assert.equal(c.ring.rings[0].keys[2], "X")
+  assert.equal(c.ring.rings[0].keys[11], "")
+  assert.equal(c.ring.rings[1].keys[0], "")
+  assert.equal(c.ring.rings[1].keys[1], "x")
 })

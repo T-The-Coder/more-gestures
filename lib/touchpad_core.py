@@ -59,7 +59,7 @@ class TouchpadSettings:
     dominance: float = 0.9
     # Relative change of the finger spread that counts as a pinch (0.3 = 30 %).
     pinch_ratio: float = 0.3
-    max_segments: int = 4
+    max_segments: int = 5
     fingers: tuple = GESTURE_FINGERS
     # Finger count -> first directions Hyprland handles itself (e.g. {4: {"L", "R"}}).
     native: dict = field(default_factory=dict)

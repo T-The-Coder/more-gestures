@@ -94,7 +94,7 @@ Item {
 
   function syncHyprFile() {
     if (!root.hyprLoaded || !root.configLoaded) return
-    var wanted = Config.hyprLua(root.config)
+    var wanted = Config.hyprLua(root.config, Actions)
     var current = ""
     try { current = hyprFile.text() } catch (e) { current = "" }
     if (current === wanted) return
@@ -247,8 +247,7 @@ Item {
   RingOverlay {
     id: ring
     lang: root.lang
-    slots: root.config.ring ? root.config.ring.slots : Actions.RING_SLOTS
-    keys: root.config.ring ? root.config.ring.keys : Actions.RING_KEYS
+    rings: Config.activeRings(root.config.ring)
     onChosen: function(action) { root.runRingSlot(action) }
   }
 

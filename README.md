@@ -35,18 +35,41 @@ in the settings. Over IPC: `omarchy-shell more-gestures toggleSaved | openRing |
 
 ## Ring menu
 
-Double click the trigger and keep the second press held: a clock face of twelve slots
-appears around the pointer. Default: Exposé at 12 o'clock, workspaces 1-5 at 1-5,
-show desktop at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release
-to run it; release in the middle to cancel. Released without leaving the middle, the
-ring stays open: click a slot (left or right button), or anywhere else to close it.
-On the trackpad, double tap with 4 fingers opens the ring the same way (open to stay).
-Keys while the ring is open: Esc closes, 1-0 workspaces, e Exposé, w wallpaper (each slot's
-key can be changed in the settings). Workspaces 1-5 always look normal, 6-0 are
-faded unless a window is on them; the current one is outlined. Every slot can be set in
-the settings (any desktop action, or empty). The daemon holds the first click back for
-the double click time, so with the ring on every ordinary click of the trigger arrives
-that much later.
+Double click the trigger and keep the second press held: a clock face of slots appears
+around the pointer. Default ring 1: Exposé at 12 o'clock, workspaces 1-5 at 1-5,
+wallpaper at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release to
+run it; release in the middle to cancel. Released without leaving the middle, the ring
+stays open: click a slot (left or right button), or anywhere else to close it.
+
+Other ways in, both open the ring to stay:
+- the trackpad: double tap with 4 fingers;
+- the keyboard: **Super+Alt+R** by default (settings: "Open the ring with", empty = none).
+  The plugin binds it in its generated Hyprland file (see Trackpad), with the description
+  "More Gestures: ring menu".
+
+**Up to three rings.** Ring 1 is always there; rings 2 and 3 are switched on in the
+settings and sit further out (drag further to reach them: the distance picks the ring,
+the direction the slot). Slots per ring: 8, 12 or 16 for ring 1, 8, 12, 16 or 24 for
+rings 2 and 3. Ring 2 is turned by half a step, so its slots sit between those of ring 1;
+by default it holds close window (q), fullscreen (f), floating (s), window to workspace
+left/right (a/d), scratchpad (n), terminal (t), Files (o), app launcher (l) and Hyprexpo
+(x). Ring 3 starts empty. Every slot can hold any action, workspaces included; outer
+rings show short names, the full name of the slot under the pointer appears in the
+middle. Rings that do not fit the screen are drawn smaller.
+
+**Keys** while the ring is open: Esc closes; every slot can have one key (letter or
+digit, upper case = Shift+letter), shown in the slot's corner unless the label already
+says it. Defaults: 1-0 workspaces, e Exposé, w wallpaper, ring 2 as above. A key used
+twice keeps its first slot (inner ring first).
+
+Workspaces 1-5 always look normal, 6-0 are faded unless a window is on them; the current
+one is outlined. The mouse way in is opt-in ("Ring menu" in the settings): the daemon holds
+the first click back for the double click time, so every ordinary click of the trigger
+arrives that much later.
+
+Settings file: `ring = { enabled, doubleMs, hotkey: {mods, key} | null, rings: [{ enabled,
+count, slots, keys }, …] }`. The single-ring form (`slots`, `keys`) of older versions is
+read as ring 1.
 
 ## Trackpad
 
@@ -154,29 +177,42 @@ whole, so a hand-edited settings file cannot inject Lua. Not offered: a target w
 `keys` – `send_key_state` has no documented window parameter in the Hyprland stubs.
 
 Gesture keys are `<source>:<gesture>`, source `mouse`, `tp3`, `tp4` or `*` (all);
-gestures are `U D L R` (up to 4) plus `wheel-up`, `wheel-down`, `rocker-left`, `rocker-right`.
+gestures are `U D L R` (up to 5 strokes) plus `wheel-up`, `wheel-down`, `rocker-left`, `rocker-right`.
 Profiles come from window tags (`chromium-based-browser`/`firefox-based-browser` → `browser`,
 `terminal` → `terminal`), the first match wins, `default` is last. Lookup order: profile
 before `default`; within a profile `<source>:G` before `*:G`. User `bindings`
 (`{ "browser": { "*:DR": {…} } }`) are layered over the defaults entry by entry.
 
-Defaults (desktop / browser; the browser inherits what it does not set):
+### Gesture language (defaults)
 
-| Gesture | Desktop | Browser |
-|---|---|---|
-| L / R | workspace left / right | Alt+Left / Alt+Right |
-| U | app launcher | inherits |
-| D | new terminal | Ctrl+T |
-| DR | close window | Ctrl+W |
-| UD | – | F5 |
-| LU | – | Ctrl+Shift+T |
-| DU | toggle floating | duplicate tab (Ctrl+L, Alt+Enter) |
-| RU | toggle fullscreen | inherits |
-| UL / UR | move window to workspace left / right | inherits |
-| wheel | workspace left / right | Ctrl+Shift+Tab / Ctrl+Tab |
-| rocker left / right | like L / R | Alt+Left / Alt+Right |
+One language for every device and program: the mouse (trigger + movement) and three
+fingers share every shape (`*:` entries), and a shape does the same thing everywhere.
+Four fingers are the system level.
 
-Terminal: only DR is set (close window, never Ctrl+W); everything else inherits.
+| Shape | Action |
+|---|---|
+| ← / → | back / forward (Alt+Left / Alt+Right, as in the browser) |
+| ↑ | layer up: Exposé, then app launcher; closes Files / brings the windows back |
+| ↓ | layer down: wallpaper, then Files; closes launcher / Exposé |
+| ↑← / ↑→ | workspace left / right |
+| ↓→ | close tab (Ctrl+W) |
+| ↓← | close window (Super+W) |
+| ↓←↑ / ↓→↑ | move window to workspace left / right |
+| ↓↑ | new tab (Ctrl+T) |
+| ←↑ | reopen closed tab (Ctrl+Shift+T) |
+| ↑↓ | reload (F5) |
+| →↑ | toggle fullscreen |
+| wheel | workspace left / right (browser: Ctrl+Shift+Tab / Ctrl+Tab) |
+| rocker left / right | back / forward |
+| double click, hold | ring menu |
+
+Four fingers: left/right is Hyprland's own workspace swipe, up/down the same layers,
+pinch in = app launcher, pinch out = Hyprexpo, double tap = ring menu.
+Profiles only differ where a program needs it: in the browser the wheel switches tabs;
+in a terminal ↓→ sends Ctrl+Shift+W (Ctrl+W would delete a word in the shell).
+Everything can be changed in the settings, and new shapes (up to 5 strokes, per device
+if wanted) can be added; "All gestures to default" removes every change.
+
 Action names are available in German and English (`Actions.actionName(action, lang)`).
 
 ## Daemon (`bin/gesture-daemon`)

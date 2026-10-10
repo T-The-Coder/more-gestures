@@ -307,10 +307,16 @@ class RecognizerTest(unittest.TestCase):
         self.assertEqual(gesture, "DR")
         self.assertEqual(segs(out), ["D", "DR"])
 
-    def test_max_four_segments(self):
-        path = line(5, 0, 6) + line(0, 5, 6) + line(-5, 0, 6) + line(0, -5, 6) + line(5, 0, 6)
+    def test_max_five_segments(self):
+        path = (line(5, 0, 6) + line(0, 5, 6) + line(-5, 0, 6) + line(0, -5, 6) + line(5, 0, 6)
+                + line(0, 5, 6))
         gesture, _ = self.run_path(path)
-        self.assertEqual(gesture, "RDLU")
+        self.assertEqual(gesture, "RDLUR")
+
+    def test_three_strokes_down_left_up(self):
+        # Fenster auf die Arbeitsfläche links: ↓←↑
+        gesture, _ = self.run_path(line(0, 5, 6) + line(-5, 0, 6) + line(0, -5, 6))
+        self.assertEqual(gesture, "DLU")
 
     def test_reversal_needs_full_threshold(self):
         # R weit, dann 15 zurück (unter 20): kein L

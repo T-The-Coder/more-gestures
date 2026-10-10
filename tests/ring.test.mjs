@@ -41,3 +41,36 @@ test("occupied workspaces from hyprctl", () => {
   assert.deepEqual(R.occupiedFrom(text), [1, 7])
   assert.deepEqual(R.occupiedFrom("nope"), [])
 })
+
+test("offset rings: slot 0 half a step after 12", () => {
+  assert.equal(R.sectorFor(0, -100, 30, 12, 0.5), 0)        // 12:00 rounds to slot 0 (12:30)…
+  const p = R.position(0, 100, 12, 0.5)
+  assert.ok(p.x > 0 && p.y < 0)                              // …which sits right of the top
+  for (let i = 0; i < 12; i++) {
+    const q = R.position(i, 100, 12, 0.5)
+    assert.equal(R.sectorFor(q.x, q.y, 30, 12, 0.5), i)
+  }
+})
+
+test("layout: rings grow outwards and fit their slots", () => {
+  const L = R.layout([12, 12, 24], 66, 165)
+  assert.equal(L[0].radius, 165)
+  assert.ok(L[1].radius >= L[0].radius + 66)
+  assert.ok(L[2].radius >= L[1].radius + 66)
+  // 24 slots of 66 px with a gap: circumference at least 24 × 66.
+  assert.ok(2 * Math.PI * L[2].radius >= 24 * 66)
+  assert.deepEqual(L.map(r => r.offset), [0, 0.5, 0])
+  assert.equal(R.outerRadius(L, 66), L[2].radius + 33)
+})
+
+test("pick: distance chooses the ring, direction the slot", () => {
+  const L = R.layout([12, 12], 76, 165)
+  assert.equal(R.pick(0, -20, L, 50), null)                         // dead zone
+  assert.deepEqual(R.pick(0, -165, L, 50), { ring: 0, index: 0 })   // ring 1 at 12
+  const mid = (L[0].radius + L[1].radius) / 2
+  assert.equal(R.pick(mid - 1, 0, L, 50).ring, 0)
+  assert.equal(R.pick(mid + 1, 0, L, 50).ring, 1)
+  const p = R.position(4, L[1].radius, 12, 0.5)
+  assert.deepEqual(R.pick(p.x, p.y, L, 50), { ring: 1, index: 4 })
+  assert.equal(R.pick(0, -2000, L, 50).ring, 1)                     // far out: still the outer ring
+})

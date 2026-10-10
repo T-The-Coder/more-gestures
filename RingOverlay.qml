@@ -7,11 +7,13 @@ import qs.Commons
 import "Actions.js" as Actions
 import "Ring.js" as Ring
 
-// Ring menu: double click with the trigger button and keep the second press held.
-// A clock face of actions around the pointer (default: Exposé at 12, workspaces 1-5 at
-// 1-5 o'clock, show desktop at 6, workspaces 6-0 at 7-11). Moving towards a slot
-// highlights it, releasing runs it, releasing in the middle cancels. Workspaces 1-5
-// always look normal, 6-0 are faded unless a window is on them.
+// Ring menu: double click with the trigger button and keep the second press held (or
+// four-finger double tap, or the hotkey). Up to three clock faces of actions around the
+// pointer, inner first (default ring 1: Exposé at 12, workspaces 1-5 at 1-5 o'clock,
+// wallpaper at 6, workspaces 6-0 at 7-11). Moving towards a slot highlights it: the
+// direction picks the slot, the distance the ring. Releasing runs it, releasing in the
+// middle cancels. Every slot can also have a key. Workspaces 1-5 always look normal,
+// 6-0 are faded unless a window is on them.
 //
 // One surface that takes pointer input: the daemon held the button back, so no
 // application has an implicit grab and the hover positions come straight from
@@ -21,10 +23,9 @@ Item {
   id: root
 
   property string lang: "en"
-  property var slots: Actions.RING_SLOTS
-  // One key per slot while the ring is open ("" = none); Esc always closes.
-  property var keys: Actions.RING_KEYS
-  readonly property int count: slots.length
+  // Config.activeRings: [{ index, count, slots, keys }], inner first. One key per slot
+  // while the ring is open ("" = none, upper case = Shift+letter); Esc always closes.
+  property var rings: []
 
   property bool opened: false
   // Set on open, cleared on close: hyprctl may answer after the button is already up,
@@ -49,18 +50,45 @@ Item {
   property var occupied: []
   property int current: 0
 
-  // Slots 50 % larger than the first version (44 px), the ring wide enough that twelve
-  // of them do not touch.
-  readonly property real slotSize: Style.space(66)
-  readonly property real radius: Style.space(165)
-  readonly property real deadzone: radius * 0.3
-  readonly property int rawSelected: havePointer ? Ring.sectorFor(px - cx, py - cy, deadzone, count) : -1
-  // Dragging picks by direction (fast, works blind). Once the ring stays open for
-  // clicking, only a slot itself counts: a click anywhere else just closes the ring.
-  readonly property int selected: sticky ? (havePointer ? slotAt(px, py) : -1)
-    : (rawSelected >= 0 && slots[rawSelected].type !== "none" ? rawSelected : -1)
+  // Slots 50 % larger than the first version (44 px), the inner ring wide enough that
+  // twelve of them do not touch. Three full rings do not fit a small screen at that
+  // size: `fit` shrinks everything (set when the ring is placed).
+  property real fit: 1
+  readonly property real slotSize: Style.space(66) * fit
+  readonly property real innerRadius: Style.space(165) * fit
+  readonly property var geometry: Ring.layout(rings.map(function(r) { return r.count }), slotSize, innerRadius)
+  readonly property real outer: Ring.outerRadius(geometry, slotSize)
+  readonly property real deadzone: (geometry.length ? geometry[0].radius : innerRadius) * 0.3
 
-  // Index of the visible slot under (x, y) in window coordinates, or -1.
+  // Every slot of every ring as one flat list: { ring, index, action, key, x, y } with
+  // x/y relative to the centre. One list keeps hit testing, keys and drawing in step.
+  readonly property var chips: {
+    var out = []
+    for (var k = 0; k < rings.length && k < geometry.length; k++) {
+      for (var i = 0; i < rings[k].count; i++) {
+        var p = Ring.position(i, geometry[k].radius, rings[k].count, geometry[k].offset)
+        out.push({ ring: k, index: i, action: rings[k].slots[i], key: rings[k].keys[i] || "", x: p.x, y: p.y })
+      }
+    }
+    return out
+  }
+
+  // Chip under a drag: direction and distance (works blind), -1 for none/empty.
+  function dragChip(dx, dy) {
+    var hit = Ring.pick(dx, dy, root.geometry, root.deadzone)
+    if (!hit) return -1
+    for (var c = 0; c < root.chips.length; c++) {
+      var chip = root.chips[c]
+      if (chip.ring === hit.ring && chip.index === hit.index) return chip.action.type !== "none" ? c : -1
+    }
+    return -1
+  }
+
+  // Once the ring stays open for clicking, only a slot itself counts: a click anywhere
+  // else just closes the ring.
+  readonly property int selected: !havePointer ? -1 : sticky ? slotAt(px, py) : dragChip(px - cx, py - cy)
+
+  // Index of the visible chip under (x, y) in window coordinates, or -1.
   function slotAt(x, y) {
     for (var i = 0; i < slotRepeater.count; i++) {
       var it = slotRepeater.itemAt(i)
@@ -94,10 +122,10 @@ Item {
   }
 
   function decide(x, y) {
-    var raw = Ring.sectorFor(x - root.cx, y - root.cy, root.deadzone, root.count)
-    var pick = raw >= 0 && root.slots[raw].type !== "none" ? root.slots[raw] : null
-    if (pick) { root.finish(pick); return }
-    if (!root.leftMiddle && raw < 0) {
+    var c = root.dragChip(x - root.cx, y - root.cy)
+    if (c >= 0) { root.finish(root.chips[c].action); return }
+    var inMiddle = Math.sqrt((x - root.cx) * (x - root.cx) + (y - root.cy) * (y - root.cy)) < root.deadzone
+    if (!root.leftMiddle && inMiddle) {
       root.sticky = true
       safety.restart()
       return
@@ -182,8 +210,12 @@ Item {
     root.targetScreen = screen
     root.originX = screen.x
     root.originY = screen.y
+    // Shrink when the rings at full size would not fit the screen.
+    var full = Ring.layout(root.rings.map(function(r) { return r.count }), Style.space(66), Style.space(165))
+    var need = Ring.outerRadius(full, Style.space(66)) + Style.space(32)
+    root.fit = Math.min(1, Math.min(screen.width, screen.height) / 2 / need)
     // Keep the whole ring on screen near the edges.
-    var margin = root.radius + root.slotSize / 2 + Style.space(20)
+    var margin = root.outer + Style.space(20)
     var lx = pos ? pos.x - screen.x : screen.width / 2
     var ly = pos ? pos.y - screen.y : screen.height / 2
     root.cx = Math.max(margin, Math.min(screen.width - margin, lx))
@@ -216,10 +248,13 @@ Item {
       Keys.onPressed: function(event) {
         event.accepted = true
         if (event.key === Qt.Key_Escape) { root.cancel(); return }
-        var k = String(event.text || "").toLowerCase()
+        // event.text keeps the case: "a" and Shift+a ("A") are two keys.
+        var k = String(event.text || "")
         if (k === "") return
-        var i = root.keys.indexOf(k)
-        if (i >= 0 && root.slots[i] && root.slots[i].type !== "none") root.finish(root.slots[i])
+        for (var c = 0; c < root.chips.length; c++) {
+          var chip = root.chips[c]
+          if (chip.key === k && chip.action.type !== "none") { root.finish(chip.action); return }
+        }
       }
     }
     onVisibleChanged: if (visible) keyCatcher.forceActiveFocus()
@@ -235,7 +270,7 @@ Item {
       onClicked: function(mouse) {
         root.track(mouse.x, mouse.y)
         var hit = root.slotAt(mouse.x, mouse.y)
-        if (hit >= 0) root.finish(root.slots[hit])
+        if (hit >= 0) root.finish(root.chips[hit].action)
         else root.cancel()  // outside every slot: close, do nothing
       }
     }
@@ -244,7 +279,7 @@ Item {
     Rectangle {
       x: root.cx - width / 2
       y: root.cy - height / 2
-      width: (root.radius + root.slotSize / 2 + Style.space(12)) * 2
+      width: (root.outer + Style.space(12)) * 2
       height: width
       radius: width / 2
       color: Util.alpha(Color.background, 0.82)
@@ -271,36 +306,53 @@ Item {
       }
     }
 
+    // Full name of the slot under the pointer: chips on the outer rings are small and
+    // only show a shortened name.
+    Text {
+      visible: root.selected >= 0
+      width: root.deadzone * 4
+      x: root.cx - width / 2
+      y: root.cy + root.deadzone + Style.space(6)
+      horizontalAlignment: Text.AlignHCenter
+      wrapMode: Text.Wrap
+      text: root.selected >= 0 ? Actions.actionName(root.chips[root.selected].action, root.lang) : ""
+      color: Color.foreground
+      font.family: Style.font.family
+      font.pixelSize: Style.font.caption
+    }
+
     Repeater {
       id: slotRepeater
-      model: root.count
+      model: root.chips
       delegate: Rectangle {
+        required property var modelData
         required property int index
-        readonly property var action: root.slots[index]
+        readonly property var action: modelData.action
         readonly property int ws: Ring.workspaceOf(action)
-        readonly property var pos: Ring.position(index, root.radius, root.count)
         readonly property bool hot: root.selected === index
         readonly property bool strong: Ring.emphasized(action, root.occupied)
         readonly property bool isCurrent: ws > 0 && ws === root.current
+        // Inner ring: other actions are a pill with their name. Outer rings are tighter:
+        // round chips with the name on up to two lines (the full name shows in the middle).
+        readonly property bool pill: ws === 0 && modelData.ring === 0
         visible: action.type !== "none"
-        // Workspaces are round number chips; other actions a pill with their name.
-        width: ws > 0 ? root.slotSize : Math.max(root.slotSize, label.implicitWidth + Style.space(28))
+        width: pill ? Math.max(root.slotSize, label.implicitWidth + Style.space(28)) : root.slotSize
         height: root.slotSize
         radius: height / 2
-        x: root.cx + pos.x - width / 2
-        y: root.cy + pos.y - height / 2
-        color: hot ? Color.accent : "transparent"
+        x: root.cx + modelData.x - width / 2
+        y: root.cy + modelData.y - height / 2
+        color: hot ? Color.accent : modelData.ring > 0 ? Util.alpha(Color.foreground, 0.06) : "transparent"
         border.width: isCurrent ? Math.max(2, Style.space(3)) : 0
         border.color: Color.accent
-        // The key for a slot whose label does not already say it (e for Exposé, w for
-        // Wallpaper), small in the corner.
+        // The key, small in the corner, unless the label already says it (1 for
+        // workspace 1).
         Text {
-          visible: parent.ws === 0 && (root.keys[index] || "") !== ""
+          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key)
           anchors.right: parent.right
           anchors.top: parent.top
-          anchors.rightMargin: Style.space(8)
+          anchors.rightMargin: parent.pill ? Style.space(8) : Style.space(4)
           anchors.topMargin: Style.space(2)
-          text: root.keys[index] || ""
+          text: modelData.key
           color: parent.hot ? Color.background : Color.foreground
           opacity: 0.6
           font.family: Style.font.family
@@ -309,11 +361,17 @@ Item {
         Text {
           id: label
           anchors.centerIn: parent
+          width: parent.pill || parent.ws > 0 ? implicitWidth : parent.width - Style.space(8)
+          horizontalAlignment: Text.AlignHCenter
+          wrapMode: parent.pill || parent.ws > 0 ? Text.NoWrap : Text.Wrap
+          maximumLineCount: 2
+          elide: Text.ElideRight
           text: parent.ws > 0 ? Ring.workspaceLabel(parent.ws) : root.shortName(parent.action)
           color: parent.hot ? Color.background : Color.foreground
           opacity: parent.hot || parent.strong ? 1.0 : 0.35
           font.family: Style.font.family
-          font.pixelSize: parent.ws > 0 ? Math.round(Style.font.title * 1.4) : Math.round(Style.font.body * 1.2)
+          font.pixelSize: parent.ws > 0 ? Math.round(Style.font.title * 1.4 * Math.max(0.7, root.fit))
+            : parent.pill ? Math.round(Style.font.body * 1.2) : Style.font.caption
           font.bold: parent.hot || parent.isCurrent
         }
       }

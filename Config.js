@@ -38,39 +38,108 @@ function cleanBar(raw) {
            right: pick(raw.right, d.right), tooltip: raw.tooltip !== false }
 }
 
-// Workspace ring (double click with the trigger, second press held). Off by default:
-// it delays every ordinary click of the trigger button by doubleMs.
-// `slots`: 12 actions, slot 0 at 12 o'clock, clockwise; {type: "none"} leaves it empty.
+// Ring menu. `enabled` is the mouse way in (double click with the trigger, second press
+// held), off by default: it delays every ordinary click of the trigger button by doubleMs.
+// The four-finger double tap and `hotkey` open it regardless.
+// `rings`: three rings, inner first. Ring 1 is always on; 2 and 3 can be switched on.
+// Each has `count` slots (slot 0 at the top, clockwise; {type: "none"} leaves one empty)
+// and one key per slot.
+// `hotkey`: { mods, key } bound in Hyprland (via the generated Lua file), or null for none.
+var RING_HOTKEY = { mods: ["SUPER", "ALT"], key: "R" }
+
 function ringDefaults(actions) {
   var A = actionsModule(actions)
-  return { enabled: false, doubleMs: LIMITS.doubleMs.def, slots: clone(A.RING_SLOTS), keys: A.RING_KEYS.slice() }
+  return { enabled: false, doubleMs: LIMITS.doubleMs.def, hotkey: clone(RING_HOTKEY),
+           rings: clone(A.ringDefaultsList()) }
 }
 
-// One lowercase letter or digit per slot, "" for none; a key used twice keeps its first slot.
-function cleanRingKeys(raw, defaults) {
-  if (!Array.isArray(raw) || raw.length !== defaults.length) return defaults.slice()
+// Letters and digits; upper case means Shift+letter, so "a" and "A" are two keys.
+var RING_KEY_PATTERN = /^[a-zA-Z0-9]$/
+
+// Keys of all rings at once: a key used twice keeps its first slot (inner ring first),
+// anything that is not one letter or digit becomes "" (no key).
+function cleanRingKeys(rings) {
   var seen = {}
-  return raw.map(function (k) {
-    var key = typeof k === "string" ? k.toLowerCase().trim() : ""
-    if (!/^[a-z0-9]$/.test(key) || seen[key]) return ""
-    seen[key] = true
-    return key
+  return rings.map(function (r) {
+    return r.keys.map(function (k) {
+      var key = typeof k === "string" ? k.trim() : ""
+      if (!RING_KEY_PATTERN.test(key) || seen[key]) return ""
+      seen[key] = true
+      return key
+    })
   })
+}
+
+// Cut to `count` or filled up with empty slots / no key.
+function fitList(list, count, filler) {
+  var out = list.slice(0, count)
+  while (out.length < count) out.push(filler())
+  return out
+}
+
+function cleanOneRing(raw, def, index, A) {
+  if (!isPlainObject(raw)) return clone(def)
+  var counts = A.RING_COUNTS[index]
+  var count = counts.indexOf(raw.count) >= 0 ? raw.count : def.count
+  var slots = Array.isArray(raw.slots) ? raw.slots.map(function (s) {
+    var v = A.validateAction(s)
+    return v.ok ? v.action : { type: "none" }
+  }) : clone(def.slots)
+  var keys = Array.isArray(raw.keys) ? raw.keys.slice() : def.keys.slice()
+  return {
+    enabled: index === 0 ? true : raw.enabled === true,
+    count: count,
+    slots: fitList(slots, count, function () { return { type: "none" } }),
+    keys: fitList(keys, count, function () { return "" })
+  }
+}
+
+function cleanHotkey(raw, A) {
+  if (raw === null || raw === false || raw === "") return null
+  if (!isPlainObject(raw)) return clone(RING_HOTKEY)
+  var c = A.parseCombo([raw.mods, raw.key])
+  // A bare letter would fire while typing: at least one modifier.
+  return c && c.mods.length > 0 ? c : clone(RING_HOTKEY)
 }
 
 function cleanRing(raw, actions) {
   var A = actionsModule(actions)
   var d = ringDefaults(A)
   if (!isPlainObject(raw)) return d
-  var slots = d.slots
-  if (Array.isArray(raw.slots) && raw.slots.length === d.slots.length) {
-    slots = raw.slots.map(function (s, i) {
-      var v = A.validateAction(s)
-      return v.ok ? v.action : d.slots[i]
-    })
-  }
-  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs), slots: slots,
-           keys: cleanRingKeys(raw.keys, d.keys) }
+  var rawRings = Array.isArray(raw.rings) ? raw.rings : []
+  // Before there were three rings: `slots`/`keys` (12 each) were the only ring.
+  if (!Array.isArray(raw.rings) && (Array.isArray(raw.slots) || Array.isArray(raw.keys)))
+    rawRings = [{ enabled: true, count: 12,
+                  slots: Array.isArray(raw.slots) ? raw.slots : d.rings[0].slots,
+                  keys: Array.isArray(raw.keys) ? raw.keys : d.rings[0].keys }]
+  var rings = d.rings.map(function (def, i) { return cleanOneRing(rawRings[i], def, i, A) })
+  var keys = cleanRingKeys(rings)
+  rings.forEach(function (r, i) { r.keys = keys[i] })
+  return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs),
+           hotkey: Object.prototype.hasOwnProperty.call(raw, "hotkey") ? cleanHotkey(raw.hotkey, A) : clone(RING_HOTKEY),
+           rings: rings }
+}
+
+// Rings that are switched on, inner first, with their position in the settings.
+function activeRings(ring) {
+  var out = []
+  ;(ring && Array.isArray(ring.rings) ? ring.rings : []).forEach(function (r, i) {
+    if (r.enabled) out.push({ index: i, count: r.count, slots: r.slots, keys: r.keys })
+  })
+  return out
+}
+
+// Change the slot count of one ring: slots and keys are cut or filled up.
+function setRingCount(ring, index, count, actions) {
+  var next = clone(ring)
+  next.rings[index].count = count
+  return cleanRing(next, actions)
+}
+
+// "SUPER + ALT + R", the way Hyprland binds are written (also in Omarchy's bindings).
+function hotkeyText(hotkey) {
+  if (!hotkey) return ""
+  return hotkey.mods.concat([hotkey.key]).join(" + ")
 }
 
 // Corner taps need the touchpad grabbed (to swallow the taps' clicks), so they are
@@ -122,14 +191,19 @@ function cleanTouchpad(raw) {
 // The Lua file input.lua loads (dofile) for Hyprland's native workspace swipe.
 var HYPR_FILE_SUFFIX = "/.local/state/omarchy/settings/more-gestures-hypr.lua"
 
-function hyprLua(config) {
+function hyprLua(config, actions) {
   var t = config.touchpad || touchpadDefaults()
-  var lines = ["-- Generated by More Gestures from its settings (trackpad: workspace swipe).",
+  var lines = ["-- Generated by More Gestures from its settings (trackpad: workspace swipe, ring hotkey).",
                "-- Do not edit: changes are overwritten. Loaded from ~/.config/hypr/input.lua."]
   FINGERS.forEach(function (f) {
     if (t.enabled && t.swipe[f])
       lines.push('hl.gesture({ fingers = ' + f.slice(2) + ', direction = "horizontal", action = "workspace" })')
   })
+  // The hotkey reaches Lua text: only a combo that passes Actions.parseCombo again
+  // (allow-listed modifiers, key name [A-Za-z0-9_]) is written.
+  var hk = config.ring && config.ring.hotkey ? actionsModule(actions).parseCombo([config.ring.hotkey.mods, config.ring.hotkey.key]) : null
+  if (hk && hk.mods.length > 0)
+    lines.push('hl.bind("' + hotkeyText(hk) + '", function() hl.exec_cmd("omarchy-shell -q more-gestures openRing") end, { description = "More Gestures: ring menu" })')
   return lines.join("\n") + "\n"
 }
 
@@ -357,7 +431,8 @@ function removeExclude(list, index) {
 
 if (typeof module !== "undefined") module.exports = {
   PATH_SUFFIX: PATH_SUFFIX, VERSION: VERSION, HYPR_FILE_SUFFIX: HYPR_FILE_SUFFIX, FINGERS: FINGERS,
-  touchpadDefaults: touchpadDefaults, ringDefaults: ringDefaults, cleanRing: cleanRing,
+  touchpadDefaults: touchpadDefaults, ringDefaults: ringDefaults, cleanRing: cleanRing, activeRings: activeRings,
+  setRingCount: setRingCount, hotkeyText: hotkeyText, RING_HOTKEY: RING_HOTKEY,
   BAR_ACTIONS: BAR_ACTIONS, barDefaults: barDefaults, cleanBar: cleanBar, tapsDefaults: tapsDefaults, cleanTaps: cleanTaps, boundTaps: boundTaps, cleanTouchpad: cleanTouchpad, hyprLua: hyprLua, BUTTONS: BUTTONS, PROFILES: PROFILES, LIMITS: LIMITS,
   clone: clone, clampInt: clampInt, defaults: defaults, sanitize: sanitize, parse: parse,
   serialize: serialize, needsRestart: needsRestart, daemonConfig: daemonConfig,

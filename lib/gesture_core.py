@@ -74,7 +74,7 @@ class Config:
     threshold: float = 20.0  # Einheiten der Quelle: rohe REL-Werte, beim Trackpad mm
     hold_time: float = 0.350  # Sekunden bis zum Nachsenden des Drucks
     emergency_time: float = 10.0  # Sekunden bis zum Zurücksetzen einer Geste
-    max_segments: int = 4
+    max_segments: int = 5
     # Wippgesten (Auslösetaste + Linksklick und umgekehrt). Standard aus: Wer mit
     # gedrückter linker Taste markiert und dann rechts klickt, will ein Kontextmenü.
     rocker: bool = False

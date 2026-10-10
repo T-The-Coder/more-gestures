@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Changed (muscle memory!)
+- One gesture language for mouse and three fingers, the same in every program:
+  ← / → back / forward everywhere (was: workspace on the desktop), ↑ / ↓ the layers like
+  four fingers (was: launcher / terminal), ↑← / ↑→ workspace left / right (was: move
+  window), ↓→ close tab (Ctrl+W; was: close window outside the browser), ↓← close window
+  (Super+W, new), ↓←↑ / ↓→↑ move the window to the workspace left / right, ↓↑ new tab
+  (was: floating / duplicate tab), ←↑ reopen tab and ↑↓ reload everywhere, rocker =
+  back / forward. Browser profile: only the wheel (tabs) differs; terminal: ↓→ sends
+  Ctrl+Shift+W.
+- Shapes can have up to 5 strokes.
+
+### Added
+- Rings 2 and 3 in the ring menu, each switched on in the settings, with 8/12/16/24
+  slots (ring 1: 8/12/16). Distance picks the ring, direction the slot; ring 2 is turned
+  by half a step and holds window and program actions by default, ring 3 starts empty.
+  Any action fits any slot, workspaces too. The full name of the slot under the pointer
+  shows in the middle; rings too big for the screen are drawn smaller.
+- A key for every slot on every ring (upper case = Shift+letter), unique across rings.
+- Keyboard shortcut to open the ring, Super+Alt+R by default (settings, empty = none),
+  bound through the generated Hyprland file.
+- Actions "App launcher", "New terminal" and "Files" for rings and gestures.
+- Settings: gesture language hint, "All gestures to default".
+
 ### Changed
 - Four fingers up/down work as layers, the opposite swipe undoes the last step:
   nothing open: down = wallpaper, up = Exposé; Exposé: down closes it, up = app

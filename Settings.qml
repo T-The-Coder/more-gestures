@@ -158,7 +158,7 @@ Item {
 
   function addDir(d) {
     if (/^(wheel|rocker|pinch|tap)/.test(root.editGesture)) root.editGesture = ""
-    if (root.editGesture.length >= 4) return
+    if (root.editGesture.length >= 5) return
     // Equal neighbours merge in the recogniser, so "LL" could never be drawn.
     if (root.editGesture.slice(-1) === d) return
     root.editGesture += d
@@ -265,17 +265,57 @@ Item {
     return opts
   }
 
-  function setRingKey(index, value) {
-    var keys = root.working.ring.keys.slice()
-    keys[index] = String(value || "").toLowerCase()
-    root.setRing("keys", keys)  // Config.cleanRingKeys drops invalid and duplicate keys
+  // One ring (0 = inner) changed through `edit(ringCopy)`; Config.cleanRing then drops
+  // invalid and duplicate keys and fits slots to the count.
+  function editRing(ringIndex, edit) {
+    var rings = Config.clone(root.working.ring.rings)
+    edit(rings[ringIndex])
+    root.setRing("rings", rings)
   }
 
-  function setSlot(index, value) {
+  function setRingKey(ringIndex, index, value) {
+    root.editRing(ringIndex, function(r) { r.keys[index] = String(value || "").trim() })
+  }
+
+  function setSlot(ringIndex, index, value) {
     if (value === "custom") return
-    var slots = Config.clone(root.working.ring.slots)
-    slots[index] = value === "none" ? { type: "none" } : { type: "dispatch", id: value }
-    root.setRing("slots", slots)
+    root.editRing(ringIndex, function(r) {
+      r.slots[index] = value === "none" ? { type: "none" } : { type: "dispatch", id: value }
+    })
+  }
+
+  function setRingCount(ringIndex, count) {
+    root.set("ring", Config.setRingCount(root.working.ring, ringIndex, count, Actions))
+  }
+
+  function resetRing(ringIndex) {
+    var def = Actions.ringDefaultsList()[ringIndex]
+    root.editRing(ringIndex, function(r) { r.count = def.count; r.slots = Config.clone(def.slots); r.keys = def.keys.slice() })
+  }
+
+  // Clock position of a slot: "12", "1" … for twelve; "12:30" style for turned rings
+  // would be hard to read, so other counts and turned rings just number the slots.
+  function slotName(ringIndex, index, count) {
+    if (count === 12 && ringIndex % 2 === 0) return (index === 0 ? 12 : index) + " " + root.tr("oclock")
+    return "#" + (index + 1)
+  }
+
+  property string hotkeyError: ""
+
+  function setHotkey(text) {
+    var t = String(text || "").trim()
+    if (t === "") { root.hotkeyError = ""; root.setRing("hotkey", null); return }
+    var r = KeyCombo.comboFromText(t)
+    if (!r.ok || r.combo.mods.length === 0) { root.hotkeyError = root.tr("hotkeyInvalid"); return }
+    root.hotkeyError = ""
+    root.setRing("hotkey", r.combo)
+  }
+
+  function resetAllBindings() {
+    var b = {}
+    Config.PROFILES.forEach(function(p) { b[p] = {} })
+    root.set("bindings", b)
+    root.closeEditor()
   }
 
   function sourceText(source) {
@@ -509,61 +549,118 @@ Item {
                 onModified: function(v) { root.setRing("doubleMs", v) }
               }
 
-              // Clock face: what each of the 12 directions does.
-              Column {
-                width: parent.width
-                visible: root.working.ring.enabled
-                spacing: Style.spacing.sm
-                Label { text: root.tr("ringSlots") }
-                Grid {
-                  columns: 2
-                  columnSpacing: Style.spacing.huge
-                  rowSpacing: Style.spacing.sm
-                  Repeater {
-                    // A new array per change recreates the rows, so each Dropdown starts
-                    // from the stored value again (they drop their binding once used).
-                    model: root.working.ring.slots
-                    delegate: Row {
-                      required property var modelData
-                      required property int index
-                      spacing: Style.spacing.md
-                      Text {
-                        width: Style.space(70)
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: (index === 0 ? 12 : index) + " " + root.tr("oclock")
-                        color: root.muted
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
+              // Opening the ring from the keyboard works without the mouse way in.
+              Row {
+                spacing: Style.spacing.md
+                Text {
+                  width: Style.space(220)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: root.tr("hotkey")
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                }
+                TextField {
+                  id: hotkeyField
+                  width: Style.space(220)
+                  text: Config.hotkeyText(root.working.ring.hotkey)
+                  placeholderText: root.tr("hotkeyNone")
+                  foreground: root.foreground
+                  accent: root.accent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                  onEditingFinished: root.setHotkey(text)
+                }
+              }
+              Hint { width: parent.width; text: root.hotkeyError !== "" ? root.hotkeyError : root.tr("hotkeyHint") }
+
+              // Three rings: what each slot does, and its key.
+              Repeater {
+                model: root.working.ring.rings
+                delegate: Column {
+                  id: ringBlock
+                  required property var modelData
+                  required property int index
+                  width: content.width
+                  spacing: Style.spacing.sm
+
+                  Toggle {
+                    width: parent.width
+                    visible: ringBlock.index > 0
+                    label: root.tr("ringN").replace("%1", ringBlock.index + 1)
+                    description: root.tr(ringBlock.index === 1 ? "ring2Hint" : "ring3Hint")
+                    checked: ringBlock.modelData.enabled
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onClicked: root.editRing(ringBlock.index, function(r) { r.enabled = !r.enabled })
+                  }
+                  Label {
+                    visible: ringBlock.index === 0
+                    text: root.tr("ringN").replace("%1", 1) + " · " + root.tr("ringSlots")
+                  }
+                  Column {
+                    width: parent.width
+                    visible: ringBlock.modelData.enabled
+                    spacing: Style.spacing.sm
+                    ButtonGroup {
+                      value: String(ringBlock.modelData.count)
+                      options: Actions.RING_COUNTS[ringBlock.index].map(function(n) {
+                        return { value: String(n), label: n + " " + root.tr("ringButtons") }
+                      })
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onChanged: function(v) { root.setRingCount(ringBlock.index, Number(v)) }
+                    }
+                    Grid {
+                      columns: 2
+                      columnSpacing: Style.spacing.huge
+                      rowSpacing: Style.spacing.sm
+                      Repeater {
+                        // A new array per change recreates the rows, so each Dropdown starts
+                        // from the stored value again (they drop their binding once used).
+                        model: ringBlock.modelData.slots
+                        delegate: Row {
+                          required property var modelData
+                          required property int index
+                          spacing: Style.spacing.md
+                          Text {
+                            width: Style.space(70)
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.slotName(ringBlock.index, index, ringBlock.modelData.count)
+                            color: root.muted
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.caption
+                            font.bold: true
+                          }
+                          Dropdown {
+                            width: Style.space(220)
+                            showLabel: false
+                            fontFamily: root.fontFamily
+                            options: root.slotOptions(modelData)
+                            value: root.slotValue(modelData)
+                            onChanged: function(v) { root.setSlot(ringBlock.index, index, v) }
+                          }
+                          TextField {
+                            width: Style.space(44)
+                            text: ringBlock.modelData.keys[index] || ""
+                            placeholderText: "–"
+                            maximumLength: 1
+                            horizontalAlignment: Text.AlignHCenter
+                            foreground: root.foreground
+                            accent: root.accent
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.body
+                            onEditingFinished: root.setRingKey(ringBlock.index, index, text)
+                          }
+                        }
                       }
-                      Dropdown {
-                        width: Style.space(220)
-                        showLabel: false
-                        fontFamily: root.fontFamily
-                        options: root.slotOptions(modelData)
-                        value: root.slotValue(modelData)
-                        onChanged: function(v) { root.setSlot(index, v) }
-                      }
-                      TextField {
-                        width: Style.space(44)
-                        text: root.working.ring.keys[index] || ""
-                        placeholderText: "–"
-                        maximumLength: 1
-                        horizontalAlignment: Text.AlignHCenter
-                        foreground: root.foreground
-                        accent: root.accent
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.body
-                        onEditingFinished: root.setRingKey(index, text)
-                      }
+                    }
+                    SmallButton {
+                      text: root.tr("ringReset")
+                      onClicked: root.resetRing(ringBlock.index)
                     }
                   }
                 }
-                SmallButton {
-                  text: root.tr("ringSlotsReset")
-                  onClicked: root.setRing("slots", Actions.RING_SLOTS)
-                }
               }
+              Hint { width: parent.width; text: root.tr("ringKeysHint") }
 
               Toggle {
                 width: parent.width
@@ -750,6 +847,7 @@ Item {
                 foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                 onChanged: function(v) { root.profile = v; root.closeEditor() }
               }
+              Hint { width: parent.width; text: root.tr("languageHint") }
               Hint { width: parent.width; text: root.tr("profileHint") }
 
               Hint { visible: root.rows.length === 0; text: root.tr("noBindings") }
@@ -811,10 +909,17 @@ Item {
                 }
               }
 
-              SmallButton {
-                text: "+ " + root.tr("editor")
+              Row {
+                spacing: Style.spacing.md
                 visible: !root.editorOpen
-                onClicked: root.openEditor(null)
+                SmallButton {
+                  text: "+ " + root.tr("editor")
+                  onClicked: root.openEditor(null)
+                }
+                SmallButton {
+                  text: root.tr("resetAll")
+                  onClicked: root.resetAllBindings()
+                }
               }
 
               // ------------------------------------------------------ editor
