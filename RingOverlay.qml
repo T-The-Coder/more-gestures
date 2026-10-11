@@ -26,6 +26,8 @@ Item {
   property string lang: "en"
   // Look (Effects.js) and whether it may move (Settings › General › Animations).
   property string style: "plain"
+  // Without the Exposé plugin the "Exposé" slot opens the launcher, and says so.
+  property bool exposeAvailable: true
   property bool animations: true
   property real openedAt: 0
   property real selectedSince: 0
@@ -177,6 +179,8 @@ Item {
   // "Exposé (all windows)" -> "Exposé": the ring has little room, the part in brackets
   // is explanation for the settings list.
   function shortName(action) {
+    if (!root.exposeAvailable && action && action.type === "dispatch" && action.id === "expose")
+      action = { type: "dispatch", id: "app-launcher" }
     return Actions.actionName(action, root.lang).replace(/\s*\(.*\)\s*$/, "")
   }
 

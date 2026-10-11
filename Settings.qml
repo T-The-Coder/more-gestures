@@ -51,7 +51,9 @@ Item {
 
   readonly property string statePath: Quickshell.env("HOME") + Config.PATH_SUFFIX
   // Exposé is an action here, but it needs the expose.window-overview plugin.
-  property bool exposeInstalled: true
+  ExposeCheck { id: exposeCheck }
+  readonly property bool exposeInstalled: exposeCheck.available
+  readonly property string exposeInstallCommand: "omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable"
 
   // Shares the [menu] surface tokens like the other Omarchy overlays.
   readonly property color background: Color.menu.background
@@ -134,7 +136,7 @@ Item {
   // ------------------------------------------------------------------ lifecycle
 
   function open(payloadJson) {
-    exposeProbe.running = true
+    exposeCheck.refresh()
     desktopFile.reload()
     stateFile.reload()
     root.loading = true
@@ -540,11 +542,6 @@ Item {
       : source === "tap" ? root.tr("source_tap") : ""
   }
 
-  Process {
-    id: exposeProbe
-    command: ["test", "-d", Quickshell.env("HOME") + "/.config/omarchy/plugins/expose.window-overview"]
-    onExited: function(code) { root.exposeInstalled = code === 0 }
-  }
 
   // ------------------------------------------------------------------- storage
 
@@ -585,6 +582,37 @@ Item {
     font.family: root.fontFamily
     font.pixelSize: Style.font.caption
     wrapMode: Text.WordWrap
+  }
+
+  // Shown while the Exposé plugin is missing or disabled: what it adds, what happens
+  // without it, and the command to install it (copied with a click).
+  component ExposeTip: Column {
+    width: parent ? parent.width : 0
+    spacing: Style.spacing.sm
+    visible: !root.exposeInstalled
+    Hint { width: parent.width; color: root.accent; text: root.tr("exposeRecommend") }
+    Row {
+      spacing: Style.spacing.md
+      Rectangle {
+        width: commandText.implicitWidth + Style.space(16)
+        height: Style.spacing.controlHeight
+        radius: Style.cornerRadius
+        color: Util.alpha(root.foreground, 0.06)
+        Text {
+          id: commandText
+          anchors.centerIn: parent
+          text: root.exposeInstallCommand
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+        }
+      }
+      SmallButton {
+        property bool copied: false
+        text: copied ? root.tr("copied") : root.tr("copy")
+        onClicked: { Quickshell.execDetached(["wl-copy", root.exposeInstallCommand]); copied = true }
+      }
+    }
   }
 
   component SmallButton: Button {
@@ -809,6 +837,8 @@ Item {
               width: parent.width
               spacing: Style.spacing.huge
               visible: root.page === "general"
+
+              ExposeTip {}
 
               // Language first, as in More Time and More Weather.
               Column {
@@ -1177,12 +1207,7 @@ Item {
                 }
 
                 Hint { width: parent.width; visible: root.working.touchpad.enabled; text: root.tr("swipeFileHint") }
-                Hint {
-                  width: parent.width
-                  visible: !root.exposeInstalled
-                  color: root.accent
-                  text: root.tr("exposeRecommend")
-                }
+                ExposeTip {}
 
                 Toggle {
                   width: parent.width
@@ -1214,6 +1239,7 @@ Item {
                 width: parent.width
                 spacing: Style.spacing.md
 
+                ExposeTip {}
                 Toggle {
                   width: parent.width
                   label: root.tr("ring")

@@ -192,7 +192,7 @@ Item {
       return
     }
     if (event.type === "ring") {
-      if (event.phase === "open") { root.probeActiveWindow(); ring.open() }
+      if (event.phase === "open") { root.probeActiveWindow(); exposeCheck.refresh(); ring.open() }
       else if (event.phase === "close") ring.release()
       else ring.cancel()
       return
@@ -269,12 +269,15 @@ Item {
     onTriggered: Quickshell.execDetached(["hyprctl", "eval", Actions.RESTORE_DESKTOPS_LUA])
   }
 
+  ExposeCheck { id: exposeCheck }
+
   RingOverlay {
     id: ring
     lang: root.lang
     rings: Config.activeRings(root.config.ring)
     dividers: root.config.ring.dividers
     style: root.config.ring.style
+    exposeAvailable: exposeCheck.available
     animations: root.config.animations
     onChosen: function(action, point) { root.runRingSlot(action, point) }
   }
@@ -387,7 +390,7 @@ Item {
     }
 
     // Opens the ring to stay (bar icon or a keybinding): pick a slot with a click.
-    function openRing(): string { ring.open(); ring.release(); return "ok" }
+    function openRing(): string { exposeCheck.refresh(); ring.open(); ring.release(); return "ok" }
     // The settings' "Record" button: the next gesture is written to the runtime file
     // instead of acting, for at most 15 seconds.
     function recordGesture(): string { root.recordUntil = Date.now() + 15000; return "recording" }

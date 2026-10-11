@@ -470,3 +470,22 @@ test("move window under the pointer: the ring's point goes into the Lua, numbers
   assert.equal(A.buildCommand({ type: "dispatch", id: "workspace-3" }, { x: 1, y: 2 }).argv[2],
     A.DISPATCH["workspace-3"].chunk)
 })
+
+// Without the Exposé plugin the defaults still act: the launcher instead.
+test("Exposé falls back to the app launcher; Hyprexpo to Exposé, then the launcher", () => {
+  const ex = A.DISPATCH.expose.chunk
+  assert.match(ex, /local function expose_available\(\)/)
+  assert.match(ex, /if expose_available\(\) then hl\.dispatch\(hl\.dsp\.event\("expose\.window-overview:toggle"\)\) else hl\.exec_cmd\("omarchy-menu toggle apps"\) end$/)
+  const up = A.DISPATCH["stack-up"].chunk
+  assert.match(up, /expose_available\(\) then .* else hl\.exec_cmd\("omarchy-menu toggle apps"\) end$/)
+  const hx = A.DISPATCH.hyprexpo.chunk
+  assert.match(hx, /if x then x\.expo\("toggle"\)\nelseif expose_available\(\) then .*\nelse hl\.exec_cmd\("omarchy-menu toggle apps"\) end$/)
+  assert.ok(!/notify-send/.test(hx))
+})
+
+test("exposeAvailable: installed and not disabled in shell.json", () => {
+  assert.equal(A.exposeAvailable(false, "{}"), false)
+  assert.equal(A.exposeAvailable(true, ""), true)
+  assert.equal(A.exposeAvailable(true, '{"disabledPlugins":["x"]}'), true)
+  assert.equal(A.exposeAvailable(true, '{"disabledPlugins":["expose.window-overview"]}'), false)
+})

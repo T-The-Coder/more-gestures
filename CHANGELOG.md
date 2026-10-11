@@ -13,6 +13,12 @@
   Ctrl+Shift+W.
 - Shapes can have up to 5 strokes.
 
+### Changed
+- The defaults work without the Exposé plugin: "Exposé", the ring's 12 o'clock slot and
+  the up layer open the app launcher when it is missing or disabled (the ring then says
+  "App launcher"); Hyprexpo falls back to Exposé, then the launcher, instead of a
+  notification. The settings recommend Exposé with its install command and a copy button.
+
 ### Added
 - Super+1 … Super+0 bring back the windows the wallpaper layer hid and close Exposé, like
   the ring's workspace slots, also on the workspace already shown (General, on by

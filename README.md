@@ -175,7 +175,16 @@ Four fingers up/down are layers by default; the opposite swipe undoes the last s
 | app launcher | close launcher | – |
 | wallpaper | Files (floating, centred) | windows back |
 | wallpaper + Files | – | close Files |
-For the "Exposé" action install the `expose.window-overview` plugin.
+The defaults work on a plain Omarchy. Exposé is a separate plugin (`expose.window-overview`,
+recommended): without it, or with it disabled, the "Exposé" action, the ring's 12 o'clock
+slot and the up layer open the app launcher instead (the ring then says "App launcher").
+Hyprexpo (4 fingers pinch out, ring 3) is a hyprpm plugin; without it the gesture opens
+Exposé, else the launcher. Whether Exposé is there is checked when the action runs, so
+installing it needs no restart. The settings show the install command while it is missing:
+
+```
+omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable
+```
 
 ### Corner taps (opt-in)
 

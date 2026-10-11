@@ -92,6 +92,28 @@ function workspaceLua(n) {
   ].join("\n")
 }
 
+// Exposé is a separate plugin (expose.window-overview). Without it the "Exposé" action,
+// the up layer and the Hyprexpo fallback open the app launcher instead, so the defaults
+// work on a plain Omarchy too. "Available" = installed and not disabled in shell.json,
+// read when the action runs, so installing the plugin needs no restart of anything.
+var EXPOSE_EVENT = 'hl.dispatch(hl.dsp.event("expose.window-overview:toggle"))'
+var LAUNCHER = 'hl.exec_cmd("omarchy-menu toggle apps")'
+var EXPOSE_AVAILABLE_LUA = [
+  'local function expose_available()',
+  '  local config = os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config")',
+  '  local m = io.open(config .. "/omarchy/plugins/expose.window-overview/manifest.json", "r")',
+  '  if not m then return false end',
+  '  m:close()',
+  '  local f = io.open(config .. "/omarchy/shell.json", "r")',
+  '  if not f then return true end',
+  '  local text = f:read("a") or ""',
+  '  f:close()',
+  '  local list = text:match(\'"disabledPlugins"%s*:%s*(%b[])\')',
+  '  return not (list and list:find(\'"expose.window-overview"\', 1, true))',
+  'end'
+].join("\n")
+var EXPOSE_LUA = EXPOSE_AVAILABLE_LUA + "\n" + 'if expose_available() then ' + EXPOSE_EVENT + ' else ' + LAUNCHER + ' end'
+
 // Layers for four fingers up/down. Each swipe looks at what is open right now, so the
 // opposite swipe always undoes the last step (the first version toggled with the same
 // direction, which felt wrong):
@@ -139,7 +161,7 @@ var STACK_DOWN_LUA = LAYER_HELPERS + "\n" + [
   'end'
 ].join("\n")
 
-var STACK_UP_LUA = LAYER_HELPERS + "\n" + [
+var STACK_UP_LUA = LAYER_HELPERS + "\n" + EXPOSE_AVAILABLE_LUA + "\n" + [
   'if menu_open() then return end',
   'if expose_open() then hl.exec_cmd("omarchy-menu toggle apps") return end',
   'local files = tagged_files()',
@@ -152,7 +174,8 @@ var STACK_UP_LUA = LAYER_HELPERS + "\n" + [
   '  for _, w in ipairs(s) do hl.dispatch(hl.dsp.window.move({ workspace = here, follow = false, window = w })) end',
   '  return',
   'end',
-  'hl.dispatch(hl.dsp.event("expose.window-overview:toggle"))'
+  // Without Exposé the first step up is the launcher itself (up again: nothing, it is open).
+  'if expose_available() then ' + EXPOSE_EVENT + ' else ' + LAUNCHER + ' end'
 ].join("\n")
 
 // Moves the window under a point to workspace n without following it ("movetoworkspace-
@@ -186,13 +209,14 @@ function moveSilentLua(n) {
   ].join("\n")
 }
 
-// hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
-// `hyprpm reload`. Say so instead of failing silently.
-var HYPREXPO_LUA = [
+// hyprexpo is a hyprpm plugin, not part of a plain Omarchy, and after a Hyprland update
+// it may not be loaded until `hyprpm reload`. Without it: Exposé, else the launcher (the
+// gesture still does something; Settings says how to get either).
+var HYPREXPO_LUA = EXPOSE_AVAILABLE_LUA + "\n" + [
   'local x = hl.plugin and hl.plugin.hyprexpo',
-  'if x then x.expo("toggle") else',
-  '  hl.exec_cmd("notify-send \'More Gestures\' \'Hyprexpo is not loaded. Run: hyprpm reload\'")',
-  'end'
+  'if x then x.expo("toggle")',
+  'elseif expose_available() then ' + EXPOSE_EVENT,
+  'else ' + LAUNCHER + ' end'
 ].join("\n")
 
 // id -> { lua, en, de }. `lua` is a complete hl.dsp expression; copied from the
@@ -256,7 +280,8 @@ var DISPATCH = {
   // in the generated Lua file, where the workspace follows the fingers.
   "hypr-workspace-swipe": { internal: "swipe", en: "Swipe workspaces (Hyprland, follows the fingers)",
                            de: "Arbeitsflächen wischen (Hyprland, folgt den Fingern)" },
-  "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
+  "expose":              { chunk: EXPOSE_LUA, en: "Exposé (all windows; app launcher without the plugin)",
+                           de: "Exposé (alle Fenster; ohne Plugin App-Launcher)" },
   // The ring shows only the part before the brackets ("Wallpaper").
   "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Wallpaper (show wallpaper)", de: "Wallpaper (Hintergrund anzeigen)" },
   // Four-finger up/down as layers: what a swipe does depends on what is open, and the
@@ -676,6 +701,16 @@ function gestureKey(event) {
   return prefix + ":" + gesture
 }
 
+// The same check as EXPOSE_AVAILABLE_LUA for the shell (ring labels, settings hint):
+// the plugin's manifest exists and shell.json does not list it as disabled.
+function exposeAvailable(manifestExists, shellJsonText) {
+  if (!manifestExists) return false
+  var config = null
+  try { config = JSON.parse(String(shellJsonText || "")) } catch (e) { config = null }
+  var off = config && isList(config.disabledPlugins) ? toArray(config.disabledPlugins) : []
+  return off.indexOf("expose.window-overview") < 0
+}
+
 // A daemon event as the settings' gesture editor takes it while recording:
 // { source: "mouse" | "tp3" | "tp4" | "tap", gesture } or null (nothing bindable).
 function recordedGesture(event) {
@@ -796,6 +831,7 @@ if (typeof module !== "undefined") module.exports = {
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
+  EXPOSE_AVAILABLE_LUA: EXPOSE_AVAILABLE_LUA, exposeAvailable: exposeAvailable,
   recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
