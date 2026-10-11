@@ -53,22 +53,22 @@ Item {
   // Exposé is an action here, but it needs the expose.window-overview plugin.
   ExposeCheck { id: exposeCheck }
 
-  // Whether Hyprland loads the generated file (bin/setup-hypr --check). Without it the
+  // Whether Hyprland loads the generated file (bin/hypr-hook --check). Without it the
   // workspace swipe, the ring's shortcut and Super+1…0 are missing, so the settings
   // offer to set it up (a marked block in input.lua, with a backup).
   property bool hyprHooked: true
   property string hyprSetupMessage: ""
   // A file of the plugin as a plain path (decoded, so a folder with spaces works).
   function pluginPath(name) { return decodeURIComponent(String(Qt.resolvedUrl(name)).replace(/^file:\/\//, "")) }
-  readonly property string setupScript: pluginPath("bin/setup-hypr")
+  readonly property string hookScript: pluginPath("bin/hypr-hook")
   Process {
     id: hyprCheck
-    command: [root.setupScript, "--check"]
+    command: [root.hookScript, "--check"]
     onExited: function(code) { root.hyprHooked = code === 0 }
   }
   Process {
     id: hyprSetup
-    command: [root.setupScript]
+    command: [root.hookScript]
     stdout: StdioCollector { id: hyprSetupOut; waitForEnd: true }
     onExited: function(code) {
       root.hyprSetupMessage = code === 0 ? root.tr("hyprSetupDone") : String(hyprSetupOut.text || "").trim()
@@ -125,7 +125,7 @@ Item {
   }
 
   // ---------------------------------------------------------- app launcher entry
-  // bin/install-app-entry adds or removes the launcher entry (and the theme hook that
+  // bin/launcher-entry adds or removes the launcher entry (and the theme hook that
   // recolors its icon) at once, not on Save: it is a file outside the settings.
   readonly property string desktopPath: Quickshell.env("HOME") + "/.local/share/applications/more-gestures.desktop"
   property bool launcherInstalled: false
@@ -133,7 +133,7 @@ Item {
   function setLauncher(on) {
     if (launcherProc.running || on === root.launcherInstalled) return
     root.launcherInstalled = on   // shown at once; the file check confirms or reverts it
-    var script = root.pluginPath("bin/install-app-entry")
+    var script = root.pluginPath("bin/launcher-entry")
     launcherProc.command = on ? [script] : [script, "--remove"]
     launcherProc.running = true
   }

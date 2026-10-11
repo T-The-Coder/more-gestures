@@ -3,10 +3,10 @@
 # (~/.local/state/omarchy/settings/more-gestures-hypr.lua: Hyprland's own workspace swipe,
 # the ring's keyboard shortcut, Super+1…0). Without this, those three are missing.
 #
-#   setup-hypr           add a marked block to ~/.config/hypr/input.lua (backup first),
+#   hypr-hook           add a marked block to ~/.config/hypr/input.lua (backup first),
 #                        then `hyprctl reload`; does nothing if the file is loaded already
-#   setup-hypr --check   exit 0 if a Hyprland config file loads it, 1 if not
-#   setup-hypr --remove  take the marked block out again (backup first)
+#   hypr-hook --check   exit 0 if a Hyprland config file loads it, 1 if not
+#   hypr-hook --remove  take the marked block out again (backup first)
 #
 # input.lua because Omarchy's hyprland.lua requires it after Omarchy's own bindings:
 # the generated file unbinds and rebinds Super+1…0, which must exist by then. The
@@ -17,7 +17,7 @@ set -u
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 hypr_dir="$config_home/hypr"
 input="$hypr_dir/input.lua"
-begin="-- >>> more-gestures (added by More Gestures, remove with: setup-hypr --remove)"
+begin="-- >>> more-gestures (added by More Gestures, remove with: hypr-hook --remove)"
 end="-- <<< more-gestures"
 
 loaded() {
@@ -57,7 +57,7 @@ case "${1:-}" in
   ;;
 "") ;;
 *)
-  echo "usage: setup-hypr [--check | --remove]" >&2
+  echo "usage: hypr-hook [--check | --remove]" >&2
   exit 2
   ;;
 esac

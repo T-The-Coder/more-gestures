@@ -189,8 +189,8 @@ missing; **Set up** adds a marked block to `input.lua` (after a backup next to
 it) and reloads Hyprland. The same from a terminal:
 
 ```bash
-~/.config/omarchy/plugins/more-gestures/bin/setup-hypr           # add the block
-~/.config/omarchy/plugins/more-gestures/bin/setup-hypr --check   # exit 0 if loaded
+~/.config/omarchy/plugins/more-gestures/bin/hypr-hook           # add the block
+~/.config/omarchy/plugins/more-gestures/bin/hypr-hook --check   # exit 0 if loaded
 ```
 
 The block only loads the file if it exists, so removing the plugin breaks
@@ -209,11 +209,11 @@ read from the installed plugin. Your settings stay as they are.
 ## Removal
 
 1. If you added the launcher entry, turn **Show in app launcher** off first
-   (or run `bin/install-app-entry --remove`).
+   (or run `bin/launcher-entry --remove`).
 2. Take the Hyprland hook out again (a backup of `input.lua` is made first):
 
    ```bash
-   ~/.config/omarchy/plugins/more-gestures/bin/setup-hypr --remove
+   ~/.config/omarchy/plugins/more-gestures/bin/hypr-hook --remove
    ```
 
 3. Remove the plugin:

@@ -3,7 +3,7 @@
 # a schematic mouse, i.e. a square split by a fine cross whose lower arm is missing
 # (an upside-down T: two buttons on top, the body below). The right button, the
 # gesture trigger, is filled with the theme's accent, like the sun in More Weather.
-# Called by bin/install-app-entry and by the theme-set hook it installs.
+# Called by bin/launcher-entry and by the theme-set hook it installs.
 
 set -u
 

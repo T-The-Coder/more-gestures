@@ -414,7 +414,7 @@ Item {
       Quickshell.execDetached(["omarchy-notification-send", title, lines.join("\n")])
       return "ok"
     }
-    // Opens the settings overlay (same as the launcher entry from bin/install-app-entry).
+    // Opens the settings overlay (same as the launcher entry from bin/launcher-entry).
     function settings(): string {
       Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "more-gestures"])
       return "ok"

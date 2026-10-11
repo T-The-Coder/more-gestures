@@ -1,4 +1,4 @@
-"""bin/setup-hypr on a throwaway config: adds its block once, detects a hand-made hook,
+"""bin/hypr-hook on a throwaway config: adds its block once, detects a hand-made hook,
 removes only its own block, keeps backups."""
 import os
 import re
@@ -7,10 +7,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "bin" / "setup-hypr"
+SCRIPT = Path(__file__).resolve().parent.parent / "bin" / "hypr-hook"
 
 
-class SetupHyprTest(unittest.TestCase):
+class HyprHookTest(unittest.TestCase):
     def test_loads_the_file_config_js_writes(self):
         # The script cannot import Config.js; this keeps the two paths in step.
         config = (SCRIPT.parent.parent / "Config.js").read_text()

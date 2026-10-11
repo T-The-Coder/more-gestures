@@ -40,7 +40,7 @@ The first release.
 - **Works on a plain Omarchy.** Without the Exposé plugin its slots open the
   app launcher; the settings recommend it with the install command. The
   Hyprland file the plugin writes (swipe, ring shortcut, Super+1…0) is hooked
-  into `input.lua` with one click ("Set up", with a backup; `bin/setup-hypr`).
+  into `input.lua` with one click ("Set up", with a backup; `bin/hypr-hook`).
 - **Settings like More Time and More Weather.** Pages for General, Mouse,
   Trackpad, Ring menu and What's new, saved as you go, keyboard control,
   export and import with a backup, an app launcher entry and a menu bar icon
