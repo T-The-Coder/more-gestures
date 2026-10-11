@@ -26,6 +26,8 @@
 - Settings: gesture language hint, "All gestures to default".
 
 ### Changed
+- A workspace action (ring, corner taps, gestures) closes an open Exposé, so picking
+  workspace 1 while Exposé or the wallpaper is open on it shows its windows again.
 - The menu bar icon is as tall as the icons next to it (it was a pixel smaller).
 - App icon like More Weather's: a bigger symbol, and the right button (the gesture
   trigger) in the theme's accent color; it still follows every theme change.

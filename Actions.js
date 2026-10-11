@@ -74,12 +74,14 @@ var RESTORE_DESKTOPS_LUA = [
   'end'
 ].join("\n")
 
-// Switch to workspace n and end "show desktop" there first: picking 1 while already on
-// 1 changes no workspace, so the switch hook (RESTORE_DESKTOPS_LUA) never runs and the
-// desktop stayed empty.
+// Switch to workspace n and show its windows: end "show desktop" there first (picking 1
+// while already on 1 changes no workspace, so the switch hook RESTORE_DESKTOPS_LUA never
+// runs and the desktop stayed empty) and close an open Exposé, which would otherwise keep
+// covering them.
 function workspaceLua(n) {
   var id = String(n)
   return [
+    'if #(hl.get_layers({ namespace = "expose-window-overview" }) or {}) > 0 then hl.exec_cmd("omarchy-shell expose close") end',
     'for _, win in ipairs(hl.get_workspace_windows("special:more-gestures-desktop-' + id + '") or {}) do',
     '  hl.dispatch(hl.dsp.window.move({ workspace = "' + id + '", follow = false, window = win }))',
     'end',

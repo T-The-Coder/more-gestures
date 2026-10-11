@@ -301,7 +301,7 @@ test("every default action is valid and has a name in both languages", () => {
     // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
     // hyprexpo) that is passed to `hyprctl eval` as is.
     if (d.internal) assert.equal(d.internal, "ring", id)
-    else if (d.chunk) assert.match(d.chunk, /^(local |for |hl\.exec_cmd\("[a-z -]+"\)$)/, id)
+    else if (d.chunk) assert.match(d.chunk, /^(local |for |if #|hl\.exec_cmd\("[a-z -]+"\)$)/, id)
     else assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
   }
 })
@@ -409,6 +409,12 @@ test("workspace actions restore that workspace's stash before switching", () => 
   const lua = A.DISPATCH["workspace-3"].chunk
   assert.match(lua, /special:more-gestures-desktop-3/)
   assert.match(lua, /hl\.dsp\.focus\(\{ workspace = "3" \}\)\)$/)
+})
+
+test("workspace actions close an open Exposé so the windows show", () => {
+  const lua = A.DISPATCH["workspace-1"].chunk
+  assert.match(lua, /namespace = "expose-window-overview"/)
+  assert.ok(lua.indexOf("expose close") < lua.indexOf("hl.dsp.focus"))
 })
 
 test("4-finger double tap opens the ring inside the shell", () => {
