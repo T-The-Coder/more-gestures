@@ -15,9 +15,15 @@ ein Einstellungsfenster.
 Open with `omarchy-shell shell toggle more-gestures`, `qs ipc -p /usr/share/omarchy/shell
 call more-gestures settings`, a left click on the menu bar icon, or the launcher entry
 "More Gestures" (General › "Show in app launcher", or `bin/install-app-entry`; `--remove`
-takes it away). Changes are written to `~/.local/state/omarchy/settings/more-gestures.json`
-on Save and applied live: a new trigger button restarts the daemon, everything else
-applies at once.
+takes it away). Every change is saved at once, as in More Time and More Weather (no Save
+button), to `~/.local/state/omarchy/settings/more-gestures.json`, and applied live: a new
+trigger button restarts the daemon, everything else applies at once.
+
+General › "Back up and restore" exports all settings to one JSON file (default
+`~/Downloads/more-gestures-settings.json`) and imports one; the import asks once more
+("Replace settings?") and first saves the current settings to
+`~/.local/state/omarchy/settings/more-gestures-settings-backup.json`. Importing that backup
+undoes the import.
 
 The interface language is set under General › Language: Automatic (the system locale),
 English or Deutsch, like in More Time and More Weather; it covers the settings, the ring,
@@ -29,11 +35,11 @@ notch and touchpads 2.5 × their delta, the same speed as there):
 
 | Page | What is there |
 |---|---|
-| General | language, gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions |
+| General | language, gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions, back up and restore |
 | Mouse | trigger button, threshold, hold time, rocker, wheel, and the mouse gestures |
 | Trackpad | 3 / 4 fingers, Hyprland swipe, segment length, corner taps, and the trackpad gestures |
 | Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
-| Update log | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
+| What's new | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
 
 The gesture list shows on the Mouse and on the Trackpad page: shared shapes (device
 "All") on both, since mouse and three fingers speak one gesture language, plus the rows
@@ -71,9 +77,11 @@ Other ways in, both open the ring to stay:
 **Up to three rings.** Ring 1 is always there; rings 2 and 3 are switched on in the
 settings and sit further out (drag further to reach them: the distance picks the ring,
 the direction the slot). Slots per ring: 8, 12 or 16 for ring 1, 8, 12, 16 or 24 for
-rings 2 and 3. Ring 2 is turned by half a step, so its slots sit between those of ring 1.
+rings 2 and 3. All rings start at 12 o'clock, so with equal counts a slot sits straight
+outside the one before it. Soft dividing lines between the rings and their slots can be
+switched off ("Dividing lines").
 By default ring 2 moves the window under the pointer (where the ring was opened) to a
-workspace without following it: each slot sits just clockwise of its workspace on ring 1
+workspace without following it: each slot sits straight outside its workspace on ring 1
 and shows an arrow into a small monitor with the number. Ring 3 holds close window (q),
 fullscreen (f), floating (s), window to workspace left/right (a/d), scratchpad (n),
 terminal (t), Files (o), app launcher (l) and Hyprexpo (x). Every slot can hold any
@@ -321,7 +329,8 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
   parsing, device classification), no evdev dependency.
 - `bin/gesture-daemon` – thin evdev/uinput wrapper.
 - `manifest.json`, `Service.qml`, `Settings.qml`, `BarWidget.qml` – the Omarchy plugin.
-- `ChangesPage.qml`, `Changelog.js` – Settings › Update log; `Changelog.js` is the parser
+- `SettingsTransfer.qml` – export, import and the backup before an import.
+- `ChangesPage.qml`, `Changelog.js` – Settings › What's new; `Changelog.js` is the parser
   More Time and More Weather share, kept byte-identical (`tests/changelog.test.mjs`).
 - `GestureOverlay.qml` – line and indicator, instantiated by `Service.qml`.
 - `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building,

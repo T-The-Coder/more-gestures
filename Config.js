@@ -53,7 +53,7 @@ var RING_HOTKEY = { mods: ["SUPER", "ALT"], key: "R" }
 function ringDefaults(actions) {
   var A = actionsModule(actions)
   return { enabled: false, doubleMs: LIMITS.doubleMs.def, hotkey: clone(RING_HOTKEY),
-           rings: clone(A.ringDefaultsList()) }
+           dividers: true, rings: clone(A.ringDefaultsList()) }
 }
 
 // Letters and digits; upper case means Shift+letter, so "a" and "A" are two keys.
@@ -120,6 +120,8 @@ function cleanRing(raw, actions) {
   rings.forEach(function (r, i) { r.keys = keys[i] })
   return { enabled: raw.enabled === true, doubleMs: clampInt(raw.doubleMs, LIMITS.doubleMs),
            hotkey: Object.prototype.hasOwnProperty.call(raw, "hotkey") ? cleanHotkey(raw.hotkey, A) : clone(RING_HOTKEY),
+           // Soft lines between the rings and their slots.
+           dividers: raw.dividers !== false,
            rings: rings }
 }
 

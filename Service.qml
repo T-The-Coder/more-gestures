@@ -251,6 +251,7 @@ Item {
     id: ring
     lang: root.lang
     rings: Config.activeRings(root.config.ring)
+    dividers: root.config.ring.dividers
     onChosen: function(action, point) { root.runRingSlot(action, point) }
   }
 

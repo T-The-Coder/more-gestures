@@ -329,3 +329,9 @@ test("language: auto follows the locale, a choice wins, junk is auto", () => {
   assert.equal(Config.sanitize({ language: "fr" }).language, "auto")
   assert.equal(Config.sanitize({ language: "de" }).language, "de")
 })
+
+test("ring dividers: on by default, off only when switched off", () => {
+  assert.equal(Config.defaults().ring.dividers, true)
+  assert.equal(Config.sanitize({ ring: { dividers: false } }).ring.dividers, false)
+  assert.equal(Config.sanitize({ ring: { dividers: "x" } }).ring.dividers, true)
+})

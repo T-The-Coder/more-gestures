@@ -372,8 +372,8 @@ var RING_SLOTS = [
 function ringDefaultsList() {
   return [
     { enabled: true, count: 12, slots: RING_SLOTS, keys: RING_KEYS },
-    // Ring 2 is turned by half a step, so slot k sits just clockwise of ring 1's slot k:
-    // "move the window there" next to each workspace. No keys: 1-0 belong to ring 1.
+    // Ring 2's slot k sits straight outside ring 1's slot k: "move the window there"
+    // right behind each workspace. No keys: 1-0 belong to ring 1.
     { enabled: false, count: 12,
       slots: RING_SLOTS.map(function (a) {
         var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null

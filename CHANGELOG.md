@@ -14,19 +14,27 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- Settings are saved at once, as in More Time and More Weather: no Save or Cancel button
+  any more; a change made elsewhere while the window is open (the bar's middle click) is
+  taken in.
+- General › Back up and restore: export and import of all settings in one file, with a
+  backup before every import and a second click to confirm ("Replace settings?"), as in
+  More Time and More Weather.
+- Ring menu: soft dividing lines between the rings and between their slots (on by
+  default, "Dividing lines" switches them off).
 - General › Language: Automatic, English or Deutsch, as in More Time and More Weather,
   for the settings, ring, indicator, menu bar tooltip and notifications (was: always the
   system locale, so an English system showed English next to German siblings).
 - Ring 2 moves the window under the pointer to a workspace without following it (new
   actions "Window under pointer → workspace 1-10", also for gestures): each slot
-  sits just clockwise of its workspace on ring 1 and shows an arrow into a small monitor
+  sits straight outside its workspace on ring 1 and shows an arrow into a small monitor
   with the number. The window is the one where the ring was opened. The former ring 2
   (window and program actions, keys q f s a d n t o l x) is now ring 3.
 - Settings in pages like More Time and More Weather: General, Mouse, Trackpad, Ring menu
-  and Update log, with a tab strip, Tab / Shift+Tab to switch, a fixed header and footer
-  (Save stays in view) and a page subtitle. The gesture list sits on the Mouse and the
+  and What's new, with a tab strip, Tab / Shift+Tab to switch, a fixed header and a
+  page subtitle. The gesture list sits on the Mouse and the
   Trackpad page, each showing the shared shapes and its own device's rows.
-- Settings › Update log: this change log, read from the plugin folder, newest first.
+- Settings › What's new ("Neuigkeiten", the name More Time and More Weather use): this change log, read from the plugin folder, newest first.
 - General › "Show in app launcher" adds or removes the launcher entry at once.
 - Rings 2 and 3 in the ring menu, each switched on in the settings, with 8/12/16/24
   slots (ring 1: 8/12/16). Distance picks the ring, direction the slot; ring 2 is turned
@@ -48,6 +56,10 @@
 - The settings listed every key combination action (back, forward, close tab …) as "—"
   and opened it as "no action" in the editor: QML hands lists over as sequences that are
   not real arrays, and the check refused them.
+
+### Changed
+- Ring 2 is no longer turned by half a step: all rings start at 12 o'clock, so a slot sits
+  straight outside the one before it.
 
 ### Changed
 - A workspace action (ring, corner taps, gestures) closes an open Exposé, so picking

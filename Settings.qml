@@ -136,7 +136,10 @@ Item {
     exposeProbe.running = true
     desktopFile.reload()
     stateFile.reload()
+    root.loading = true
     root.working = Config.parse(stateFile.text(), Actions)
+    root.loading = false
+    root.importArmed = false
     root.profile = "default"
     root.closeEditor()
     scroller.contentY = 0
@@ -146,6 +149,7 @@ Item {
   }
 
   function close() {
+    root.flush()
     root.recordingStep = -1
     root.editorOpen = false
     root.opened = false
@@ -163,9 +167,51 @@ Item {
     doubleField.field.value = root.working.ring.doubleMs
   }
 
-  function save() {
-    stateFile.setText(Config.serialize(root.working, Actions))
-    root.close()
+  // Every change is saved at once, as in More Time and More Weather (no Save button):
+  // a short delay gathers the steps of a number field or a quick series of clicks into
+  // one write. Service.qml watches the file and applies it live.
+  property bool loading: false
+  property string lastWritten: ""
+  onWorkingChanged: if (root.opened && !root.loading) saveTimer.restart()
+
+  Timer {
+    id: saveTimer
+    interval: 300
+    onTriggered: root.writeNow()
+  }
+
+  function writeNow() {
+    var text = Config.serialize(root.working, Actions)
+    if (text === root.lastWritten) return
+    root.lastWritten = text
+    stateFile.setText(text)
+  }
+
+  function flush() {
+    if (!saveTimer.running) return
+    saveTimer.stop()
+    root.writeNow()
+  }
+
+  // An import (SettingsTransfer): replaces the working copy, which then saves itself.
+  function applyImported(config) {
+    root.working = config
+    root.closeEditor()
+    root.syncControls()
+  }
+
+  // Import replaces everything: the first click arms it, a second within four seconds
+  // imports (as in More Time).
+  property bool importArmed: false
+  Timer { id: importDisarm; interval: 4000; onTriggered: root.importArmed = false }
+
+  SettingsTransfer { id: transfer; owner: root }
+
+  // "{path}" style placeholders, as in the siblings' strings.
+  function trp(key, params) {
+    var text = root.tr(key)
+    for (var k in params) text = text.split("{" + k + "}").join(params[k])
+    return text
   }
 
   function set(key, value) {
@@ -368,10 +414,10 @@ Item {
     root.editRing(ringIndex, function(r) { r.count = def.count; r.slots = Config.clone(def.slots); r.keys = def.keys.slice() })
   }
 
-  // Clock position of a slot: "12", "1" … for twelve; "12:30" style for turned rings
-  // would be hard to read, so other counts and turned rings just number the slots.
+  // Clock position of a slot: "12", "1" … for twelve (every ring starts at 12 o'clock);
+  // other counts just number the slots.
   function slotName(ringIndex, index, count) {
-    if (count === 12 && ringIndex % 2 === 0) return (index === 0 ? 12 : index) + " " + root.tr("oclock")
+    if (count === 12) return (index === 0 ? 12 : index) + " " + root.tr("oclock")
     return "#" + (index + 1)
   }
 
@@ -416,7 +462,19 @@ Item {
     blockAllReads: true
     atomicWrites: true
     printErrors: false
-    onFileChanged: reload()
+    // A change from elsewhere while the window is open (the bar's middle click switching
+    // gestures on/off) is taken into the working copy, so the next save keeps it.
+    onFileChanged: {
+      reload()
+      if (!root.opened || saveTimer.running) return
+      var text = stateFile.text()
+      if (text === root.lastWritten) return
+      root.lastWritten = text
+      root.loading = true
+      root.working = Config.parse(text, Actions)
+      root.loading = false
+      root.syncControls()
+    }
   }
 
   // ----------------------------------------------------------------- components
@@ -467,7 +525,8 @@ Item {
       }
       // Tab / Shift+Tab: next / previous page, as in More Time and More Weather. Text
       // fields keep Tab for themselves while they have the focus.
-      Keys.onTabPressed: function(event) { root.stepPage(1); event.accepted = true }
+      // Shift+Tab usually comes as Backtab, but synthetic input sends Tab with Shift held.
+      Keys.onTabPressed: function(event) { root.stepPage(event.modifiers & Qt.ShiftModifier ? -1 : 1); event.accepted = true }
       Keys.onBacktabPressed: function(event) { root.stepPage(-1); event.accepted = true }
       Keys.onReturnPressed: function(event) { event.accepted = root.page === "changes" && changesPage.activate() }
       Keys.onPressed: function(event) {
@@ -562,7 +621,7 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               bordered: false
               text: "✕"
-              tooltipText: root.tr("cancel")
+              tooltipText: root.tr("closeWindow")
               onClicked: root.close()
             }
           }
@@ -635,11 +694,11 @@ Item {
         Flickable {
           id: scroller
           anchors.top: top.bottom
-          anchors.bottom: footer.top
+          anchors.bottom: parent.bottom
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.topMargin: Style.space(12)
-          anchors.bottomMargin: Style.space(12)
+          anchors.bottomMargin: card.contentBottomInset
           anchors.leftMargin: card.contentLeftInset
           anchors.rightMargin: card.contentRightInset
           contentHeight: content.implicitHeight
@@ -843,6 +902,59 @@ Item {
                     text: root.tr("excludeDefaults")
                     onClicked: root.set("exclude", Actions.DEFAULT_EXCLUDES.slice())
                   }
+                }
+              }
+
+              // Back up and restore, as in More Time and More Weather.
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("generalSectionBackup"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Label { text: root.tr("settingsTransferFile") }
+                TextField {
+                  id: transferPathField
+                  width: Math.min(parent.width, Style.space(460))
+                  text: transfer.shown(transfer.defaultPath)
+                  foreground: root.foreground
+                  accent: root.accent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                  onAccepted: keyCatcher.forceActiveFocus()
+                }
+                Row {
+                  spacing: Style.spacing.md
+                  SmallButton {
+                    text: root.tr("settingsExport")
+                    enabled: !transfer.busy
+                    onClicked: transfer.exportTo(transferPathField.text)
+                  }
+                  SmallButton {
+                    text: root.importArmed ? root.tr("settingsImportConfirm") : root.tr("settingsImport")
+                    selected: root.importArmed
+                    enabled: !transfer.busy
+                    onClicked: {
+                      if (!root.importArmed) { root.importArmed = true; importDisarm.restart(); return }
+                      root.importArmed = false
+                      importDisarm.stop()
+                      transfer.importFrom(transferPathField.text)
+                    }
+                  }
+                }
+                Text {
+                  visible: transfer.status !== null
+                  width: parent.width
+                  text: transfer.status ? root.trp(transfer.status.key, { path: transfer.shown(transfer.status.path),
+                    backup: transfer.shown(transfer.backupPath) }) : ""
+                  color: transfer.status && transfer.status.error ? Color.urgent : root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  wrapMode: Text.WrapAnywhere
+                }
+                Hint { width: parent.width; text: root.trp("settingsTransferHint", { backup: transfer.shown(transfer.backupPath) }) }
+                Hint {
+                  width: parent.width
+                  text: root.trp("settingsFileHint", { path: root.statePath.replace(Quickshell.env("HOME"), "~") })
                 }
               }
             }
@@ -1051,6 +1163,15 @@ Item {
                   }
                 }
                 Hint { width: parent.width; text: root.hotkeyError !== "" ? root.hotkeyError : root.tr("hotkeyHint") }
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("ringDividers")
+                  description: root.tr("ringDividersHint")
+                  checked: root.working.ring.dividers
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setRing("dividers", !root.working.ring.dividers)
+                }
 
                 // Three rings: what each slot does, and its key.
                 Repeater {
@@ -1472,33 +1593,6 @@ Item {
           }
         }
 
-        // ------------------------------------------------------------ footer
-        Item {
-          id: footer
-          anchors.bottom: parent.bottom
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.bottomMargin: card.contentBottomInset
-          anchors.leftMargin: card.contentLeftInset
-          anchors.rightMargin: card.contentRightInset
-          height: Style.spacing.controlHeight + Style.spacing.md
-
-          Text {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.statePath.replace(Quickshell.env("HOME"), "~")
-            color: Qt.darker(root.foreground, 2.0)
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-          }
-          Row {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.spacing.md
-            SmallButton { text: root.tr("cancel"); onClicked: root.close() }
-            SmallButton { text: root.tr("save"); selected: true; onClicked: root.save() }
-          }
-        }
       }
     }
   }

@@ -28,14 +28,15 @@ function position(index, r, count, offset) {
 
 // Radii for the rings that are on, inner first: [{ count, radius, offset }].
 // A ring is wide enough that its slots (diameter `slot`) keep a gap on the circle, and
-// at least one slot plus a gap outside the ring before it. Every second ring is turned
-// by half a step, so with equal counts its slots sit between those of the inner ring.
+// at least one slot plus a gap outside the ring before it. All rings start at 12 o'clock,
+// so with equal counts a slot sits straight outside the one before it (ring 2's "move the
+// window there" right behind its workspace). `offset` stays for sectorFor/position.
 function layout(counts, slot, innerRadius) {
   var out = []
   for (var i = 0; i < counts.length; i++) {
     var fit = counts[i] * slot * 1.15 / (2 * Math.PI)
     var radius = i === 0 ? Math.max(innerRadius, fit) : Math.max(out[i - 1].radius + slot * 1.15, fit)
-    out.push({ count: counts[i], radius: radius, offset: i % 2 === 1 ? 0.5 : 0 })
+    out.push({ count: counts[i], radius: radius, offset: 0 })
   }
   return out
 }
@@ -43,6 +44,26 @@ function layout(counts, slot, innerRadius) {
 // Outer edge of the whole menu (for the backdrop and for keeping it on screen).
 function outerRadius(rings, slot) {
   return rings.length ? rings[rings.length - 1].radius + slot / 2 : 0
+}
+
+// Soft lines between the rings and between the slots of a ring: circles halfway between
+// two rings, and per ring a spoke between each two slots, across that ring's band (from
+// the dead zone or the circle inside it to the circle outside it or the outer edge).
+// { circles: [radius], spokes: [{ x1, y1, x2, y2 }] }, relative to the centre.
+function dividers(rings, slot, deadzone) {
+  var circles = []
+  for (var i = 0; i + 1 < rings.length; i++) circles.push((rings[i].radius + rings[i + 1].radius) / 2)
+  var spokes = []
+  for (var k = 0; k < rings.length; k++) {
+    var inner = k === 0 ? deadzone : circles[k - 1]
+    var outer = k < circles.length ? circles[k] : rings[k].radius + slot / 2
+    for (var s = 0; s < rings[k].count; s++) {
+      var a = position(s, inner, rings[k].count, (rings[k].offset || 0) + 0.5)
+      var b = position(s, outer, rings[k].count, (rings[k].offset || 0) + 0.5)
+      spokes.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y })
+    }
+  }
+  return { circles: circles, spokes: spokes }
 }
 
 // Pointer offset -> { ring, index } while dragging: the distance picks the ring (the
@@ -92,5 +113,5 @@ function occupiedFrom(text) {
 if (typeof module !== "undefined") module.exports = {
   sectorFor: sectorFor, position: position, layout: layout, outerRadius: outerRadius, pick: pick,
   workspaceOf: workspaceOf, workspaceLabel: workspaceLabel, emphasized: emphasized,
-  occupiedFrom: occupiedFrom, moveTargetOf: moveTargetOf
+  occupiedFrom: occupiedFrom, moveTargetOf: moveTargetOf, dividers: dividers
 }

@@ -59,7 +59,8 @@ test("layout: rings grow outwards and fit their slots", () => {
   assert.ok(L[2].radius >= L[1].radius + 66)
   // 24 slots of 66 px with a gap: circumference at least 24 × 66.
   assert.ok(2 * Math.PI * L[2].radius >= 24 * 66)
-  assert.deepEqual(L.map(r => r.offset), [0, 0.5, 0])
+  // All rings start at 12: a slot sits straight outside the one before it.
+  assert.deepEqual(L.map(r => r.offset), [0, 0, 0])
   assert.equal(R.outerRadius(L, 66), L[2].radius + 33)
 })
 
@@ -70,7 +71,7 @@ test("pick: distance chooses the ring, direction the slot", () => {
   const mid = (L[0].radius + L[1].radius) / 2
   assert.equal(R.pick(mid - 1, 0, L, 50).ring, 0)
   assert.equal(R.pick(mid + 1, 0, L, 50).ring, 1)
-  const p = R.position(4, L[1].radius, 12, 0.5)
+  const p = R.position(4, L[1].radius, 12, 0)
   assert.deepEqual(R.pick(p.x, p.y, L, 50), { ring: 1, index: 4 })
   assert.equal(R.pick(0, -2000, L, 50).ring, 1)                     // far out: still the outer ring
 })
@@ -79,4 +80,20 @@ test("move slots name their target workspace, others none", () => {
   assert.equal(R.moveTargetOf({ type: "dispatch", id: "window-to-workspace-silent-10" }), 10)
   assert.equal(R.moveTargetOf({ type: "dispatch", id: "workspace-1" }), 0)
   assert.equal(R.moveTargetOf({ type: "none" }), 0)
+})
+
+test("dividers: circles between rings, a spoke between each two slots", () => {
+  const L = R.layout([12, 12, 16], 66, 165)
+  const d = R.dividers(L, 66, 50)
+  assert.deepEqual(d.circles, [(L[0].radius + L[1].radius) / 2, (L[1].radius + L[2].radius) / 2])
+  assert.equal(d.spokes.length, 12 + 12 + 16)
+  // The first spoke of ring 1 runs from the dead zone at 12:30 out to the first circle.
+  const s = d.spokes[0]
+  assert.ok(Math.abs(Math.hypot(s.x1, s.y1) - 50) < 1e-9)
+  assert.ok(Math.abs(Math.hypot(s.x2, s.y2) - d.circles[0]) < 1e-9)
+  assert.ok(s.x1 > 0 && s.y1 < 0)                    // between 12 and 1 o'clock
+  // The outer ring's spokes end at its outer edge.
+  const last = d.spokes[d.spokes.length - 1]
+  assert.ok(Math.abs(Math.hypot(last.x2, last.y2) - (L[2].radius + 33)) < 1e-9)
+  assert.deepEqual(R.dividers([], 66, 50), { circles: [], spokes: [] })
 })

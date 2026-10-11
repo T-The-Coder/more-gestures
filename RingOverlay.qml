@@ -50,6 +50,8 @@ Item {
   // for actions that move it (the pointer itself is on a slot by then).
   signal chosen(var action, var point)
   property var anchorPoint: null
+  // Soft lines between the rings and between their slots (Settings › Ring menu).
+  property bool dividers: true
   property var occupied: []
   property int current: 0
 
@@ -290,6 +292,43 @@ Item {
       color: Util.alpha(Color.background, 0.82)
       border.width: Math.max(1, Style.space(2))
       border.color: Util.alpha(Color.foreground, 0.18)
+    }
+
+    // Soft dividers: circles between the rings, spokes between the slots (Ring.dividers).
+    // Drawn under the slots, faint enough that the labels stay in front.
+    Canvas {
+      id: dividerCanvas
+      anchors.fill: parent
+      visible: root.dividers && root.opened
+      readonly property var lines: Ring.dividers(root.geometry, root.slotSize, root.deadzone)
+      readonly property color ink: Util.alpha(Color.foreground, 0.12)
+      onLinesChanged: requestPaint()
+      onVisibleChanged: if (visible) requestPaint()
+      Connections {
+        target: root
+        function onCxChanged() { dividerCanvas.requestPaint() }
+        function onCyChanged() { dividerCanvas.requestPaint() }
+      }
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.reset()
+        ctx.strokeStyle = ink
+        ctx.lineWidth = Math.max(1, Style.space(1))
+        ctx.lineCap = "round"
+        var cx = root.cx, cy = root.cy
+        for (var i = 0; i < lines.circles.length; i++) {
+          ctx.beginPath()
+          ctx.arc(cx, cy, lines.circles[i], 0, 2 * Math.PI)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        for (var s = 0; s < lines.spokes.length; s++) {
+          var l = lines.spokes[s]
+          ctx.moveTo(cx + l.x1, cy + l.y1)
+          ctx.lineTo(cx + l.x2, cy + l.y2)
+        }
+        ctx.stroke()
+      }
     }
 
     // Dead zone: release here to cancel.
