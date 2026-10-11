@@ -298,3 +298,18 @@ test("ring keys: defaults, case, duplicates across rings", () => {
   assert.equal(c.ring.rings[1].keys[0], "")
   assert.equal(c.ring.rings[1].keys[1], "x")
 })
+
+test("settings pages list the gesture rows of their device", () => {
+  const rows = Config.listBindings(Config.defaults(), "default", Actions)
+  const mouse = Config.rowsForPage(rows, "mouse")
+  const pad = Config.rowsForPage(rows, "trackpad")
+  const keys = (list) => list.map((r) => r.key)
+  // The shared language shows on both pages.
+  assert.ok(keys(mouse).includes("*:DR") && keys(pad).includes("*:DR"))
+  assert.ok(keys(mouse).includes("*:wheel-up"))
+  assert.ok(!keys(pad).some((k) => /wheel|rocker/.test(k)))
+  assert.ok(keys(pad).includes("tp4:tap2") && !keys(mouse).includes("tp4:tap2"))
+  assert.ok(!mouse.some((r) => /^(tp3|tp4|tap)$/.test(r.source)))
+  assert.deepEqual(Config.rowsForPage(rows, "ring"), [])
+  assert.deepEqual(Config.SETTINGS_PAGES, ["general", "mouse", "trackpad", "ring", "changes"])
+})

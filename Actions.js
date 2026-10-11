@@ -333,14 +333,22 @@ function ringDefaultsList() {
 
 // ------------------------------------------------------------------ validation
 
-function isPlainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v) }
+// QML hands arrays that went through a `var` property or a Repeater's modelData over as
+// Qt sequences: indexable with a length, but Array.isArray is false. Key combinations
+// then failed validation and the settings listed them as "—". Lists are taken as either.
+function isList(v) {
+  return Array.isArray(v) || (v !== null && typeof v === "object" && typeof v.length === "number")
+}
+function toArray(v) { return Array.prototype.slice.call(v) }
+
+function isPlainObject(v) { return v !== null && typeof v === "object" && !isList(v) }
 
 // Accepts "CTRL SHIFT", "ctrl+shift", ["CTRL","SHIFT"], "" and returns the canonical
 // list, or null when anything is not on the allow-list.
 function parseModifiers(raw) {
   var parts
   if (raw === undefined || raw === null || raw === "") parts = []
-  else if (Array.isArray(raw)) parts = raw
+  else if (isList(raw)) parts = toArray(raw)
   else if (typeof raw === "string") parts = raw.split(/[\s+]+/)
   else return null
   var seen = {}
@@ -358,7 +366,8 @@ function parseModifiers(raw) {
 function parseCombo(raw) {
   // Canonical { mods, key } is accepted too, so validateAction is idempotent.
   if (isPlainObject(raw)) raw = [raw.mods, raw.key]
-  if (!Array.isArray(raw) || raw.length !== 2) return null
+  if (!isList(raw) || raw.length !== 2) return null
+  raw = toArray(raw)
   var mods = parseModifiers(raw[0])
   if (mods === null) return null
   var key = raw[1]
@@ -392,6 +401,7 @@ function validateAction(raw) {
   case "keys":
     var combos = []
     var source = raw.sequence !== undefined && raw.sequence !== null ? raw.sequence : [raw.combo]
+    if (isList(source)) source = toArray(source)
     if (!Array.isArray(source) || source.length < 1 || source.length > MAX_SEQUENCE)
       return { ok: false, error: "sequence must have 1.." + MAX_SEQUENCE + " combos" }
     for (var i = 0; i < source.length; i++) {

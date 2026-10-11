@@ -444,3 +444,14 @@ test("ring defaults: three rings, slots and keys match their counts", () => {
   const keys = rings.flatMap(r => r.keys).filter(k => k)
   assert.equal(new Set(keys).size, keys.length)
 })
+
+// QML passes arrays from `var` properties and Repeater modelData as sequences that are
+// not real arrays; the settings listed every key combination as "—" because of it.
+test("key actions validate when their lists are array-likes from QML", () => {
+  const seq = (...items) => { const o = { length: items.length }; items.forEach((v, i) => { o[i] = v }); return o }
+  const action = { type: "keys", sequence: seq({ mods: seq("ALT"), key: "Left" }), label: "back" }
+  const v = A.validateAction(action)
+  assert.equal(v.ok, true)
+  assert.deepEqual(v.action.sequence, [{ mods: ["ALT"], key: "Left" }])
+  assert.match(A.actionName(action, "en"), /Alt\+Left/)
+})

@@ -9,7 +9,10 @@ import "Config.js" as Config
 import "Keys.js" as KeyCombo
 import "I18n.js" as I18n
 
-// Settings overlay for More Gestures (mouse only; trackpad modes come with step 4b).
+// Settings overlay for More Gestures, in pages like More Time and More Weather: General
+// (on/off, indicator, menu bar, app launcher, exclusions), Mouse, Trackpad, Ring menu and
+// Update log. Tab / Shift+Tab switch pages. The gesture list shows on the Mouse and the
+// Trackpad page, each with its device's rows (the shared ones on both).
 //
 // Edits a working copy and writes ~/.local/state/omarchy/settings/more-gestures.json only
 // on Save. Service.qml watches that file and applies it live: a new trigger button
@@ -57,11 +60,70 @@ Item {
   readonly property string fontFamily: Style.font.menuFamily
 
   readonly property var rows: Config.listBindings(root.working, root.profile, Actions)
+  // The rows the current page lists (mouse or trackpad; the shared ones on both).
+  readonly property var pageRows: Config.rowsForPage(root.rows, root.page)
+
+  // The open settings page; kept while the shell runs, so reopening returns to it.
+  property string page: "general"
+
+  function showPage(name) {
+    if (Config.SETTINGS_PAGES.indexOf(name) < 0) return
+    root.recordingStep = -1
+    // The editor belongs to the gesture list of the page it was opened on.
+    if (root.editorOpen && !((root.page === "mouse" || root.page === "trackpad") && (name === "mouse" || name === "trackpad")))
+      root.closeEditor()
+    root.page = name
+    scroller.contentY = 0
+    keyCatcher.forceActiveFocus()
+  }
+
+  function stepPage(delta) {
+    var pages = Config.SETTINGS_PAGES
+    var i = pages.indexOf(root.page)
+    root.showPage(pages[(i + delta + pages.length) % pages.length])
+  }
+
+  function scrollBy(dy) {
+    scroller.contentY = Math.max(0, Math.min(scroller.contentHeight - scroller.height, scroller.contentY + dy))
+  }
+
+  // ---------------------------------------------------------- app launcher entry
+  // bin/install-app-entry adds or removes the launcher entry (and the theme hook that
+  // recolors its icon) at once, not on Save: it is a file outside the settings.
+  readonly property string desktopPath: Quickshell.env("HOME") + "/.local/share/applications/more-gestures.desktop"
+  property bool launcherInstalled: false
+
+  function setLauncher(on) {
+    if (launcherProc.running || on === root.launcherInstalled) return
+    root.launcherInstalled = on   // shown at once; the file check confirms or reverts it
+    var script = String(Qt.resolvedUrl("bin/install-app-entry")).replace(/^file:\/\//, "")
+    launcherProc.command = on ? [script] : [script, "--remove"]
+    launcherProc.running = true
+  }
+
+  Process {
+    id: launcherProc
+    onExited: function(code) {
+      if (code !== 0) console.warn("more-gestures: app launcher entry command failed with exit code", code)
+      desktopFile.reload()
+    }
+  }
+
+  FileView {
+    id: desktopFile
+    path: root.desktopPath
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: root.launcherInstalled = true
+    onLoadFailed: root.launcherInstalled = false
+  }
 
   // ------------------------------------------------------------------ lifecycle
 
   function open(payloadJson) {
     exposeProbe.running = true
+    desktopFile.reload()
     stateFile.reload()
     root.working = Config.parse(stateFile.text(), Actions)
     root.profile = "default"
@@ -390,19 +452,33 @@ Item {
         if (root.editorOpen) root.closeEditor(); else root.close()
         event.accepted = true
       }
+      // Tab / Shift+Tab: next / previous page, as in More Time and More Weather. Text
+      // fields keep Tab for themselves while they have the focus.
+      Keys.onTabPressed: function(event) { root.stepPage(1); event.accepted = true }
+      Keys.onBacktabPressed: function(event) { root.stepPage(-1); event.accepted = true }
+      Keys.onReturnPressed: function(event) { event.accepted = root.page === "changes" && changesPage.activate() }
+      Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_PageDown || event.key === Qt.Key_PageUp) {
+          root.scrollBy((event.key === Qt.Key_PageDown ? 1 : -1) * scroller.height * 0.9)
+          event.accepted = true
+        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+          root.scrollBy((event.key === Qt.Key_Down ? 1 : -1) * Style.space(48))
+          event.accepted = true
+        }
+      }
 
       BorderSurface {
         id: card
+        // A fixed height, so switching pages does not make the card jump.
         width: Math.min(Style.space(820), panel.width - Style.gapsOut * 2)
-        height: Math.min(content.implicitHeight + card.contentTopInset + card.contentBottomInset,
-          panel.height - Style.gapsOut * 2)
+        height: Math.min(Style.space(860), panel.height - Style.gapsOut * 2)
         radius: Style.cornerRadius
         anchors.centerIn: parent
         color: root.background
         borderSpec: root.borderSpec
         padding: Style.spacing.panelPadding
 
-        MouseArea { anchors.fill: parent; onClicked: {} }
+        MouseArea { anchors.fill: parent; onClicked: keyCatcher.forceActiveFocus() }
 
         // Takes every key while recording a combination, so it cannot also act on the
         // controls underneath (Esc cancels, modifiers alone wait for the real key).
@@ -428,13 +504,121 @@ Item {
           }
         }
 
-        Flickable {
-          id: scroller
-          anchors.fill: parent
+        // ------------------------------------------------- header and pages
+        Column {
+          id: top
+          anchors.top: parent.top
+          anchors.left: parent.left
+          anchors.right: parent.right
           anchors.topMargin: card.contentTopInset
           anchors.leftMargin: card.contentLeftInset
           anchors.rightMargin: card.contentRightInset
-          anchors.bottomMargin: card.contentBottomInset
+          spacing: Style.space(12)
+
+          Item {
+            width: parent.width
+            height: Math.max(Style.space(48), titleRow.implicitHeight)
+
+            Row {
+              id: titleRow
+              anchors.left: parent.left
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.spacing.lg
+              MouseGlyph {
+                width: Style.space(36)
+                height: width
+                color: root.foreground
+                anchors.verticalCenter: parent.verticalCenter
+              }
+              Column {
+                spacing: Style.space(2)
+                anchors.verticalCenter: parent.verticalCenter
+                Text {
+                  text: root.tr("title")
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.title
+                  font.bold: true
+                }
+                Hint { text: root.tr("subtitle_" + root.page) }
+              }
+            }
+
+            SmallButton {
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              bordered: false
+              text: "✕"
+              tooltipText: root.tr("cancel")
+              onClicked: root.close()
+            }
+          }
+
+          // Pages, styled like the tabs of More Time and More Weather: upper case, the
+          // picked one and the hovered one on the accent's hover fill.
+          Row {
+            id: pageStrip
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Style.space(5)
+            readonly property real tabWidth: Math.min(Style.space(140),
+              (top.width - spacing * (Config.SETTINGS_PAGES.length - 1)) / Config.SETTINGS_PAGES.length)
+
+            Repeater {
+              model: Config.SETTINGS_PAGES
+              delegate: Rectangle {
+                required property string modelData
+                readonly property bool selected: root.page === modelData
+                width: Math.max(pageStrip.tabWidth, pageLabel.implicitWidth + Style.space(16))
+                height: Style.space(28)
+                radius: Style.cornerRadius
+                color: selected || pageMouse.containsMouse ? Style.hoverFillFor(root.foreground, Color.accent) : "transparent"
+
+                Text {
+                  id: pageLabel
+                  anchors.centerIn: parent
+                  text: root.tr("page_" + parent.modelData).toLocaleUpperCase()
+                  color: parent.selected ? Style.hoverStateColor(root.foreground, Color.accent) : root.muted
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: parent.selected
+                  font.letterSpacing: 1
+                }
+
+                MouseArea {
+                  id: pageMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.showPage(parent.modelData)
+                }
+              }
+            }
+          }
+
+          Hint {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: root.tr("pagesKeysHint")
+          }
+
+          Rectangle {
+            width: parent.width
+            height: Style.spacing.hairline
+            color: root.foreground
+            opacity: 0.12
+          }
+        }
+
+        Flickable {
+          id: scroller
+          anchors.top: top.bottom
+          anchors.bottom: footer.top
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.topMargin: Style.space(12)
+          anchors.bottomMargin: Style.space(12)
+          anchors.leftMargin: card.contentLeftInset
+          anchors.rightMargin: card.contentRightInset
           contentHeight: content.implicitHeight
           clip: true
           boundsBehavior: Flickable.StopAtBounds
@@ -444,400 +628,470 @@ Item {
             width: scroller.width
             spacing: Style.spacing.huge
 
-            // ------------------------------------------------------- header
-            Row {
-              spacing: Style.spacing.lg
-              MouseGlyph {
-                width: Style.space(36)
-                height: width
-                color: root.foreground
-                anchors.verticalCenter: parent.verticalCenter
-              }
+            Column {
+              width: parent.width
+              spacing: Style.spacing.huge
+              visible: root.page === "general"
+
               Column {
-                spacing: Style.spacing.sm
-                anchors.verticalCenter: parent.verticalCenter
-                Text {
-                  text: root.tr("title")
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.title
-                  font.bold: true
+                width: parent.width
+                spacing: Style.spacing.md
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("enabled")
+                  description: root.tr("enabledHint")
+                  checked: root.working.enabled
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("enabled", !root.working.enabled)
                 }
-                Hint { text: root.tr("subtitle") }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("feedback"); foreground: root.foreground; fontFamily: root.fontFamily }
+
+                Label { text: root.tr("indicator") }
+                ButtonGroup {
+                  value: root.working.indicator
+                  options: [
+                    { value: "off", label: root.tr("indicatorOff") },
+                    { value: "minimal", label: root.tr("indicatorMinimal") },
+                    { value: "full", label: root.tr("indicatorFull") }
+                  ]
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onChanged: function(v) { root.set("indicator", v) }
+                }
+                Toggle {
+                  width: parent.width
+                  label: root.tr("animations")
+                  description: root.tr("animationsHint")
+                  checked: root.working.animations
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("animations", !root.working.animations)
+                }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("menubar"); foreground: root.foreground; fontFamily: root.fontFamily }
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("barShow")
+                  description: root.tr("barShowHint")
+                  checked: root.working.bar.show
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setBar("show", !root.working.bar.show)
+                }
+
+                Repeater {
+                  // A new object per change recreates the rows, so the Dropdowns show the
+                  // stored value again after a reload.
+                  model: root.working.bar.show ? [{ key: "left" }, { key: "middle" }, { key: "right" }] : []
+                  delegate: Row {
+                    required property var modelData
+                    spacing: Style.spacing.md
+                    Text {
+                      width: Style.space(150)
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: root.tr("bar_" + modelData.key)
+                      color: root.muted
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+                    Dropdown {
+                      width: Style.space(260)
+                      showLabel: false
+                      fontFamily: root.fontFamily
+                      options: Config.BAR_ACTIONS.map(function(a) { return { value: a, label: root.tr("barAction_" + a) } })
+                      value: root.working.bar[modelData.key]
+                      onChanged: function(v) { root.setBar(modelData.key, v) }
+                    }
+                  }
+                }
+
+                Toggle {
+                  width: parent.width
+                  visible: root.working.bar.show
+                  label: root.tr("barTooltip")
+                  checked: root.working.bar.tooltip
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setBar("tooltip", !root.working.bar.tooltip)
+                }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("app"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Toggle {
+                  width: parent.width
+                  label: root.tr("launcherEntry")
+                  description: root.tr("launcherEntryHint")
+                  checked: root.launcherInstalled
+                  enabled: !launcherProc.running
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setLauncher(!root.launcherInstalled)
+                }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("exclusions"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Hint { width: parent.width; text: root.tr("exclusionsHint") }
+
+                Flow {
+                  width: parent.width
+                  spacing: Style.spacing.sm
+                  Repeater {
+                    model: root.working.exclude
+                    delegate: SmallButton {
+                      required property string modelData
+                      required property int index
+                      text: modelData + "  ×"
+                      onClicked: root.set("exclude", Config.removeExclude(root.working.exclude, index))
+                    }
+                  }
+                }
+
+                Row {
+                  spacing: Style.spacing.md
+                  TextField {
+                    id: excludeField
+                    width: Style.space(260)
+                    placeholderText: root.tr("excludePlaceholder")
+                    foreground: root.foreground
+                    accent: root.accent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    onAccepted: addExcludeButton.clicked()
+                  }
+                  SmallButton {
+                    id: addExcludeButton
+                    text: root.tr("excludeAdd")
+                    onClicked: {
+                      root.set("exclude", Config.addExclude(root.working.exclude, excludeField.text))
+                      excludeField.text = ""
+                    }
+                  }
+                  SmallButton {
+                    text: root.tr("excludeDefaults")
+                    onClicked: root.set("exclude", Actions.DEFAULT_EXCLUDES.slice())
+                  }
+                }
               }
             }
 
-            // ------------------------------------------------------ general
             Column {
               width: parent.width
-              spacing: Style.spacing.md
+              spacing: Style.spacing.huge
+              visible: root.page === "mouse"
 
-              PanelSectionHeader { text: root.tr("general"); foreground: root.foreground; fontFamily: root.fontFamily }
-
-              Toggle {
+              Column {
                 width: parent.width
-                label: root.tr("enabled")
-                description: root.tr("enabledHint")
-                checked: root.working.enabled
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("enabled", !root.working.enabled)
-              }
-
-              Label { text: root.tr("button") }
-              ButtonGroup {
-                value: root.working.button
-                options: [
-                  { value: "right", label: root.tr("buttonRight") },
-                  { value: "middle", label: root.tr("buttonMiddle") },
-                  { value: "side", label: root.tr("buttonSide") },
-                  { value: "extra", label: root.tr("buttonExtra") }
-                ]
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onChanged: function(v) { root.set("button", v) }
-              }
-              Hint { width: parent.width; text: root.tr("buttonHint") }
-
-              Row {
-                spacing: Style.spacing.huge
-                NumberField {
-                  id: thresholdField
-                  label: root.tr("threshold") + " (" + root.tr("thresholdUnit") + ")"
-                  from: Config.LIMITS.threshold.min
-                  to: 500
-                  value: root.working.threshold
-                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                  onModified: function(v) { root.set("threshold", v) }
-                }
-                NumberField {
-                  id: holdField
-                  label: root.tr("holdMs")
-                  from: Config.LIMITS.holdMs.min
-                  to: 2000
-                  stepSize: 50
-                  value: root.working.holdMs
-                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                  onModified: function(v) { root.set("holdMs", v) }
-                }
-              }
-              Hint { width: parent.width; text: root.tr("holdHint") }
-
-              Toggle {
-                width: parent.width
-                label: root.tr("rocker")
-                description: root.tr("rockerHint")
-                checked: root.working.rocker
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("rocker", !root.working.rocker)
-              }
-              Toggle {
-                width: parent.width
-                label: root.tr("ring")
-                description: root.tr("ringHint")
-                checked: root.working.ring.enabled
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.setRing("enabled", !root.working.ring.enabled)
-              }
-              NumberField {
-                id: doubleField
-                visible: root.working.ring.enabled
-                label: root.tr("doubleMs")
-                from: Config.LIMITS.doubleMs.min
-                to: Config.LIMITS.doubleMs.max
-                stepSize: 25
-                value: root.working.ring.doubleMs
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onModified: function(v) { root.setRing("doubleMs", v) }
-              }
-
-              // Opening the ring from the keyboard works without the mouse way in.
-              Row {
                 spacing: Style.spacing.md
-                Text {
-                  width: Style.space(220)
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: root.tr("hotkey")
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
+
+                Label { text: root.tr("button") }
+                ButtonGroup {
+                  value: root.working.button
+                  options: [
+                    { value: "right", label: root.tr("buttonRight") },
+                    { value: "middle", label: root.tr("buttonMiddle") },
+                    { value: "side", label: root.tr("buttonSide") },
+                    { value: "extra", label: root.tr("buttonExtra") }
+                  ]
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onChanged: function(v) { root.set("button", v) }
                 }
-                TextField {
-                  id: hotkeyField
-                  width: Style.space(220)
-                  text: Config.hotkeyText(root.working.ring.hotkey)
-                  placeholderText: root.tr("hotkeyNone")
-                  foreground: root.foreground
-                  accent: root.accent
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  onEditingFinished: root.setHotkey(text)
+                Hint { width: parent.width; text: root.tr("buttonHint") }
+
+                Row {
+                  spacing: Style.spacing.huge
+                  NumberField {
+                    id: thresholdField
+                    label: root.tr("threshold") + " (" + root.tr("thresholdUnit") + ")"
+                    from: Config.LIMITS.threshold.min
+                    to: 500
+                    value: root.working.threshold
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onModified: function(v) { root.set("threshold", v) }
+                  }
+                  NumberField {
+                    id: holdField
+                    label: root.tr("holdMs")
+                    from: Config.LIMITS.holdMs.min
+                    to: 2000
+                    stepSize: 50
+                    value: root.working.holdMs
+                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                    onModified: function(v) { root.set("holdMs", v) }
+                  }
+                }
+                Hint { width: parent.width; text: root.tr("holdHint") }
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("rocker")
+                  description: root.tr("rockerHint")
+                  checked: root.working.rocker
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("rocker", !root.working.rocker)
+                }
+                Toggle {
+                  width: parent.width
+                  label: root.tr("wheel")
+                  description: root.tr("wheelHint")
+                  checked: root.working.wheel
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("wheel", !root.working.wheel)
                 }
               }
-              Hint { width: parent.width; text: root.hotkeyError !== "" ? root.hotkeyError : root.tr("hotkeyHint") }
+            }
 
-              // Three rings: what each slot does, and its key.
-              Repeater {
-                model: root.working.ring.rings
-                delegate: Column {
-                  id: ringBlock
-                  required property var modelData
-                  required property int index
-                  width: content.width
-                  spacing: Style.spacing.sm
+            Column {
+              width: parent.width
+              spacing: Style.spacing.huge
+              visible: root.page === "trackpad"
 
-                  Toggle {
-                    width: parent.width
-                    visible: ringBlock.index > 0
-                    label: root.tr("ringN").replace("%1", ringBlock.index + 1)
-                    description: root.tr(ringBlock.index === 1 ? "ring2Hint" : "ring3Hint")
-                    checked: ringBlock.modelData.enabled
-                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                    onClicked: root.editRing(ringBlock.index, function(r) { r.enabled = !r.enabled })
-                  }
-                  Label {
-                    visible: ringBlock.index === 0
-                    text: root.tr("ringN").replace("%1", 1) + " · " + root.tr("ringSlots")
-                  }
-                  Column {
-                    width: parent.width
-                    visible: ringBlock.modelData.enabled
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("trackpadEnabled")
+                  description: root.tr("trackpadHint")
+                  checked: root.working.touchpad.enabled
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setTouchpad("enabled", "", !root.working.touchpad.enabled)
+                }
+
+                Repeater {
+                  model: Config.FINGERS
+                  delegate: Column {
+                    required property string modelData
+                    width: content.width
                     spacing: Style.spacing.sm
-                    ButtonGroup {
-                      value: String(ringBlock.modelData.count)
-                      options: Actions.RING_COUNTS[ringBlock.index].map(function(n) {
-                        return { value: String(n), label: n + " " + root.tr("ringButtons") }
-                      })
+                    visible: root.working.touchpad.enabled
+                    Toggle {
+                      width: parent.width
+                      label: root.tr("fingers_" + modelData)
+                      description: root.tr("fingersHint")
+                      checked: root.working.touchpad.fingers[modelData]
                       foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                      onChanged: function(v) { root.setRingCount(ringBlock.index, Number(v)) }
+                      onClicked: root.setTouchpad("fingers", modelData, !root.working.touchpad.fingers[modelData])
                     }
-                    Grid {
-                      columns: 2
-                      columnSpacing: Style.spacing.huge
-                      rowSpacing: Style.spacing.sm
-                      Repeater {
-                        // A new array per change recreates the rows, so each Dropdown starts
-                        // from the stored value again (they drop their binding once used).
-                        model: ringBlock.modelData.slots
-                        delegate: Row {
-                          required property var modelData
-                          required property int index
-                          spacing: Style.spacing.md
-                          Text {
-                            width: Style.space(70)
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.slotName(ringBlock.index, index, ringBlock.modelData.count)
-                            color: root.muted
-                            font.family: root.fontFamily
-                            font.pixelSize: Style.font.caption
-                            font.bold: true
-                          }
-                          Dropdown {
-                            width: Style.space(220)
-                            showLabel: false
-                            fontFamily: root.fontFamily
-                            options: root.slotOptions(modelData)
-                            value: root.slotValue(modelData)
-                            onChanged: function(v) { root.setSlot(ringBlock.index, index, v) }
-                          }
-                          TextField {
-                            width: Style.space(44)
-                            text: ringBlock.modelData.keys[index] || ""
-                            placeholderText: "–"
-                            maximumLength: 1
-                            horizontalAlignment: Text.AlignHCenter
-                            foreground: root.foreground
-                            accent: root.accent
-                            font.family: root.fontFamily
-                            font.pixelSize: Style.font.body
-                            onEditingFinished: root.setRingKey(ringBlock.index, index, text)
+                    Toggle {
+                      width: parent.width
+                      label: root.tr("swipe_" + modelData)
+                      description: root.tr("swipeHint")
+                      checked: root.working.touchpad.swipe[modelData]
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onClicked: root.setTouchpad("swipe", modelData, !root.working.touchpad.swipe[modelData])
+                    }
+                  }
+                }
+
+                NumberField {
+                  id: mmField
+                  visible: root.working.touchpad.enabled
+                  label: root.tr("thresholdMm")
+                  from: Config.LIMITS.thresholdMm.min
+                  to: Config.LIMITS.thresholdMm.max
+                  value: root.working.touchpad.thresholdMm
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onModified: function(v) { root.setTouchpad("thresholdMm", "", v) }
+                }
+
+                Hint { width: parent.width; visible: root.working.touchpad.enabled; text: root.tr("swipeFileHint") }
+                Hint {
+                  width: parent.width
+                  visible: !root.exposeInstalled
+                  color: root.accent
+                  text: root.tr("exposeRecommend")
+                }
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("taps")
+                  description: root.tr("tapsHint")
+                  checked: root.working.taps.enabled
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("taps", { enabled: !root.working.taps.enabled, cornerMm: root.working.taps.cornerMm })
+                }
+                NumberField {
+                  id: cornerField
+                  visible: root.working.taps.enabled
+                  label: root.tr("cornerMm")
+                  from: Config.LIMITS.cornerMm.min
+                  to: Config.LIMITS.cornerMm.max
+                  value: root.working.taps.cornerMm
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onModified: function(v) { root.set("taps", { enabled: root.working.taps.enabled, cornerMm: v }) }
+                }
+              }
+            }
+
+            Column {
+              width: parent.width
+              spacing: Style.spacing.huge
+              visible: root.page === "ring"
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                Toggle {
+                  width: parent.width
+                  label: root.tr("ring")
+                  description: root.tr("ringHint")
+                  checked: root.working.ring.enabled
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.setRing("enabled", !root.working.ring.enabled)
+                }
+                NumberField {
+                  id: doubleField
+                  visible: root.working.ring.enabled
+                  label: root.tr("doubleMs")
+                  from: Config.LIMITS.doubleMs.min
+                  to: Config.LIMITS.doubleMs.max
+                  stepSize: 25
+                  value: root.working.ring.doubleMs
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onModified: function(v) { root.setRing("doubleMs", v) }
+                }
+
+                // Opening the ring from the keyboard works without the mouse way in.
+                Row {
+                  spacing: Style.spacing.md
+                  Text {
+                    width: Style.space(220)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.tr("hotkey")
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+                  TextField {
+                    id: hotkeyField
+                    width: Style.space(220)
+                    text: Config.hotkeyText(root.working.ring.hotkey)
+                    placeholderText: root.tr("hotkeyNone")
+                    foreground: root.foreground
+                    accent: root.accent
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    onEditingFinished: root.setHotkey(text)
+                  }
+                }
+                Hint { width: parent.width; text: root.hotkeyError !== "" ? root.hotkeyError : root.tr("hotkeyHint") }
+
+                // Three rings: what each slot does, and its key.
+                Repeater {
+                  model: root.working.ring.rings
+                  delegate: Column {
+                    id: ringBlock
+                    required property var modelData
+                    required property int index
+                    width: content.width
+                    spacing: Style.spacing.sm
+
+                    Toggle {
+                      width: parent.width
+                      visible: ringBlock.index > 0
+                      label: root.tr("ringN").replace("%1", ringBlock.index + 1)
+                      description: root.tr(ringBlock.index === 1 ? "ring2Hint" : "ring3Hint")
+                      checked: ringBlock.modelData.enabled
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onClicked: root.editRing(ringBlock.index, function(r) { r.enabled = !r.enabled })
+                    }
+                    Label {
+                      visible: ringBlock.index === 0
+                      text: root.tr("ringN").replace("%1", 1) + " · " + root.tr("ringSlots")
+                    }
+                    Column {
+                      width: parent.width
+                      visible: ringBlock.modelData.enabled
+                      spacing: Style.spacing.sm
+                      ButtonGroup {
+                        value: String(ringBlock.modelData.count)
+                        options: Actions.RING_COUNTS[ringBlock.index].map(function(n) {
+                          return { value: String(n), label: n + " " + root.tr("ringButtons") }
+                        })
+                        foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                        onChanged: function(v) { root.setRingCount(ringBlock.index, Number(v)) }
+                      }
+                      Grid {
+                        columns: 2
+                        columnSpacing: Style.spacing.huge
+                        rowSpacing: Style.spacing.sm
+                        Repeater {
+                          // A new array per change recreates the rows, so each Dropdown starts
+                          // from the stored value again (they drop their binding once used).
+                          model: ringBlock.modelData.slots
+                          delegate: Row {
+                            required property var modelData
+                            required property int index
+                            spacing: Style.spacing.md
+                            Text {
+                              width: Style.space(70)
+                              anchors.verticalCenter: parent.verticalCenter
+                              text: root.slotName(ringBlock.index, index, ringBlock.modelData.count)
+                              color: root.muted
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
+                            }
+                            Dropdown {
+                              width: Style.space(220)
+                              showLabel: false
+                              fontFamily: root.fontFamily
+                              options: root.slotOptions(modelData)
+                              value: root.slotValue(modelData)
+                              onChanged: function(v) { root.setSlot(ringBlock.index, index, v) }
+                            }
+                            TextField {
+                              width: Style.space(44)
+                              text: ringBlock.modelData.keys[index] || ""
+                              placeholderText: "–"
+                              maximumLength: 1
+                              horizontalAlignment: Text.AlignHCenter
+                              foreground: root.foreground
+                              accent: root.accent
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.body
+                              onEditingFinished: root.setRingKey(ringBlock.index, index, text)
+                            }
                           }
                         }
                       }
+                      SmallButton {
+                        text: root.tr("ringReset")
+                        onClicked: root.resetRing(ringBlock.index)
+                      }
                     }
-                    SmallButton {
-                      text: root.tr("ringReset")
-                      onClicked: root.resetRing(ringBlock.index)
-                    }
                   }
                 }
-              }
-              Hint { width: parent.width; text: root.tr("ringKeysHint") }
-
-              Toggle {
-                width: parent.width
-                label: root.tr("wheel")
-                description: root.tr("wheelHint")
-                checked: root.working.wheel
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("wheel", !root.working.wheel)
+                Hint { width: parent.width; text: root.tr("ringKeysHint") }
               }
             }
 
-            // ---------------------------------------------------- menu bar
+            // Gestures: one list for both device pages (Config.rowsForPage picks the rows),
+            // so the editor and its ids exist once.
             Column {
               width: parent.width
               spacing: Style.spacing.md
-
-              PanelSectionHeader { text: root.tr("menubar"); foreground: root.foreground; fontFamily: root.fontFamily }
-
-              Toggle {
-                width: parent.width
-                label: root.tr("barShow")
-                description: root.tr("barShowHint")
-                checked: root.working.bar.show
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.setBar("show", !root.working.bar.show)
-              }
-
-              Repeater {
-                // A new object per change recreates the rows, so the Dropdowns show the
-                // stored value again after a reload.
-                model: root.working.bar.show ? [{ key: "left" }, { key: "middle" }, { key: "right" }] : []
-                delegate: Row {
-                  required property var modelData
-                  spacing: Style.spacing.md
-                  Text {
-                    width: Style.space(150)
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.tr("bar_" + modelData.key)
-                    color: root.muted
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
-                  Dropdown {
-                    width: Style.space(260)
-                    showLabel: false
-                    fontFamily: root.fontFamily
-                    options: Config.BAR_ACTIONS.map(function(a) { return { value: a, label: root.tr("barAction_" + a) } })
-                    value: root.working.bar[modelData.key]
-                    onChanged: function(v) { root.setBar(modelData.key, v) }
-                  }
-                }
-              }
-
-              Toggle {
-                width: parent.width
-                visible: root.working.bar.show
-                label: root.tr("barTooltip")
-                checked: root.working.bar.tooltip
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.setBar("tooltip", !root.working.bar.tooltip)
-              }
-            }
-
-            // ----------------------------------------------------- feedback
-            Column {
-              width: parent.width
-              spacing: Style.spacing.md
-
-              PanelSectionHeader { text: root.tr("feedback"); foreground: root.foreground; fontFamily: root.fontFamily }
-
-              Label { text: root.tr("indicator") }
-              ButtonGroup {
-                value: root.working.indicator
-                options: [
-                  { value: "off", label: root.tr("indicatorOff") },
-                  { value: "minimal", label: root.tr("indicatorMinimal") },
-                  { value: "full", label: root.tr("indicatorFull") }
-                ]
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onChanged: function(v) { root.set("indicator", v) }
-              }
-              Toggle {
-                width: parent.width
-                label: root.tr("animations")
-                description: root.tr("animationsHint")
-                checked: root.working.animations
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("animations", !root.working.animations)
-              }
-            }
-
-            // ----------------------------------------------------- trackpad
-            Column {
-              width: parent.width
-              spacing: Style.spacing.md
-
-              PanelSectionHeader { text: root.tr("trackpad"); foreground: root.foreground; fontFamily: root.fontFamily }
-
-              Toggle {
-                width: parent.width
-                label: root.tr("trackpadEnabled")
-                description: root.tr("trackpadHint")
-                checked: root.working.touchpad.enabled
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.setTouchpad("enabled", "", !root.working.touchpad.enabled)
-              }
-
-              Repeater {
-                model: Config.FINGERS
-                delegate: Column {
-                  required property string modelData
-                  width: content.width
-                  spacing: Style.spacing.sm
-                  visible: root.working.touchpad.enabled
-                  Toggle {
-                    width: parent.width
-                    label: root.tr("fingers_" + modelData)
-                    description: root.tr("fingersHint")
-                    checked: root.working.touchpad.fingers[modelData]
-                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                    onClicked: root.setTouchpad("fingers", modelData, !root.working.touchpad.fingers[modelData])
-                  }
-                  Toggle {
-                    width: parent.width
-                    label: root.tr("swipe_" + modelData)
-                    description: root.tr("swipeHint")
-                    checked: root.working.touchpad.swipe[modelData]
-                    foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                    onClicked: root.setTouchpad("swipe", modelData, !root.working.touchpad.swipe[modelData])
-                  }
-                }
-              }
-
-              NumberField {
-                id: mmField
-                visible: root.working.touchpad.enabled
-                label: root.tr("thresholdMm")
-                from: Config.LIMITS.thresholdMm.min
-                to: Config.LIMITS.thresholdMm.max
-                value: root.working.touchpad.thresholdMm
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onModified: function(v) { root.setTouchpad("thresholdMm", "", v) }
-              }
-
-              Hint { width: parent.width; visible: root.working.touchpad.enabled; text: root.tr("swipeFileHint") }
-              Hint {
-                width: parent.width
-                visible: !root.exposeInstalled
-                color: root.accent
-                text: root.tr("exposeRecommend")
-              }
-
-              Toggle {
-                width: parent.width
-                label: root.tr("taps")
-                description: root.tr("tapsHint")
-                checked: root.working.taps.enabled
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onClicked: root.set("taps", { enabled: !root.working.taps.enabled, cornerMm: root.working.taps.cornerMm })
-              }
-              NumberField {
-                id: cornerField
-                visible: root.working.taps.enabled
-                label: root.tr("cornerMm")
-                from: Config.LIMITS.cornerMm.min
-                to: Config.LIMITS.cornerMm.max
-                value: root.working.taps.cornerMm
-                foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                onModified: function(v) { root.set("taps", { enabled: root.working.taps.enabled, cornerMm: v }) }
-              }
-            }
-
-            // ----------------------------------------------------- bindings
-            Column {
-              width: parent.width
-              spacing: Style.spacing.md
+              visible: root.page === "mouse" || root.page === "trackpad"
 
               PanelSectionHeader { text: root.tr("bindings"); foreground: root.foreground; fontFamily: root.fontFamily }
 
@@ -850,10 +1104,10 @@ Item {
               Hint { width: parent.width; text: root.tr("languageHint") }
               Hint { width: parent.width; text: root.tr("profileHint") }
 
-              Hint { visible: root.rows.length === 0; text: root.tr("noBindings") }
+              Hint { visible: root.pageRows.length === 0; text: root.tr("noBindings") }
 
               Repeater {
-                model: root.rows
+                model: root.pageRows
                 delegate: Rectangle {
                   required property var modelData
                   width: content.width
@@ -1158,76 +1412,35 @@ Item {
               }
             }
 
-            // --------------------------------------------------- exclusions
-            Column {
-              width: parent.width
-              spacing: Style.spacing.md
+            ChangesPage { id: changesPage; width: parent.width; visible: root.page === "changes"; page: root }
+          }
+        }
 
-              PanelSectionHeader { text: root.tr("exclusions"); foreground: root.foreground; fontFamily: root.fontFamily }
-              Hint { width: parent.width; text: root.tr("exclusionsHint") }
+        // ------------------------------------------------------------ footer
+        Item {
+          id: footer
+          anchors.bottom: parent.bottom
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottomMargin: card.contentBottomInset
+          anchors.leftMargin: card.contentLeftInset
+          anchors.rightMargin: card.contentRightInset
+          height: Style.spacing.controlHeight + Style.spacing.md
 
-              Flow {
-                width: parent.width
-                spacing: Style.spacing.sm
-                Repeater {
-                  model: root.working.exclude
-                  delegate: SmallButton {
-                    required property string modelData
-                    required property int index
-                    text: modelData + "  ×"
-                    onClicked: root.set("exclude", Config.removeExclude(root.working.exclude, index))
-                  }
-                }
-              }
-
-              Row {
-                spacing: Style.spacing.md
-                TextField {
-                  id: excludeField
-                  width: Style.space(260)
-                  placeholderText: root.tr("excludePlaceholder")
-                  foreground: root.foreground
-                  accent: root.accent
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  onAccepted: addExcludeButton.clicked()
-                }
-                SmallButton {
-                  id: addExcludeButton
-                  text: root.tr("excludeAdd")
-                  onClicked: {
-                    root.set("exclude", Config.addExclude(root.working.exclude, excludeField.text))
-                    excludeField.text = ""
-                  }
-                }
-                SmallButton {
-                  text: root.tr("excludeDefaults")
-                  onClicked: root.set("exclude", Actions.DEFAULT_EXCLUDES.slice())
-                }
-              }
-            }
-
-            // ------------------------------------------------------- footer
-            Item {
-              width: parent.width
-              height: Style.spacing.controlHeight + Style.spacing.md
-
-              Text {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.statePath.replace(Quickshell.env("HOME"), "~")
-                color: Qt.darker(root.foreground, 2.0)
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
-              }
-              Row {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Style.spacing.md
-                SmallButton { text: root.tr("cancel"); onClicked: root.close() }
-                SmallButton { text: root.tr("save"); selected: true; onClicked: root.save() }
-              }
-            }
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.statePath.replace(Quickshell.env("HOME"), "~")
+            color: Qt.darker(root.foreground, 2.0)
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+          Row {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.spacing.md
+            SmallButton { text: root.tr("cancel"); onClicked: root.close() }
+            SmallButton { text: root.tr("save"); selected: true; onClicked: root.save() }
           }
         }
       }

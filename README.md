@@ -3,23 +3,37 @@
 Opera-style mouse gestures for Omarchy (Hyprland + Quickshell shell): hold the right
 button, drag a line, release. See `PLAN.md` for the full plan.
 
-**Status:** step 4 of 6 – daemon, direction recognition, plugin service, actions with the
-default bindings, and the gesture overlay (real line + indicator). No settings UI yet
-(`Settings.qml` is a placeholder; the `indicator` and `animations` options are edited in the
-state file for now).
+Also: three- and four-finger trackpad gestures, corner taps, a ring menu with up to three
+rings, a menu bar icon and a settings window.
 
-*Deutsch:* Opera-artige Mausgesten für Omarchy. Stand: Schritt 4 von 6, Daemon, Erkennung,
-Plugin-Service, Aktionen mit Standardbelegung und Overlay (echte Linie + Indikator);
-Einstellungsoberfläche fehlt noch (`Settings.qml` ist ein Platzhalter, `indicator` und
-`animations` stehen vorerst nur in der Zustandsdatei).
+*Deutsch:* Opera-artige Mausgesten für Omarchy, dazu Trackpad-Gesten mit drei und vier
+Fingern, Ecken-Tippen, ein Kreismenü mit bis zu drei Ringen, ein Menüleisten-Symbol und
+ein Einstellungsfenster.
 
 ## Settings (`Settings.qml`)
 
 Open with `omarchy-shell shell toggle more-gestures`, `qs ipc -p /usr/share/omarchy/shell
-call more-gestures settings`, or the launcher entry "More Gestures" (install it once with
-`bin/install-app-entry`; `bin/install-app-entry --remove` takes it away). Changes are
-written to `~/.local/state/omarchy/settings/more-gestures.json` on Save and applied live:
-a new trigger button restarts the daemon, everything else applies at once.
+call more-gestures settings`, a left click on the menu bar icon, or the launcher entry
+"More Gestures" (General › "Show in app launcher", or `bin/install-app-entry`; `--remove`
+takes it away). Changes are written to `~/.local/state/omarchy/settings/more-gestures.json`
+on Save and applied live: a new trigger button restarts the daemon, everything else
+applies at once.
+
+Pages, laid out like the settings of More Time and More Weather (Tab / Shift+Tab switch
+them, Esc closes, PageUp/PageDown and the arrows scroll):
+
+| Page | What is there |
+|---|---|
+| General | gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions |
+| Mouse | trigger button, threshold, hold time, rocker, wheel, and the mouse gestures |
+| Trackpad | 3 / 4 fingers, Hyprland swipe, segment length, corner taps, and the trackpad gestures |
+| Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
+| Update log | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
+
+The gesture list shows on the Mouse and on the Trackpad page: shared shapes (device
+"All") on both, since mouse and three fingers speak one gesture language, plus the rows
+only that device has (wheel and rocker on Mouse; 3/4 fingers, pinches and corner taps
+on Trackpad).
 
 Per profile, the list shows only entries that differ from the defaults plus the defaults
 of that profile. "Remove" on a built-in gesture stores `none` for it (switched off),
@@ -297,7 +311,9 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
 - `lib/gesture_core.py` – decision logic (state machine, direction recognizer, command
   parsing, device classification), no evdev dependency.
 - `bin/gesture-daemon` – thin evdev/uinput wrapper.
-- `manifest.json`, `Service.qml`, `Settings.qml` (placeholder) – the Omarchy plugin.
+- `manifest.json`, `Service.qml`, `Settings.qml`, `BarWidget.qml` – the Omarchy plugin.
+- `ChangesPage.qml`, `Changelog.js` – Settings › Update log; `Changelog.js` is the parser
+  More Time and More Weather share, kept byte-identical (`tests/changelog.test.mjs`).
 - `GestureOverlay.qml` – line and indicator, instantiated by `Service.qml`.
 - `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building,
   indicator helpers (arrows, preview name, cursor position parsing).
@@ -308,4 +324,5 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
 ```
 python -m unittest discover -s tests
 mise x node@24.21.0 -- node --test tests/*.test.mjs
+tests/qml-syntax.sh
 ```

@@ -389,6 +389,20 @@ function listBindings(config, profile, actions) {
   })
 }
 
+// The settings pages, in the order of the tab strip.
+var SETTINGS_PAGES = ["general", "mouse", "trackpad", "ring", "changes"]
+
+// The gesture rows a settings page lists. Shared "*" rows show on both device pages:
+// the mouse and three fingers speak one gesture language, so editing one edits both.
+// The mouse page leaves out trackpad-only rows, the trackpad page wheel and rocker.
+function rowsForPage(rows, page) {
+  return rows.filter(function (r) {
+    if (page === "mouse") return r.source === "*" || r.source === "mouse"
+    if (page === "trackpad") return r.source !== "mouse" && !/^(wheel|rocker)-/.test(r.gesture)
+    return false
+  })
+}
+
 // Returns { ok: true, config } with the action stored for profile/key, or { ok: false, error }.
 // An action identical to the built-in one drops the override, so the file stays a diff.
 function setBinding(config, profile, key, action, actions) {
@@ -439,5 +453,5 @@ if (typeof module !== "undefined") module.exports = {
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
-  removeExclude: removeExclude
+  removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage
 }

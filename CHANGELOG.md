@@ -14,6 +14,12 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- Settings in pages like More Time and More Weather: General, Mouse, Trackpad, Ring menu
+  and Update log, with a tab strip, Tab / Shift+Tab to switch, a fixed header and footer
+  (Save stays in view) and a page subtitle. The gesture list sits on the Mouse and the
+  Trackpad page, each showing the shared shapes and its own device's rows.
+- Settings › Update log: this change log, read from the plugin folder, newest first.
+- General › "Show in app launcher" adds or removes the launcher entry at once.
 - Rings 2 and 3 in the ring menu, each switched on in the settings, with 8/12/16/24
   slots (ring 1: 8/12/16). Distance picks the ring, direction the slot; ring 2 is turned
   by half a step and holds window and program actions by default, ring 3 starts empty.
@@ -24,6 +30,11 @@
   bound through the generated Hyprland file.
 - Actions "App launcher", "New terminal" and "Files" for rings and gestures.
 - Settings: gesture language hint, "All gestures to default".
+
+### Fixed
+- The settings listed every key combination action (back, forward, close tab …) as "—"
+  and opened it as "no action" in the editor: QML hands lists over as sequences that are
+  not real arrays, and the check refused them.
 
 ### Changed
 - A workspace action (ring, corner taps, gestures) closes an open Exposé, so picking
