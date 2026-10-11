@@ -2,6 +2,16 @@
 
 All notable changes to More Gestures are documented here.
 
+## 1.0.1 — 2026-10-12
+
+- **Nothing runs while the screen is locked.** The daemon reads the mouse
+  and trackpad below the compositor, so a gesture made at the locked machine
+  could start a bound command or open Files. Every action, the ring and its
+  slots now first ask Hyprland whether a session lock is held (Omarchy's lock,
+  hyprlock or any other) and do nothing unless it clearly is not; while
+  locked the daemon passes the mouse and trackpad straight through. Found in
+  the marketplace review.
+
 ## 1.0.0 — 2026-10-11
 
 The first release.

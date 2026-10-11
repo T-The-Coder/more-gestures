@@ -579,6 +579,25 @@ function actionName(raw, l) {
   return name ? name + " (" + text + ")" : text
 }
 
+// Whether the compositor holds a session lock, from `hyprctl -j monitors`: true,
+// false, or null when it cannot be told. Hyprland reports no lock state directly, but
+// an active ext-session-lock (Omarchy's lock, hyprlock, any locker) is one of the
+// reasons a monitor cannot go solitary ("LOCK" in solitaryBlockedBy); Hyprland stops
+// at "WORKSPACE" on a monitor without one, before it gets to the lock. The same test as
+// Omarchy's omarchy-hyprland-session-locked. Callers treat null as locked (fail closed).
+function sessionLocked(monitorsJson) {
+  var monitors
+  try { monitors = JSON.parse(String(monitorsJson || "")) } catch (e) { return null }
+  if (!isList(monitors) || monitors.length === 0) return null
+  var readable = false
+  for (var i = 0; i < monitors.length; i++) {
+    var blockers = monitors[i] && isList(monitors[i].solitaryBlockedBy) ? toArray(monitors[i].solitaryBlockedBy) : []
+    if (blockers.indexOf("LOCK") >= 0) return true
+    if (blockers.indexOf("WORKSPACE") < 0) readable = true
+  }
+  return readable ? false : null
+}
+
 // Text for notify-send: its body is markup, so a label like "<b>" or "&" would be
 // interpreted. Swapped for look-alikes, as in More Time and More Weather.
 function notificationText(text) {
@@ -823,7 +842,7 @@ if (typeof module !== "undefined") module.exports = {
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
   EXPOSE_AVAILABLE_LUA: EXPOSE_AVAILABLE_LUA, exposeAvailable: exposeAvailable,
-  dispatchName: dispatchName, notificationText: notificationText,
+  dispatchName: dispatchName, notificationText: notificationText, sessionLocked: sessionLocked,
   recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,

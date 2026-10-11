@@ -44,3 +44,12 @@ test("the status notification escapes markup", () => {
   assert.ok(call, "notification call found")
   assert.match(call[0], /Actions\.notificationText\(/)
 })
+
+// Nothing a gesture is bound to may run while the session is locked (marketplace review
+// of 1.0.0): every place that starts an action or opens the ring goes through the gate.
+test("actions and the ring only start through the lock gate", () => {
+  const service = readFileSync(join(root, "Service.qml"), "utf8")
+  const direct = service.split("\n").filter((l) =>
+    /execDetached\(cmd\.argv\)|ring\.open\(\)/.test(l) && !/whenUnlocked\(function/.test(l))
+  assert.deepEqual(direct, [])
+})

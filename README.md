@@ -128,6 +128,9 @@ trail under Mouse › Trail. With animations off every style is a still frame.
   left, middle and right click you choose: settings, gestures on/off, a status
   notification, the ring, or nothing. An app launcher entry whose icon follows
   the theme.
+- Nothing runs while the screen is locked: every action first asks Hyprland
+  whether a session lock is held (any locker), and while it is the mouse and
+  trackpad pass straight through.
 - Exclusions: window classes or tags where the mouse passes untouched
   (default: Steam games, RetroArch, QEMU, virt-manager, gamescope).
 

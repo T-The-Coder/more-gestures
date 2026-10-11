@@ -27,6 +27,9 @@ Item {
 
   property var activeWindow: ({ class: "", tags: [] })
   property bool passWanted: false
+  // The session is locked (last answer of the lock gate below): while true the daemon
+  // passes everything through and nothing runs.
+  property bool sessionLocked: false
   property bool daemonReady: false
   property string lastGesture: ""
   property string lastAction: ""
@@ -159,7 +162,7 @@ Item {
 
   // `force` repeats the current state, needed after a daemon restart.
   function syncPass(force) {
-    var wanted = Actions.isExcluded(root.activeWindow, root.config.exclude)
+    var wanted = root.sessionLocked || Actions.isExcluded(root.activeWindow, root.config.exclude)
     root.passWanted = wanted
     var line = "pass " + (wanted ? "on" : "off")
     if (!force && line === root.sentPass) return
@@ -193,8 +196,11 @@ Item {
       return
     }
     if (event.type === "ring") {
-      if (event.phase === "open") { root.probeActiveWindow(); exposeCheck.refresh(); ring.open() }
-      else if (event.phase === "close") ring.release()
+      if (event.phase === "open") {
+        root.probeActiveWindow(); exposeCheck.refresh()
+        root.whenUnlocked(function() { ring.open() })
+      }
+      else if (event.phase === "close") root.whenUnlocked(function() { ring.release() })
       else ring.cancel()
       return
     }
@@ -229,7 +235,50 @@ Item {
     printErrors: false
   }
 
-  // Returns true when an action was started.
+  // ---------------------------------------------------------------- lock gate
+  //
+  // Nothing a gesture is bound to may run while the session is locked: the daemon reads
+  // the mouse and trackpad below the compositor, so a person at the locked machine could
+  // otherwise start the user's commands. Every action (gestures, wheel, rocker, corner
+  // taps, the ring and its slots) goes through whenUnlocked(), which asks Hyprland first
+  // (~10 ms) and drops the action unless the answer is a clear "unlocked". Once locked,
+  // the daemon passes everything through and the gate looks again every 2 s until the
+  // lock is gone.
+  property var lockQueue: []
+
+  function whenUnlocked(run) {
+    root.lockQueue.push(run)
+    if (!lockProbe.running) lockProbe.running = true
+  }
+
+  function setLocked(locked) {
+    if (locked === root.sessionLocked) return
+    root.sessionLocked = locked
+    if (locked) { ring.cancel(); overlay.cancel(); lockPoll.start() } else lockPoll.stop()
+    root.syncPass(false)
+  }
+
+  Process {
+    id: lockProbe
+    command: ["hyprctl", "-j", "monitors"]
+    stdout: StdioCollector { id: lockOut }
+    onExited: function(exitCode) {
+      var locked = exitCode === 0 ? Actions.sessionLocked(lockOut.text) : null
+      var queued = root.lockQueue
+      root.lockQueue = []
+      root.setLocked(locked !== false)
+      if (locked === false) for (var i = 0; i < queued.length; i++) queued[i]()
+    }
+  }
+
+  Timer {
+    id: lockPoll
+    interval: 2000
+    repeat: true
+    onTriggered: if (!lockProbe.running) lockProbe.running = true
+  }
+
+  // Returns true when an action is due (it runs once the lock gate says unlocked).
   function fire(event, gesture) {
     var ev = { source: event.source || "mouse", fingers: event.fingers, gesture: gesture }
     root.lastGesture = Actions.gestureKey(ev)
@@ -238,12 +287,11 @@ Item {
     root.lastAction = Actions.actionName(hit.action, root.lang)
     if (Actions.internalOf(hit.action) === "ring") {
       // Opened to stay (no button held on a trackpad): pick a slot with a tap or click.
-      ring.open()
-      ring.release()
+      root.whenUnlocked(function() { ring.open(); ring.release() })
       return true
     }
     var cmd = Actions.buildCommand(hit.action)
-    if (cmd) Quickshell.execDetached(cmd.argv)
+    if (cmd) root.whenUnlocked(function() { Quickshell.execDetached(cmd.argv) })
     return cmd !== null
   }
 
@@ -254,7 +302,7 @@ Item {
     // Revalidates (the slot came from the settings file); `point` is where the ring was
     // opened, for actions on the window under the pointer.
     var cmd = Actions.buildCommand(action, point)
-    if (cmd) Quickshell.execDetached(cmd.argv)
+    if (cmd) root.whenUnlocked(function() { Quickshell.execDetached(cmd.argv) })
   }
 
   // "Show desktop" ends when another workspace is shown: the stashed windows go back to
@@ -391,7 +439,11 @@ Item {
     }
 
     // Opens the ring to stay (bar icon or a keybinding): pick a slot with a click.
-    function openRing(): string { exposeCheck.refresh(); ring.open(); ring.release(); return "ok" }
+    function openRing(): string {
+      exposeCheck.refresh()
+      root.whenUnlocked(function() { ring.open(); ring.release() })
+      return "ok"
+    }
     // The settings' "Record" button: the next gesture is written to the runtime file
     // instead of acting, for at most 15 seconds.
     function recordGesture(): string { root.recordUntil = Date.now() + 15000; return "recording" }
@@ -433,6 +485,7 @@ Item {
         activeWindow: root.activeWindow,
         profiles: Actions.profilesFor(root.activeWindow),
         pass: root.passWanted,
+        sessionLocked: root.sessionLocked,
         lastGesture: root.lastGesture,
         lastAction: root.lastAction
       })

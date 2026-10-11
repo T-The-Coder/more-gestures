@@ -487,3 +487,14 @@ test("notification text: markup characters become look-alikes", () => {
   assert.equal(A.notificationText('<b>x</b> & "y"'), '\u2039b\u203ax\u2039/b\u203a \uff06 "y"')
   assert.equal(A.notificationText(undefined), "")
 })
+
+test("session lock from hyprctl monitors: LOCK means locked, unreadable means unknown", () => {
+  const mon = (...blockers) => ({ name: "eDP-1", solitaryBlockedBy: blockers })
+  assert.equal(A.sessionLocked(JSON.stringify([mon("WINDOWED", "CANDIDATE")])), false)
+  assert.equal(A.sessionLocked(JSON.stringify([mon("LOCK")])), true)
+  assert.equal(A.sessionLocked(JSON.stringify([mon("WINDOWED"), mon("LOCK")])), true)
+  assert.equal(A.sessionLocked(JSON.stringify([mon("WORKSPACE")])), null)       // cannot tell
+  assert.equal(A.sessionLocked(JSON.stringify([{ name: "x" }])), false)          // nothing blocks it
+  assert.equal(A.sessionLocked("not json"), null)
+  assert.equal(A.sessionLocked("[]"), null)
+})
