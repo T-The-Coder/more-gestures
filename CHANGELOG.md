@@ -13,6 +13,11 @@
   Ctrl+Shift+W.
 - Shapes can have up to 5 strokes.
 
+### Changed
+- Trackpad gestures in groups: taps (by corner, then count; the 4-finger double tap
+  last), 2, 3 (with the shared shapes) and 4 fingers, each with a heading. Taps show as
+  dots on a small trackpad: one dot per tap on the diagonal into the tapped corner.
+
 ### Added
 - Record gestures: "Record" in the gesture editor takes the next gesture you make (mouse,
   trigger + wheel, rocker, 3 or 4 fingers, corner tap) into the editor instead of running

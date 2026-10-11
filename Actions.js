@@ -590,6 +590,26 @@ function tapText(gesture) {
   return m ? CORNER_ARROWS[m[1]] + " " + m[2] + "×" : ""
 }
 
+// Dots for a tap symbol, in a unit square (0..1, y down): a corner tap puts one dot per
+// tap on the diagonal into its corner ("tl2": one near the top-left corner, one further
+// in towards the bottom right); "tap2" (four fingers, twice) two rows of four.
+// [] for anything else.
+function tapDots(gesture) {
+  var g = String(gesture || "")
+  if (g === "tap2") {
+    var rows = []
+    for (var r = 0; r < 2; r++) for (var c = 0; c < 4; c++) rows.push({ x: 0.2 + c * 0.2, y: 0.38 + r * 0.24 })
+    return rows
+  }
+  var m = /^(tl|tr|bl|br)([1-4])$/.exec(g)
+  if (!m) return []
+  var sx = m[1].charAt(1) === "l" ? 1 : -1, sy = m[1].charAt(0) === "t" ? 1 : -1
+  var x0 = sx > 0 ? 0.2 : 0.8, y0 = sy > 0 ? 0.2 : 0.8
+  var dots = []
+  for (var i = 0; i < Number(m[2]); i++) dots.push({ x: x0 + sx * i * 0.2, y: y0 + sy * i * 0.2 })
+  return dots
+}
+
 function arrowList(dirs) {
   // Pinches are not lines: fingers moving towards / away from each other.
   if (dirs === "pinchin") return ["→←"]
@@ -776,7 +796,7 @@ if (typeof module !== "undefined") module.exports = {
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
-  recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION,
+  recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
   arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText, tapText: tapText, SOURCES: SOURCES,

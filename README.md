@@ -41,6 +41,9 @@ notch and touchpads 2.5 × their delta, the same speed as there):
 | Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
 | What's new | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
 
+On the Trackpad page the gestures come in groups: taps, 2, 3 and 4 fingers. A tap shows
+as dots on a small trackpad, one per tap on the diagonal into the tapped corner.
+
 The gesture list shows on the Mouse and on the Trackpad page: shared shapes (device
 "All") on both, since mouse and three fingers speak one gesture language, plus the rows
 only that device has (wheel and rocker on Mouse; 3/4 fingers, pinches and corner taps

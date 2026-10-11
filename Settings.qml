@@ -1370,26 +1370,51 @@ Item {
 
               Repeater {
                 model: root.pageRows
-                delegate: Rectangle {
+                delegate: Column {
                   required property var modelData
                   width: content.width
+                  spacing: Style.spacing.sm
+
+                  // Trackpad page: a heading above each group (taps, 2/3/4 fingers).
+                  Label {
+                    visible: modelData.groupFirst === true
+                    topPadding: Style.spacing.md
+                    text: modelData.group ? root.tr("group_" + modelData.group) : ""
+                  }
+
+                Rectangle {
+                  width: parent.width
                   height: Style.spacing.controlHeight + Style.spacing.sm
                   radius: Style.cornerRadius
                   color: rowHover.hovered ? Util.alpha(root.foreground, 0.06) : "transparent"
 
                   HoverHandler { id: rowHover }
 
-                  Text {
+                  Item {
                     id: gestureCell
                     anchors.left: parent.left
                     anchors.leftMargin: Style.spacing.md
                     anchors.verticalCenter: parent.verticalCenter
                     width: Style.space(110)
-                    text: root.gestureText(modelData.gesture)
-                    color: root.accent
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.subtitle
-                    font.bold: true
+                    height: parent.height
+                    readonly property bool isTap: Actions.tapDots(modelData.gesture).length > 0
+                    Text {
+                      visible: !parent.isTap
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: root.gestureText(modelData.gesture)
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.subtitle
+                      font.bold: true
+                    }
+                    TapGlyph {
+                      visible: parent.isTap
+                      anchors.verticalCenter: parent.verticalCenter
+                      width: Style.space(30)
+                      height: Style.space(22)
+                      gesture: modelData.gesture
+                      color: root.accent
+                    }
                   }
                   Text {
                     anchors.left: gestureCell.right
@@ -1422,6 +1447,7 @@ Item {
                       onClicked: modelData.hasDefault ? root.disableRow(modelData) : root.resetRow(modelData)
                     }
                   }
+                }
                 }
               }
 

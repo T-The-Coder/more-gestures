@@ -376,3 +376,31 @@ test("recorded gestures: daemon events as the editor takes them", () => {
   assert.equal(A.recordedGesture({ type: "end", source: "touchpad", fingers: 2, gesture: "L" }), null)
   assert.equal(A.recordedGesture({ type: "cancel" }), null)
 })
+
+test("trackpad rows: taps, then 2, 3 and 4 fingers, each group marked once", () => {
+  const A = load("Actions.js")
+  const rows = Config.rowsForPage(Config.listBindings(Config.defaults(A), "default", A), "trackpad")
+  const groups = rows.map(r => r.group)
+  const rank = g => Config.TRACKPAD_GROUPS.indexOf(g)
+  for (let i = 1; i < groups.length; i++) assert.ok(rank(groups[i - 1]) <= rank(groups[i]), groups.join())
+  assert.equal(rows[0].group, "tap")
+  assert.ok(rows.find(r => r.gesture === "tap2").group === "tap")
+  assert.equal(rows.find(r => r.key === "*:DR").group, "tp3")
+  assert.equal(rows.find(r => r.key === "tp4:pinchin").group, "tp4")
+  assert.deepEqual(rows.filter(r => r.groupFirst).map(r => r.group), ["tap", "tp3", "tp4"])
+  // Taps: ↖ ↗ ↙ ↘, fewer taps first, the 4-finger double tap last.
+  const taps = rows.filter(r => r.group === "tap").map(r => r.gesture)
+  assert.deepEqual(taps, ["tl2", "tl3", "tr2", "tr3", "bl2", "bl3", "br2", "br3", "tap2"])
+})
+
+test("tap symbols: dots along the diagonal into the corner, two rows for tap2", () => {
+  const A = load("Actions.js")
+  assert.deepEqual(A.tapDots("tl2"), [{ x: 0.2, y: 0.2 }, { x: 0.4, y: 0.4 }])
+  const br = A.tapDots("br3")
+  assert.equal(br.length, 3)
+  assert.deepEqual(br[0], { x: 0.8, y: 0.8 })
+  assert.ok(br[2].x < br[0].x && br[2].y < br[0].y)
+  assert.deepEqual(A.tapDots("tr1"), [{ x: 0.8, y: 0.2 }])
+  assert.equal(A.tapDots("tap2").length, 8)
+  assert.deepEqual(A.tapDots("DR"), [])
+})

@@ -443,11 +443,48 @@ var SETTINGS_PAGES = ["general", "mouse", "trackpad", "ring", "changes"]
 // The gesture rows a settings page lists. Shared "*" rows show on both device pages:
 // the mouse and three fingers speak one gesture language, so editing one edits both.
 // The mouse page leaves out trackpad-only rows, the trackpad page wheel and rocker.
+// The trackpad page groups its rows: taps (corner taps and the 4-finger double tap),
+// two fingers, three fingers (with the shared "*" shapes), four fingers. Each row gets
+// `group` and, for the first of a group, `groupFirst`; the order inside a group stays.
+var TRACKPAD_GROUPS = ["tap", "tp2", "tp3", "tp4"]
+
+function trackpadGroup(row) {
+  if (row.source === "tap" || row.gesture === "tap2") return "tap"
+  if (row.source === "tp4") return "tp4"
+  if (row.source === "tp2") return "tp2"
+  return "tp3"
+}
+
 function rowsForPage(rows, page) {
-  return rows.filter(function (r) {
+  var list = rows.filter(function (r) {
     if (page === "mouse") return r.source === "*" || r.source === "mouse"
     if (page === "trackpad") return r.source !== "mouse" && !/^(wheel|rocker)-/.test(r.gesture)
     return false
+  })
+  if (page !== "trackpad") return list
+  var tagged = list.map(function (r, i) {
+    var out = {}
+    for (var k in r) out[k] = r[k]
+    out.group = trackpadGroup(r)
+    out.order = i
+    return out
+  })
+  // Taps by corner (top-left, top-right, bottom-left, bottom-right), then by count; the
+  // 4-finger double tap last.
+  function tapRank(g) {
+    var m = /^(tl|tr|bl|br)([1-4])$/.exec(g)
+    return m ? ["tl", "tr", "bl", "br"].indexOf(m[1]) * 10 + Number(m[2]) : 99
+  }
+  tagged.sort(function (a, b) {
+    var x = TRACKPAD_GROUPS.indexOf(a.group), y = TRACKPAD_GROUPS.indexOf(b.group)
+    if (x !== y) return x - y
+    if (a.group === "tap") return tapRank(a.gesture) - tapRank(b.gesture) || a.order - b.order
+    return a.order - b.order
+  })
+  return tagged.map(function (r, i) {
+    r.groupFirst = i === 0 || tagged[i - 1].group !== r.group
+    delete r.order
+    return r
   })
 }
 
@@ -503,5 +540,5 @@ if (typeof module !== "undefined") module.exports = {
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
   removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage,
-  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage
+  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, TRACKPAD_GROUPS: TRACKPAD_GROUPS
 }
