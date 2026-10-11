@@ -107,7 +107,7 @@ test("I18n: both languages have the same keys, no empty strings", () => {
 test("I18n: language pick and fallbacks", () => {
   assert.equal(I18n.tr("de_DE", "apply"), I18n.STRINGS.de.apply)
   assert.equal(I18n.tr("en_US", "apply"), I18n.STRINGS.en.apply)
-  assert.equal(I18n.tr("fr_FR", "apply"), I18n.STRINGS.en.apply)
+  assert.equal(I18n.tr("xx_YY", "apply"), I18n.STRINGS.en.apply)   // unknown language: English
   assert.equal(I18n.tr("de", "no-such-key"), "no-such-key")
   assert.equal(I18n.keyError("en", "key"), I18n.STRINGS.en.err_key)
   assert.equal(I18n.keyError("de", "weird"), I18n.STRINGS.de.err_action)

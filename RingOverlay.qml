@@ -445,14 +445,15 @@ Item {
         border.width: isCurrent ? Math.max(2, Style.space(3)) : 0
         border.color: Color.accent
         // The key, small in the corner, unless the label already says it (1 for
-        // workspace 1).
+        // workspace 1). A move slot's icon shows the digit, so ⇧3 there is just "⇧".
         Text {
-          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key) && parent.moveTo === 0
+          readonly property bool digitShown: parent.moveTo > 0 && modelData.key === "⇧" + Ring.workspaceLabel(parent.moveTo)
+          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key)
           anchors.right: parent.right
           anchors.top: parent.top
           anchors.rightMargin: parent.pill ? Style.space(8) : Style.space(4)
           anchors.topMargin: Style.space(2)
-          text: modelData.key
+          text: digitShown ? "⇧" : modelData.key
           color: parent.hot ? Color.background : Color.foreground
           opacity: 0.6
           font.family: Style.font.family

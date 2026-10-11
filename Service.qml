@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "Actions.js" as Actions
 import "Config.js" as Config
+import "I18n.js" as I18n
 
 // Gesture service: runs bin/gesture-daemon, turns its JSON lines into actions.
 //
@@ -399,17 +400,17 @@ Item {
     // A short summary as a desktop notification (bar icon, right click).
     function notifyStatus(): string {
       var c = root.config
-      var de = Actions.lang(root.lang) === "de"
-      var on = function (b) { return b ? (de ? "an" : "on") : (de ? "aus" : "off") }
+      var tr = function (key) { return I18n.tr(root.lang, key) }
+      var on = function (b) { return tr(b ? "stateOn" : "stateOff") }
       var title = "More Gestures: " + on(c.enabled && root.enabled)
       var lines = [
-        (de ? "Maus: " : "Mouse: ") + (c.enabled ? (de ? "Taste " : "button ") + c.button : on(false)),
-        (de ? "Trackpad: " : "Trackpad: ") + on(c.touchpad.enabled),
-        (de ? "Ecken-Tipps: " : "Corner taps: ") + on(c.taps.enabled),
-        (de ? "Kreismenü: " : "Ring menu: ") + on(c.ring.enabled)
+        tr("notifyMouse") + ": " + (c.enabled ? tr("notifyButton") + " " + c.button : on(false)),
+        tr("notifyTrackpad") + ": " + on(c.touchpad.enabled),
+        tr("notifyTaps") + ": " + on(c.taps.enabled),
+        tr("notifyRing") + ": " + on(c.ring.enabled)
       ]
-      if (root.lastGesture) lines.push((de ? "Zuletzt: " : "Last: ") + root.lastGesture + (root.lastAction ? " → " + root.lastAction : ""))
-      if (root.passWanted) lines.push(de ? "Pausiert für dieses Fenster (Ausschlussliste)" : "Paused for this window (exclusions)")
+      if (root.lastGesture) lines.push(tr("notifyLast") + ": " + root.lastGesture + (root.lastAction ? " → " + root.lastAction : ""))
+      if (root.passWanted) lines.push(tr("notifyPaused"))
       Quickshell.execDetached(["omarchy-notification-send", title, lines.join("\n")])
       return "ok"
     }

@@ -253,17 +253,16 @@ Item {
   // The actions to pick from: the Hyprland swipe only for the swipe gesture (and there
   // only it), everywhere else everything but it (Actions.fitsGesture).
   function dispatchOptions(forSwipe) {
-    var code = I18n.lang(root.lang)
     return Object.keys(Actions.DISPATCH).filter(function(id) {
       return (id === Actions.SWIPE_ACTION) === !!forSwipe
     }).map(function(id) {
-      return { value: id, label: Actions.DISPATCH[id][code] }
+      return { value: id, label: Actions.dispatchName(id, root.lang) }
     })
   }
 
   // Trail styles are named after what the line becomes.
   function trailStyleName(s) {
-    return s === "plain" ? Effects.name(s, root.lang) : root.tr("trail_" + s)
+    return root.tr(s === "plain" ? "style_plain" : "trail_" + s)
   }
 
   // The swipe gesture can only swipe (Hyprland) or do nothing.
@@ -909,12 +908,11 @@ Item {
                     width: Style.space(260)
                     showLabel: false
                     fontFamily: root.fontFamily
-                    options: [
-                      { value: "auto", label: root.tr("languageAuto").replace("%1",
-                          Config.uiLanguage({ language: "auto" }, Qt.locale().name) === "de" ? "Deutsch" : "English") },
-                      { value: "en", label: "English" },
-                      { value: "de", label: "Deutsch" }
-                    ]
+                    // Automatic (the system's language, named), then every language in its
+                    // own name, as in More Time and More Weather.
+                    options: [{ value: "auto", label: root.tr("languageAuto").replace("%1",
+                        I18n.languageName(I18n.lang(Qt.locale().name))) }]
+                      .concat(I18n.LANGUAGES.map(function(c) { return { value: c, label: I18n.languageName(c) } }))
                     value: root.working.language
                     onChanged: function(v) { root.set("language", v) }
                   }
@@ -1447,7 +1445,7 @@ Item {
                         width: Style.space(240)
                         showLabel: false
                         fontFamily: root.fontFamily
-                        options: Effects.STYLES.map(function(s) { return { value: s, label: Effects.name(s, root.lang) } })
+                        options: Effects.STYLES.map(function(s) { return { value: s, label: root.tr("style_" + s) } })
                         value: root.working.ring.style
                         onChanged: function(v) { root.setRing("style", v) }
                       }

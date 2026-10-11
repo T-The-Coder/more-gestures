@@ -327,11 +327,13 @@ test("settings pages list the gesture rows of their device", () => {
 
 test("language: auto follows the locale, a choice wins, junk is auto", () => {
   assert.equal(Config.defaults().language, "auto")
-  assert.equal(Config.uiLanguage({ language: "auto" }, "de_DE"), "de")
-  assert.equal(Config.uiLanguage({ language: "auto" }, "en_US"), "en")
+  assert.equal(Config.uiLanguage({ language: "auto" }, "de_DE"), "de_DE")   // I18n.lang maps it
+  assert.equal(Config.uiLanguage({ language: "auto" }, "en_US"), "en_US")
   assert.equal(Config.uiLanguage({ language: "de" }, "en_US"), "de")
   assert.equal(Config.uiLanguage({ language: "en" }, "de_DE"), "en")
-  assert.equal(Config.sanitize({ language: "fr" }).language, "auto")
+  assert.equal(Config.sanitize({ language: "fr" }).language, "fr")
+  assert.equal(Config.sanitize({ language: "xx" }).language, "auto")
+  assert.deepEqual(Config.LANGUAGES, ["auto"].concat(load("I18n.js").LANGUAGES))
   assert.equal(Config.sanitize({ language: "de" }).language, "de")
 })
 

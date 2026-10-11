@@ -19,7 +19,7 @@ var BUTTONS = ["right", "middle", "side", "extra"]
 var PROFILES = ["default", "browser", "terminal"]
 // Interface language: "auto" follows the system locale; More Time and More Weather have
 // the same setting, so all three can show German on an English system.
-var LANGUAGES = ["auto", "en", "de"]
+var LANGUAGES = ["auto", "en", "de", "es", "fr", "pt", "it", "nl", "pl", "ru", "uk", "tr", "cs", "sv", "fi", "nb", "da", "ro", "hu", "el", "hi", "id", "vi", "th", "ja", "ko", "zh_CN", "zh_TW", "ar", "he", "fa"]   // "auto" + I18n.LANGUAGES (a test keeps them equal)
 
 var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
@@ -475,11 +475,11 @@ function listBindings(config, profile, actions) {
   })
 }
 
-// The language the interface uses: "en" or "de".
+// The language the interface uses: the chosen code, or with "auto" the locale name,
+// which I18n.lang maps to a catalogue ("de_DE" -> "de", unknown -> "en").
 function uiLanguage(config, localeName) {
   var chosen = config && LANGUAGES.indexOf(config.language) > 0 ? config.language : ""
-  if (chosen) return chosen
-  return String(localeName || "en").toLowerCase().indexOf("de") === 0 ? "de" : "en"
+  return chosen || String(localeName || "en")
 }
 
 // The settings pages, in the order of the tab strip.

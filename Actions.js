@@ -1,4 +1,5 @@
 .pragma library
+.import "I18n.js" as I18n
 
 // Gesture -> action mapping and command building. Pure functions only (no QML, no
 // I/O), so the same file runs in the shell and under `node --test`.
@@ -570,10 +571,33 @@ function internalOf(raw) {
 
 // ------------------------------------------------------------------- display
 
-function lang(l) { return String(l || "en").toLowerCase().indexOf("de") === 0 ? "de" : "en" }
+// The interface language's code (I18n.lang: "de", "fr", "zh_TW" …).
+function lang(l) { return I18n.lang(l) }
 
+// English and German names live here; other languages in their catalogue
+// (act_<id>, label_<label>), else English.
+function localName(entry, l, key) {
+  var code = lang(l)
+  if (entry[code]) return entry[code]
+  return I18n.has(code, key) ? I18n.tr(code, key) : entry.en
+}
+
+// Numbered actions share one entry per language with "%1" for the number:
+// act_workspace-n ("Workspace %1"), act_window-to-workspace-silent-n.
+function dispatchName(id, l) {
+  if (!Object.prototype.hasOwnProperty.call(DISPATCH, id)) return id
+  var m = /^(workspace|window-to-workspace-silent)-(\d+)$/.exec(id)
+  if (m) {
+    var code = lang(l), key = "act_" + m[1] + "-n"
+    if (!DISPATCH[id][code] && I18n.has(code, key)) return I18n.tr(code, key).replace("%1", m[2])
+  }
+  return localName(DISPATCH[id], l, "act_" + id)
+}
+
+// Key names stay English or German in every other language: the settings read a typed
+// combination back, and only those two spellings are understood (Keys.comboFromText).
 function comboText(combo, l) {
-  var names = MODIFIER_NAMES[lang(l)]
+  var names = MODIFIER_NAMES[lang(l)] || MODIFIER_NAMES.en
   var parts = combo.mods.map(function (m) { return names[m] })
   parts.push(combo.key)
   return parts.join("+")
@@ -589,9 +613,8 @@ function actionName(raw, l) {
   var v = validateAction(raw)
   if (!v.ok || v.action.type === "none") return "—"
   var a = v.action
-  var code = lang(l)
-  if (a.type === "dispatch") return DISPATCH[a.id][code]
-  var known = a.label && Object.prototype.hasOwnProperty.call(LABELS, a.label) ? LABELS[a.label][code] : ""
+  if (a.type === "dispatch") return dispatchName(a.id, l)
+  var known = a.label && Object.prototype.hasOwnProperty.call(LABELS, a.label) ? localName(LABELS[a.label], l, "label_" + a.label) : ""
   var name = known || a.label
   if (a.type === "exec") return name || a.command.slice(0, MAX_LABEL_LENGTH)
   var text = keysText(a.sequence, l)
@@ -835,6 +858,7 @@ if (typeof module !== "undefined") module.exports = {
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
   EXPOSE_AVAILABLE_LUA: EXPOSE_AVAILABLE_LUA, exposeAvailable: exposeAvailable,
+  dispatchName: dispatchName, LABELS: LABELS,
   recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,

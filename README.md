@@ -1,395 +1,308 @@
 # More Gestures
 
-Opera-style mouse gestures for Omarchy (Hyprland + Quickshell shell): hold the right
-button, drag a line, release. See `PLAN.md` for the full plan.
+Opera-style mouse gestures for [Omarchy](https://omarchy.org): hold the right
+button, draw a line, release. The same shapes work with three fingers on the
+trackpad, four fingers are the system level, and a ring menu around the
+pointer holds your workspaces, a move-window ring and any action you like. It
+is set up the way [More Time](https://github.com/T-The-Coder/more-time) and
+[More Weather](https://github.com/T-The-Coder/more-weather) are: the same
+settings window, saved as you go, 30 languages and full keyboard control.
 
-Also: three- and four-finger trackpad gestures, corner taps, a ring menu with up to three
-rings, a menu bar icon and a settings window.
+![More Gestures](preview.png)
 
-*Deutsch:* Opera-artige Mausgesten für Omarchy, dazu Trackpad-Gesten mit drei und vier
-Fingern, Ecken-Tippen, ein Kreismenü mit bis zu drei Ringen, ein Menüleisten-Symbol und
-ein Einstellungsfenster.
+## Features
 
-## Settings (`Settings.qml`)
+**Mouse**
+- Hold the trigger (right button by default; middle, side or extra), draw,
+  release. A short click stays a click; held still for 350 ms the press goes
+  to the application, so dragging in a context menu works as before. With a
+  modifier down nothing is intercepted: Super + right drag still resizes.
+- Shapes of up to 5 strokes, a line under the pointer while you draw (eleven
+  trail styles) and an indicator with the arrows so far and the action that
+  releasing now would run.
+- Trigger + wheel switches workspaces (in the browser: tabs). Rocker
+  gestures (trigger, then left click, and the other way round) are opt-in.
 
-Open with `omarchy-shell shell toggle more-gestures`, `qs ipc -p /usr/share/omarchy/shell
-call more-gestures settings`, a left click on the menu bar icon, or the launcher entry
-"More Gestures" (General › "Show in app launcher", or `bin/install-app-entry`; `--remove`
-takes it away). Every change is saved at once, as in More Time and More Weather (no Save
-button), to `~/.local/state/omarchy/settings/more-gestures.json`, and applied live: a new
-trigger button restarts the daemon, everything else applies at once.
+**Trackpad**
+- Three and four fingers: lines, shapes, pinch in and out. The trackpad is
+  only read, never grabbed, so scrolling, tapping and Hyprland's own
+  gestures keep working.
+- Hyprland's workspace swipe follows the fingers, which no recogniser can
+  do, so it stays native. It is a gesture in the list like the others,
+  "← → swipe" with 3 or 4 fingers, whose effect is "Swipe workspaces
+  (Hyprland)" or nothing (default: four fingers swipe).
+- Four fingers up and down are layers; the opposite swipe undoes the last
+  step:
 
-General › "Back up and restore" exports all settings to one JSON file (default
-`~/Downloads/more-gestures-settings.json`) and imports one; the import asks once more
-("Replace settings?") and first saves the current settings to
-`~/.local/state/omarchy/settings/more-gestures-settings-backup.json`. Importing that backup
-undoes the import.
+  | Open now | 4 fingers down | 4 fingers up |
+  |---|---|---|
+  | nothing | wallpaper | Exposé |
+  | Exposé | close Exposé | app launcher |
+  | app launcher | close launcher | – |
+  | wallpaper | Files (floating, centred) | windows back |
+  | wallpaper + Files | – | close Files |
 
-The interface language is set under General › Language: Automatic (the system locale),
-English or Deutsch, like in More Time and More Weather; it covers the settings, the ring,
-the indicator, the menu bar tooltip and the notifications.
+- Pinch in opens the app launcher, pinch out Hyprexpo, a four-finger double
+  tap the ring menu.
+- Corner taps (experimental, opt-in): double or triple tap a corner, by
+  default workspaces 1-4 and 5-8. For this the touchpad is grabbed and
+  forwarded; only touches in a bound corner are held back for a moment, so a
+  single tap there still clicks, a little later.
 
-Pages, laid out like the settings of More Time and More Weather (Tab / Shift+Tab switch
-them, Esc closes, PageUp/PageDown and the arrows scroll; the wheel scrolls a fixed step per
-notch and touchpads 2.5 × their delta, the same speed as there):
-
-| Page | What is there |
-|---|---|
-| General | language, gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions, back up and restore |
-| Mouse | trigger button, threshold, hold time, rocker, wheel, and the mouse gestures |
-| Trackpad | 3 / 4 fingers, segment length, corner taps, and the trackpad gestures (the Hyprland swipe among them) |
-| Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
-| What's new | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
-
-On the Trackpad page the gestures come in groups: taps, 2, 3 and 4 fingers. A tap shows
-as dots on a small trackpad, one per tap on the diagonal into the tapped corner.
-
-The gesture list shows on the Mouse and on the Trackpad page: shared shapes (device
-"All") on both, since mouse and three fingers speak one gesture language, plus the rows
-only that device has (wheel and rocker on Mouse; 3/4 fingers, pinches and corner taps
-on Trackpad).
-
-Per profile, the list shows only entries that differ from the defaults plus the defaults
-of that profile. "Remove" on a built-in gesture stores `none` for it (switched off),
-"Reset" restores the built-in action. Key combinations can be recorded (press them) or
-typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
-
-New gestures: build the shape with the arrow buttons, or press **Record** and make the
-gesture (mouse line, trigger + wheel, rocker, 3 or 4 fingers, corner tap). The service
-hands the next gesture to the editor instead of running it (IPC `recordGesture` /
-`stopRecording`, result in `$XDG_RUNTIME_DIR/more-gestures-recorded.json`); Esc or 15 s
-without a gesture stop. A line drawn with the mouse or three fingers keeps the device
-"All" if chosen; anything else takes its device. If the gesture is already bound, the
-editor says with what.
-
-## Menu bar icon
-
-The inverted mouse symbol sits in the bar (right section), faded while gestures are off.
-Left click opens the settings, middle click switches gestures on/off (saved), right
-click shows a status notification; set each button (or hide the icon) under "Menu bar"
-in the settings. Over IPC: `omarchy-shell more-gestures toggleSaved | openRing | notifyStatus`.
-
-## Ring menu
-
-Double click the trigger and keep the second press held: a clock face of slots appears
-around the pointer. Default ring 1: Exposé at 12 o'clock, workspaces 1-5 at 1-5,
-wallpaper at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release to
-run it; release in the middle to cancel. Released without leaving the middle, the ring
-stays open: click a slot (left or right button), or anywhere else to close it.
-Super+1 … Super+0 do the same (General › "Super+1…0 show hidden windows", on by
-default): the generated Hyprland file unbinds Omarchy's workspace keys and binds them to
-the plugin's workspace action. A workspace slot always shows that workspace's windows: it closes an open Exposé and
-brings back windows the wallpaper layer had hidden, also on the workspace you are on.
-
-Other ways in, both open the ring to stay:
-- the trackpad: double tap with 4 fingers;
-- the keyboard: **Super+Alt+R** by default (settings: "Open the ring with", empty = none).
-  The plugin binds it in its generated Hyprland file (see Trackpad), with the description
-  "More Gestures: ring menu".
-
-**Up to three rings.** Ring 1 is always there; rings 2 and 3 are switched on in the
-settings and sit further out (drag further to reach them: the distance picks the ring,
-the direction the slot). Slots per ring: 8, 12 or 16 for ring 1, 8, 12, 16 or 24 for
-rings 2 and 3. All rings start at 12 o'clock, so with equal counts a slot sits straight
-outside the one before it. Soft dividing lines between the rings and their slots can be
-switched off ("Dividing lines").
-By default ring 2 moves the window under the pointer (where the ring was opened) to a
-workspace without following it: each slot sits straight outside its workspace on ring 1
-and shows an arrow into a small monitor with the number. Ring 3 holds close window (q),
-fullscreen (f), floating (s), window to workspace left/right (a/d), scratchpad (n),
-terminal (t), Files (o), app launcher (l) and Hyprexpo (x). Every slot can hold any
-action, workspaces included; outer
-rings show short names, the full name of the slot under the pointer appears in the
-middle. Rings that do not fit the screen are drawn smaller.
-
-**Styles**, each with a live preview in the settings: the ring under Ring menu › Style,
-the gesture trail (mouse and trackpad) separately under Mouse › Trail. With animations off
-(General) every style is a still frame. The rows below pair them by theme; any ring style
-goes with any trail.
-
-| Style | Ring | Trail |
-|---|---|---|
-| Plain | the slots and soft dividing lines | the accent line |
-| Comets | a bright dot with a tail runs clockwise on every circle, each at its own speed; slots flash as it passes | a comet: bright head, fading tail |
-| Drifting clouds | soft blobs drift behind the slots; a light patch under the pointer | a vapour trail that widens into puffs |
-| Radar | a beam sweeps round, slots light up and fade | blips that fade one by one, the newest pings |
-| Orbits | planets circle on the circles, neighbours in opposite directions; twinkling stars | a thin line throwing stardust |
-| Ink in water | the colour seeps out from the centre on opening; a drop under the pointer | a brush stroke, thick to thin, bleeding edge |
-| Neon | tubes flicker on one after the other; a neon frame under the pointer | a glowing tube with a faint buzz |
-| Pulse | rings of light run outwards; the slot under the pointer beats | pulses run along the line |
-| Clockwork | turning rows of ticks and a second hand | dashes with a mark at every turn |
-| Aurora | a wavy band of colour flows along the circles | a ribbon of light whose colour runs along it |
-| Fireflies | points of light float and swarm around the slot under the pointer | sparks that fall and go out |
-
-The effects are drawn by `Effects.js` (pure functions of time and geometry, tested with
-a recording canvas) on a Canvas only as large as the ring, about 30 frames a second while
-a moving style is open.
-
-**Keys** while the ring is open: Esc closes; every slot can have one key (letter or
-digit, upper case = Shift+letter), shown in the slot's corner unless the label already
-says it. Defaults: 1-0 workspaces, e Exposé, w wallpaper, ring 3 as above; ring 2 has no keys
-(1-0 belong to ring 1), set them in the settings if you like. A key used
-twice keeps its first slot (inner ring first).
-
-Workspaces 1-5 always look normal, 6-0 are faded unless a window is on them; the current
-one is outlined. The mouse way in is opt-in ("Ring menu" in the settings): the daemon holds
-the first click back for the double click time, so every ordinary click of the trigger
-arrives that much later.
-
-Settings file: `ring = { enabled, doubleMs, hotkey: {mods, key} | null, rings: [{ enabled,
-count, slots, keys }, …] }`. The single-ring form (`slots`, `keys`) of older versions is
-read as ring 1.
-
-## Trackpad
-
-Touchpads are read, never grabbed: libinput and Hyprland keep every event, so scrolling,
-tapping and Hyprland's own gestures keep working. With 3 or 4 fingers the daemon
-recognises lines and shapes (segment length in mm) and pinch in/out; a gesture ends when
-the fingers lift. Bindings use `tp3:` / `tp4:` per gesture and fall back to the shared
-`*:` entries.
-
-Hyprland's workspace swipe follows the fingers, which a gesture recogniser cannot do, so
-it stays native. It is a gesture like the others: "← → swipe" with 3 or 4 fingers
-(`tp3:swipe` / `tp4:swipe`, Desktop profile), whose effect is either "Swipe workspaces
-(Hyprland)" or nothing (default: 4 fingers swipe, 3 fingers nothing). While it swipes,
-left and right with those fingers are Hyprland's. The plugin writes the `hl.gesture` lines for it into
-`~/.local/state/omarchy/settings/more-gestures-hypr.lua` (only when they change, then
-`hyprctl reload`). Load that file from `~/.config/hypr/input.lua`:
-
-```lua
-local more_gestures = os.getenv("HOME") .. "/.local/state/omarchy/settings/more-gestures-hypr.lua"
-local more_gestures_file = io.open(more_gestures, "r")
-if more_gestures_file then
-  more_gestures_file:close()
-  dofile(more_gestures)
-end
-```
-
-Remove other `hl.gesture` lines for the finger counts the plugin reads, or both act.
-
-Four fingers up/down are layers by default; the opposite swipe undoes the last step:
-
-| Open now | 4 fingers down | 4 fingers up |
-|---|---|---|
-| nothing | wallpaper | Exposé |
-| Exposé | close Exposé | app launcher |
-| app launcher | close launcher | – |
-| wallpaper | Files (floating, centred) | windows back |
-| wallpaper + Files | – | close Files |
-The defaults work on a plain Omarchy. Exposé is a separate plugin (`expose.window-overview`,
-recommended): without it, or with it disabled, the "Exposé" action, the ring's 12 o'clock
-slot and the up layer open the app launcher instead (the ring then says "App launcher").
-Hyprexpo (4 fingers pinch out, ring 3) is a hyprpm plugin; without it the gesture opens
-Exposé, else the launcher. Whether Exposé is there is checked when the action runs, so
-installing it needs no restart. The settings show the install command while it is missing:
-
-```
-omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable
-```
-
-### Corner taps (opt-in)
-
-With "Corner taps (experimental)" on, the touchpad is grabbed like the mouse and forwarded
-through a uinput clone. Only touches that start in a corner with a bound tap gesture are
-held back (up to the tap time, 180 ms) and counted; double tap top-left/top-right/
-bottom-left/bottom-right = workspaces 1-4, triple tap = 5-8 (`tap:tl2` …). Counts without
-an action are replayed, so a single tap in a corner still clicks, a moment later.
-Our own clones are never grabbed (they are recognised by name).
-
-## Overlay (`GestureOverlay.qml`)
-
-Created by `Service.qml`; lives only while a gesture runs.
-
-- On `start` it asks `hyprctl cursorpos -j` (read-only) for the pointer, picks the screen
-  containing it (fallback: focused monitor) and maps two full-screen layer-shell surfaces
-  (layer Overlay, namespace `more-gestures`, no keyboard, no exclusive zone):
-  - an **input surface**, transparent, with `MouseArea { hoverEnabled }`. The daemon holds the
-    trigger press back, so no application has seen a button-down and there is no implicit
-    pointer grab: the surface receives the exact pointer positions. They become the line
-    (accent colour, ≥ 3 px, round caps and joins);
-  - a **visual surface** with an empty input region that draws line and indicator.
-- Indicator at the start point: a ring, below it a card with the recognized segments as arrows
-  (`full` only), the segment under way growing with `progress` events, and the name of the
-  action that releasing now would run (for `keys` actions without a label the combination,
-  e.g. `Ctrl+Shift+T` / `Strg+Umschalt+T`). Colours: neutral until the first segment, accent
-  for a bound gesture, dimmed with `—` for an unknown one. When the action fires the ring
-  shows a check mark while fading out. Trackpad gestures show the finger count in the ring.
-- On `end`/`cancel` the input surface is unmapped at once, so the next click reaches the
-  application; only the visual surface fades out (≤ 150 ms). Safety nets: everything closes
-  after 10 s at the latest, and when the daemon exits or restarts.
-- Settings in `~/.local/state/omarchy/settings/more-gestures.json`:
-  - `indicator`: `"off"` (no overlay at all), `"minimal"` (line, ring, action name) or
-    `"full"` (default; adds arrows and the growing segment). Anything else means `full`.
-  - `animations`: `false` replaces every fade/grow animation by a cut (default `true`).
-
-## Plugin (`manifest.json`, `Service.qml`, `Actions.js`)
-
-Plugin id `more-gestures`, kinds `service` + `overlay`, `keepLoaded`. The service:
-
-- starts `bin/gesture-daemon` relative to the plugin directory (`python3`, trigger button,
-  threshold, hold time and rocker as arguments) and reads its JSON lines; the daemon only
-  ever lives as a child of the shell (stdin is its leash). A crashed daemon is restarted
-  with 1, 2, 4 … 30 s backoff; ten seconds of uptime reset it,
-- tracks the active window (`hyprctl activewindow -j`, read-only, refreshed on Hyprland
-  focus events and on gesture start) with class and tags, and sends `pass on|off` when
-  class or tag is on the exclusion list (default: `steam_app_*`, `retroarch`, `qemu*`,
-  `virt-manager`, `gamescope`; a trailing `*` is a prefix match),
-- on `end`, `wheel` and `rocker` calls `Actions.resolve` and runs the result,
-- reads `~/.local/state/omarchy/settings/more-gestures.json` (watched; broken JSON gives
-  defaults): `enabled`, `button`, `threshold`, `holdMs`, `rocker`, `indicator`, `animations`,
-  `exclude`, `bindings`.
-  Nothing writes it yet (step 5),
-- offers `qs ipc call more-gestures enable|disable|toggle|status`. `enable`/`disable` are
-  runtime only; `status` returns JSON (daemon state, active window and profiles, last
-  gesture and action).
-
-### Actions
-
-| Type | Fields | Runs |
-|---|---|---|
-| `dispatch` | `id` from a fixed table (`workspace-prev`, `window-close`, …) | `hyprctl eval 'hl.dispatch(hl.dsp…)'` |
-| `keys` | `combo: ["CTRL SHIFT", "T"]`, optional `sequence` of up to 4 combos, `label` | `hyprctl eval` with `hl.dsp.send_key_state` down, 50 ms later up (as `clipboard.lua`); sequence steps 80 ms apart |
-| `exec` | `command`, `label` | `bash -lc command` (runs arbitrary code by design, like hotcorners) |
-| `none` | | nothing; in a profile it also blocks inheriting the desktop binding |
-
-Lua text is built only from fixed strings and validated parts: modifiers from the allow-list
-`SUPER CTRL ALT SHIFT`, keys against `^[A-Za-z0-9_]{1,32}$`. Invalid actions are rejected as a
-whole, so a hand-edited settings file cannot inject Lua. Not offered: a target window for
-`keys` – `send_key_state` has no documented window parameter in the Hyprland stubs.
-
-Gesture keys are `<source>:<gesture>`, source `mouse`, `tp3`, `tp4` or `*` (all);
-gestures are `U D L R` (up to 5 strokes) plus `wheel-up`, `wheel-down`, `rocker-left`, `rocker-right`.
-Profiles come from window tags (`chromium-based-browser`/`firefox-based-browser` → `browser`,
-`terminal` → `terminal`), the first match wins, `default` is last. Lookup order: profile
-before `default`; within a profile `<source>:G` before `*:G`. User `bindings`
-(`{ "browser": { "*:DR": {…} } }`) are layered over the defaults entry by entry.
-
-### Gesture language (defaults)
-
-One language for every device and program: the mouse (trigger + movement) and three
-fingers share every shape (`*:` entries), and a shape does the same thing everywhere.
-Four fingers are the system level.
+**One gesture language.** The mouse and three fingers share every shape, and a
+shape does the same in every program:
 
 | Shape | Action |
 |---|---|
-| ← / → | back / forward (Alt+Left / Alt+Right, as in the browser) |
+| ← / → | back / forward (Alt+Left / Alt+Right) |
 | ↑ | layer up: Exposé, then app launcher; closes Files / brings the windows back |
 | ↓ | layer down: wallpaper, then Files; closes launcher / Exposé |
 | ↑← / ↑→ | workspace left / right |
-| ↓→ | close tab (Ctrl+W) |
+| ↓→ | close tab (Ctrl+W; in a terminal Ctrl+Shift+W) |
 | ↓← | close window (Super+W) |
-| ↓←↑ / ↓→↑ | move window to workspace left / right |
+| ↓←↑ / ↓→↑ | move the window to the workspace left / right |
 | ↓↑ | new tab (Ctrl+T) |
 | ←↑ | reopen closed tab (Ctrl+Shift+T) |
 | ↑↓ | reload (F5) |
 | →↑ | toggle fullscreen |
-| wheel | workspace left / right (browser: Ctrl+Shift+Tab / Ctrl+Tab) |
+| wheel | workspace left / right (browser: previous / next tab) |
 | rocker left / right | back / forward |
 | double click, hold | ring menu |
 
-Four fingers: left/right is Hyprland's own workspace swipe, up/down the same layers,
-pinch in = app launcher, pinch out = Hyprexpo, double tap = ring menu.
-Profiles only differ where a program needs it: in the browser the wheel switches tabs;
-in a terminal ↓→ sends Ctrl+Shift+W (Ctrl+W would delete a word in the shell).
-Everything can be changed in the settings, and new shapes (up to 5 strokes, per device
-if wanted) can be added; "All gestures to default" removes every change.
+Everything can be changed. Gestures belong to a profile (Desktop, Browser,
+Terminal, chosen by Omarchy's window tags); a profile only lists what differs.
+New gestures are built from arrows or **recorded**: press Record and make the
+gesture with the mouse, the trackpad or a corner tap. An action is a desktop
+action, a key combination (recorded or typed, up to four steps), a command,
+or nothing.
 
-Action names are available in German and English (`Actions.actionName(action, lang)`).
+**Ring menu**
+- Double click the trigger and keep the second press held (opt-in, since the
+  first click then waits for the double click time), double tap with four
+  fingers, or press **Super+Alt+R**.
+- Ring 1 is a clock face: Exposé at 12, workspaces 1-5 at 1-5, the wallpaper
+  at 6, workspaces 6-0 at 7-11. Move towards a slot and release, or let go in
+  the middle and click one. Workspaces 6-0 are faded while empty, the current
+  one is outlined.
+- Ring 2 (on by switch) moves the window under the pointer to a workspace
+  without following it: every slot sits straight outside its workspace and
+  shows an arrow into a small monitor. Ring 3 holds window and program
+  actions: close, fullscreen, floating, window left / right, scratchpad,
+  terminal, Files, launcher, Hyprexpo.
+- 8, 12, 16 or 24 slots per ring, any action in any slot. Rings too big for
+  the screen are drawn smaller; outer rings show short names, the full name
+  of the slot under the pointer appears in the middle.
+- Picking a workspace shows its windows: it closes Exposé and brings back
+  what the wallpaper layer hid, also on the workspace already shown.
+  Super+1 … Super+0 do the same (on by default).
 
-## Daemon (`bin/gesture-daemon`)
+**Styles.** Each with a live preview, the ring under Ring menu › Style, the
+trail under Mouse › Trail. With animations off every style is a still frame.
 
-- Finds pointing devices: `REL_X`/`REL_Y` plus the trigger button, no `ABS_MT`
-  (touchpads are left alone). Hotplug is handled by rescanning `/dev/input` every 2 s.
-- Grabs each one exclusively and forwards everything 1:1 through a `uinput` clone
-  (`UInput.from_device`). The clone is named `more-gestures virtual (...)` and is
-  excluded by that name so the daemon never grabs itself.
-- The trigger button (default: right) is held back on press:
-  - released without moving → replayed as a normal click,
-  - held longer than 350 ms without moving → press replayed (so "hold right, drag in
-    a context menu" keeps working),
-  - moved beyond the threshold (default 20 units) → press discarded, gesture recognition
-    runs (see below).
-- Modifiers: keyboards are only read passively (never grabbed) and only
-  Super/Alt/Ctrl/Shift are evaluated, every other key is dropped immediately. While a
-  modifier is down the press is passed through at once, so Super+right-drag still
-  resizes windows.
-- Emergency brake: a gesture held for more than 10 s is reset (`cancel`).
-- Clean shutdown: SIGTERM, SIGINT and EOF on stdin release the grab and exit. If the
-  process dies in any other way the kernel releases the grab.
+| Style | Ring | Trail |
+|---|---|---|
+| Plain | the slots and soft dividing lines | the accent line |
+| Comets | a bright dot with a tail runs round every circle | a comet whose tail burns out |
+| Drifting clouds | soft blobs drift behind the slots | a vapour trail that widens into puffs |
+| Radar | a beam sweeps round, slots light up and fade | blips that fade one by one |
+| Orbits | planets circle on the circles; twinkling stars | a thin line throwing stardust |
+| Ink in water | the colour seeps out from the centre | a brush stroke, thick to thin |
+| Neon | tubes flicker on one after the other | a glowing tube with a faint buzz |
+| Pulse | rings of light run outwards | pulses run along the line |
+| Clockwork | turning rows of ticks and a second hand | dashes with a mark at every turn |
+| Aurora | a wavy band of colour flows along the circles | a ribbon whose colour runs along it |
+| Fireflies | points of light swarm around the slot under the pointer | sparks that fall and go out |
 
-## Recognition
+**Settings and bar**
+- Pages General, Mouse, Trackpad, Ring menu and What's new; every change is
+  saved and applied at once.
+- Language: Automatic or one of 30 (English, Deutsch, Español, Français,
+  Português, Italiano, Nederlands, Polski, Русский, Українська, Türkçe,
+  Čeština, Svenska, Suomi, Norsk bokmål, Dansk, Română, Magyar, Ελληνικά,
+  हिन्दी, Bahasa Indonesia, Tiếng Việt, ไทย, 日本語, 한국어, 简体中文,
+  繁體中文, العربية, עברית, فارسی).
+- Export and import of all settings, with a backup before every import.
+- A menu bar icon (the mouse symbol, faded while gestures are off) whose
+  left, middle and right click you choose: settings, gestures on/off, a status
+  notification, the ring, or nothing. An app launcher entry whose icon follows
+  the theme.
+- Exclusions: window classes or tags where the mouse passes untouched
+  (default: Steam games, RetroArch, QEMU, virt-manager, gamescope).
 
-Directions are `U`, `D`, `L`, `R`. The recognizer (`Recognizer` in `lib/gesture_core.py`) is
-source-neutral: its input is deltas in any unit and the threshold is a parameter (raw mouse
-units now, mm for the trackpad in step 4b).
+## Screenshots
 
-- A segment is created once one direction exceeds the threshold and clearly dominates
-  (the other axis ≤ 0.7×). A pure diagonal stays undecided instead of flipping between
-  two directions; the first straight stretch resolves it.
-- Equal directions in a row are merged, at most 4 segments (`"DR"`, `"RDLU"`).
-- Jitter: the anchor follows the furthest point along the current direction, so a
-  reversal needs the full threshold from the extreme point, and a slightly slanted line
-  does not grow into a second segment.
-- A drag that crosses the threshold but never forms a segment (diagonal, zigzag) ends in
-  `cancel`; the press is still discarded.
-
-## Protocol
-
-stdout, one JSON object per line. Gesture events carry `"source":"mouse"`:
-
-| Line | Meaning |
+| | |
 |---|---|
-| `{"type":"start","source":"mouse"}` | threshold crossed, press discarded |
-| `{"type":"segment","source":"mouse","dirs":"DR"}` | segments so far (cumulative) |
-| `{"type":"progress","source":"mouse","dir":"R","ratio":0.4}` | next segment grows toward the threshold; at most 30 Hz, never for the direction already running |
-| `{"type":"end","source":"mouse","gesture":"DR"}` | trigger released with ≥ 1 segment |
-| `{"type":"cancel","source":"mouse"}` | no segment recognized, emergency brake, or wheel/rocker took over |
-| `{"type":"wheel","dir":"up"}` / `"down"` | wheel step while the trigger is held; the wheel is **not** forwarded |
-| `{"type":"rocker","side":"left"}` | trigger held, left button clicked |
-| `{"type":"rocker","side":"right"}` | left held, trigger clicked |
+| ![Ring menu](screenshots/ring.png) | ![General](screenshots/settings-general.png) |
+| ![Mouse](screenshots/settings-mouse.png) | ![Trackpad](screenshots/settings-trackpad.png) |
+| ![Ring menu settings](screenshots/settings-ring.png) | ![What's new](screenshots/settings-changes.png) |
 
-Wheel and rocker replace the line gesture: if a path was already running it is cancelled
-first, and the press is discarded (no right click). Once the press has been replayed
-(held > 350 ms, i.e. a context menu is open) wheel and left clicks go to the application.
-Rocker gestures are off by default; switch them on with `--rocker` or `config`. Both are ignored while a
-modifier is down or `pass on` is active.
+## Keyboard
 
-stdin, one command per line:
+**Settings:** `Tab` / `Shift+Tab` next / previous page, `PageUp` / `PageDown`
+and the arrows scroll, `Esc` closes.
 
-- `pass on|off` – forward everything untouched (for games, VMs). A held-back press is
-  replayed at once; a running gesture finishes normally.
-- `config {json}` – `threshold` (1–5000 units), `hold_ms` (0–5000), `rocker` (bool). Applies
-  immediately to all devices; invalid entries are skipped and logged to stderr. The
-  trigger button is not configurable at runtime: restart the daemon with `--button`.
+**Ring menu:** `Esc` closes. Every slot can have a key, shown in its corner:
+a letter, a digit, an upper-case letter (Shift+letter) or ⇧1 … ⇧0
+(Shift+digit, matched by key position, so it works on every layout; type
+`S1` or `⇧1` in the settings). Defaults: `1`-`0` workspaces, `e` Exposé, `w`
+wallpaper; ring 2 `⇧1`-`⇧0`; ring 3 `q f s a d n t o l x`. A key used twice
+keeps its first slot.
 
+**Hyprland:** `Super+Alt+R` opens the ring (change or clear it under Ring menu);
+`Super+1` … `Super+0` switch workspaces and show their hidden windows (switch
+under General).
+
+## Requirements
+
+- Omarchy with Hyprland 0.56 or newer (Lua configuration) and its Quickshell
+  shell.
+- Python 3 with `python-evdev` (Omarchy ships both).
+- Your user in the `input` group, with write access to `/dev/uinput` (the
+  daemon reads mice and touchpads and forwards the mouse through a virtual
+  device).
+- Recommended: the [Exposé plugin](https://github.com/kristofferR/omarchy-expose)
+  for the "Exposé" action, the ring's 12 o'clock slot and the up layer.
+  Without it they open the app launcher; the settings show the install
+  command while it is missing:
+
+  ```bash
+  omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable
+  ```
+
+- Optional: the Hyprexpo plugin (hyprpm) for 4-finger pinch out; without it
+  that gesture opens Exposé, else the launcher.
+
+## Installation
+
+```bash
+omarchy plugin add https://github.com/T-The-Coder/more-gestures.git --enable
 ```
-bin/gesture-daemon --dry-run          # grabs nothing, prints devices and state changes
-bin/gesture-daemon [--button right|middle|side|extra] [--threshold N] [--hold-ms N] [--emergency-s N] [--rocker] [--include-pointing-sticks]
+
+The icon goes into the right section of the bar.
+
+**Hyprland hook.** Hyprland's workspace swipe, the ring's shortcut and
+Super+1…0 live in a file the plugin writes,
+`~/.local/state/omarchy/settings/more-gestures-hypr.lua`. Hyprland loads it
+once `~/.config/hypr/input.lua` does. The settings say so while it is
+missing; **Set up** adds a marked block to `input.lua` (after a backup next to
+it) and reloads Hyprland. The same from a terminal:
+
+```bash
+~/.config/omarchy/plugins/more-gestures/bin/setup-hypr           # add the block
+~/.config/omarchy/plugins/more-gestures/bin/setup-hypr --check   # exit 0 if loaded
 ```
 
-`--dry-run` still opens the devices for reading (needed to observe the state changes)
-but never grabs them or creates a `uinput` device. Note that stdin is watched: when it
-is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
+The block only loads the file if it exists, so removing the plugin breaks
+nothing. If you had `hl.gesture` lines of your own for the finger counts the
+plugin reads, remove them, or both act.
 
-## Layout
+## Updating
 
-- `lib/gesture_core.py` – decision logic (state machine, direction recognizer, command
-  parsing, device classification), no evdev dependency.
-- `bin/gesture-daemon` – thin evdev/uinput wrapper.
-- `manifest.json`, `Service.qml`, `Settings.qml`, `BarWidget.qml` – the Omarchy plugin.
-- `SettingsTransfer.qml` – export, import and the backup before an import.
-- `Effects.js` – the ring and trail styles; `TapGlyph.qml` – taps drawn as dots.
-- `ChangesPage.qml`, `Changelog.js` – Settings › What's new; `Changelog.js` is the parser
-  More Time and More Weather share, kept byte-identical (`tests/changelog.test.mjs`).
-- `GestureOverlay.qml` – line and indicator, instantiated by `Service.qml`.
-- `Actions.js` – pure functions: profiles, gesture keys, defaults, validation, Lua building,
-  indicator helpers (arrows, preview name, cursor position parsing).
-- `tests/test_core.py`, `tests/actions.test.mjs` – unit tests.
-
-## Tests
-
+```bash
+omarchy plugin update more-gestures
 ```
+
+See [CHANGELOG.md](CHANGELOG.md); Settings › What's new shows it in the app,
+read from the installed plugin. Your settings stay as they are.
+
+## Removal
+
+1. If you added the launcher entry, turn **Show in app launcher** off first
+   (or run `bin/install-app-entry --remove`).
+2. Take the Hyprland hook out again (a backup of `input.lua` is made first):
+
+   ```bash
+   ~/.config/omarchy/plugins/more-gestures/bin/setup-hypr --remove
+   ```
+
+3. Remove the plugin:
+
+   ```bash
+   omarchy plugin remove more-gestures
+   ```
+
+4. Optional: delete the settings and the generated Hyprland file:
+
+   ```bash
+   rm -f ~/.local/state/omarchy/settings/more-gestures*.json \
+         ~/.local/state/omarchy/settings/more-gestures-hypr.lua
+   ```
+
+## Files
+
+| Path | What |
+|---|---|
+| `~/.local/state/omarchy/settings/more-gestures.json` | all settings (written by the settings window, watched by the service) |
+| `~/.local/state/omarchy/settings/more-gestures-hypr.lua` | generated for Hyprland: swipe gestures, ring shortcut, Super+1…0 |
+| `~/.local/state/omarchy/settings/more-gestures-settings-backup.json` | the settings before the last import |
+| `~/Downloads/more-gestures-settings.json` | default export file |
+| `~/.config/hypr/input.lua` | gets the marked block from **Set up** |
+| `$XDG_RUNTIME_DIR/more-gestures-recorded.json` | the gesture handed to the editor while recording |
+
+## IPC
+
+```bash
+omarchy-shell -q more-gestures <function>
+```
+
+| Function | Does |
+|---|---|
+| `settings` | opens the settings window |
+| `openRing` | opens the ring menu at the pointer, to stay |
+| `toggleSaved` | gestures on / off, saved |
+| `enable` / `disable` / `toggle` | gestures on / off until the shell restarts |
+| `notifyStatus` | a notification with the current state |
+| `status` | JSON: daemon state and restarts, active window and profiles, last gesture and action |
+| `recordGesture` / `stopRecording` | hand the next gesture to the editor instead of running it |
+
+## Development
+
+```bash
 python -m unittest discover -s tests
-mise x node@24.21.0 -- node --test tests/*.test.mjs
-tests/qml-syntax.sh
+node --test tests/*.test.mjs
+tests/qml-syntax.sh                 # every QML file parses (qmllint)
+tools/build-preview.sh <shots-dir>  # screenshots/ and preview.png from raw shots
 ```
+
+**Daemon.** `bin/gesture-daemon` is a thin evdev/uinput frame around
+`lib/gesture_core.py` (state machine, direction recogniser, commands),
+`lib/touchpad_core.py` (fingers, millimetres, pinches) and `lib/tap_core.py`
+(corner taps), which know nothing of evdev and are tested with recorded
+event sequences. It grabs pointing devices (`REL_X`/`REL_Y` and the trigger,
+no `ABS_MT`), forwards everything through a uinput clone and holds only the
+trigger press back; touchpads are read without a grab. It lives as a child of
+the shell, with stdin as its leash: SIGTERM, SIGINT and EOF release the grab,
+and if it dies any other way the kernel does. A gesture held longer than 10 s
+is reset. `bin/gesture-daemon --dry-run` grabs nothing and prints devices and
+state changes.
+
+**Protocol.** stdout, one JSON object per line: `start`, `segment {dirs}`,
+`progress {dir, ratio}` (≤ 30 Hz), `end {gesture}`, `cancel`, `wheel {dir}`,
+`rocker {side}`, each with `source` (`mouse`, `touchpad` with `fingers`, `tap`).
+stdin: `pass on|off` (forward everything untouched, for excluded windows) and
+`config {json}` (threshold, hold time, rocker, trackpad and tap settings).
+
+**Plugin.** `Service.qml` runs the daemon, tracks the active window, resolves
+gestures with `Actions.js` and runs the result; `Settings.qml` is the
+settings overlay, `GestureOverlay.qml` the line and indicator,
+`RingOverlay.qml` the ring with `Ring.js` (geometry) and `Effects.js` (the
+styles, pure functions of time and geometry, tested with a recording canvas),
+`BarWidget.qml` the bar icon. `Config.js` is the settings contract and writes
+the Hyprland file. Actions become Lua for `hyprctl eval` only from fixed
+strings and validated parts (modifiers from an allow-list, keys against
+`^[A-Za-z0-9_]{1,32}$`), so a hand-edited settings file cannot inject Lua.
+
+**Languages.** The texts of the 30 languages live in `i18n/<language>.js`,
+one file each; English is the base and every other file an overlay on it.
+`I18n.js` imports them and holds the lookup; action names in other languages
+than English and German are `act_<id>` / `label_<label>` entries there.
+`tests/i18n.test.mjs` checks that every language has every key with the same
+placeholders, `tests/load.mjs` resolves the imports for Node.
+
+`Changelog.js` (Settings › What's new) is shared with More Time and More
+Weather and kept identical (`tests/changelog.test.mjs`).
+
+## License
+
+MIT, see [LICENSE](LICENSE).

@@ -5,6 +5,7 @@ import qs.Commons
 import qs.Ui
 import "Actions.js" as Actions
 import "Config.js" as Config
+import "I18n.js" as I18n
 
 // Menu bar icon: the inverted mouse symbol. Faded while gestures are off.
 // Mouse buttons on it (settings: "Menu bar"): left settings, middle gestures on/off,
@@ -42,16 +43,14 @@ BarWidget {
 
   function tooltip() {
     if (!root.config.bar.tooltip) return ""
-    var de = Actions.lang(root.lang) === "de"
-    var state = root.gesturesOn ? (de ? "an" : "on") : (de ? "aus" : "off")
-    var names = de
-      ? { settings: "Einstellungen", toggle: "an/aus", status: "Status", ring: "Kreismenü", none: "" }
-      : { settings: "settings", toggle: "on/off", status: "status", ring: "ring menu", none: "" }
+    var tr = function (key) { return I18n.tr(root.lang, key) }
+    var state = tr(root.gesturesOn ? "stateOn" : "stateOff")
+    var name = function (a) { return a && a !== "none" ? tr("tip_" + a) : "" }
     var b = root.config.bar
     var parts = []
-    if (names[b.left]) parts.push((de ? "Links: " : "Left: ") + names[b.left])
-    if (names[b.middle]) parts.push((de ? "Mitte: " : "Middle: ") + names[b.middle])
-    if (names[b.right]) parts.push((de ? "Rechts: " : "Right: ") + names[b.right])
+    if (name(b.left)) parts.push(tr("tipLeft") + ": " + name(b.left))
+    if (name(b.middle)) parts.push(tr("tipMiddle") + ": " + name(b.middle))
+    if (name(b.right)) parts.push(tr("tipRight") + ": " + name(b.right))
     return "More Gestures: " + state + (parts.length ? "\n" + parts.join(" · ") : "")
   }
 

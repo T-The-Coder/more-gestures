@@ -34,7 +34,6 @@ test("every style has names and draws ring and trail with finite numbers", () =>
   assert.equal(E.STYLES[0], "plain")
   assert.equal(E.STYLES.length, 11)
   for (const style of E.STYLES) {
-    assert.ok(E.NAMES[style].en && E.NAMES[style].de, style)
     for (const over of [{}, { still: true }, { selected: null }, { rings: [{ radius: 165, count: 8, offset: 0 }] }]) {
       const ctx = mockCtx()
       E.drawRing(ctx, style, ringState(over))
@@ -54,7 +53,6 @@ test("unknown styles are plain; too little to draw draws nothing", () => {
   assert.equal(E.normalize("sparkle"), "plain")
   assert.equal(E.animated("plain"), false)
   assert.equal(E.animated("comets"), true)
-  assert.equal(E.name("ink", "de_DE"), "Tinte im Wasser")
   const ctx = mockCtx()
   E.drawTrail(ctx, "comets", trailState({ points: [{ x: 1, y: 1 }] }))
   E.drawRing(ctx, "comets", ringState({ rings: [] }))

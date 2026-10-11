@@ -1,6 +1,6 @@
 .pragma library
 
-// Looks for the ring menu and the gesture trail ("Style" in Settings › Ring menu). Each
+// Looks for the ring menu and the gesture trail (names: style_* / trail_* in i18n/) ("Style" in Settings › Ring menu). Each
 // style draws onto a Canvas 2D context: drawRing() behind the ring's slots, drawTrail()
 // instead of the plain line. Pure functions of their state: no timers, no randomness
 // that is not derived from an index (rand), so a frame depends only on the time `t` and
@@ -17,25 +17,8 @@
 var STYLES = ["plain", "comets", "clouds", "radar", "orbits", "ink", "neon", "pulse",
               "clockwork", "aurora", "fireflies"]
 
-var NAMES = {
-  plain:     { en: "Plain", de: "Schlicht" },
-  comets:    { en: "Comets", de: "Kometen" },
-  clouds:    { en: "Drifting clouds", de: "Wandernde Wolken" },
-  radar:     { en: "Radar", de: "Radar" },
-  orbits:    { en: "Orbits", de: "Umlaufbahnen" },
-  ink:       { en: "Ink in water", de: "Tinte im Wasser" },
-  neon:      { en: "Neon", de: "Neon" },
-  pulse:     { en: "Pulse", de: "Puls" },
-  clockwork: { en: "Clockwork", de: "Uhrwerk" },
-  aurora:    { en: "Aurora", de: "Polarlicht" },
-  fireflies: { en: "Fireflies", de: "Glühwürmchen" }
-}
 
 function normalize(style) { return STYLES.indexOf(style) >= 0 ? style : "plain" }
-function name(style, lang) {
-  var n = NAMES[normalize(style)]
-  return String(lang || "en").toLowerCase().indexOf("de") === 0 ? n.de : n.en
-}
 // Whether a style moves at all (the overlay only runs its frame timer then).
 function animated(style) { return normalize(style) !== "plain" }
 
@@ -573,7 +556,7 @@ function back(P, L, i, d) { for (var j = i - 1; j >= 0; j--) if (L[i] - L[j] >= 
 function ahead(P, L, i, d) { for (var j = i + 1; j < P.length; j++) if (L[j] - L[i] >= d) return j; return -1 }
 
 if (typeof module !== "undefined") module.exports = {
-  STYLES: STYLES, NAMES: NAMES, normalize: normalize, name: name, animated: animated,
+  STYLES: STYLES, normalize: normalize, animated: animated,
   drawRing: drawRing, drawTrail: drawTrail, rand: rand, rgba: rgba, tracks: tracks,
   turnPoints: turnPoints, lengths: lengths
 }

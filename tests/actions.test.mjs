@@ -1,16 +1,10 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
-import { dirname, join } from "node:path"
+import { load } from "./load.mjs"
 
-// Actions.js starts with the QML-only `.pragma library` line, which is a syntax
-// error under node; strip it and evaluate the rest like a CommonJS module.
-const file = join(dirname(fileURLToPath(import.meta.url)), "..", "Actions.js")
-const source = readFileSync(file, "utf8").replace(/^\.pragma library\s*$/m, "")
-const mod = { exports: {} }
-new Function("module", source)(mod)
-const A = mod.exports
+// Through the shared loader: it strips the QML-only pragma and resolves `.import` lines
+// (Actions.js imports I18n.js for the names in other languages).
+const A = load("Actions.js")
 
 const browser = { class: "chromium", tags: ["chromium-based-browser", "default-opacity*"] }
 const term = { class: "Alacritty", tags: ["terminal*"] }
