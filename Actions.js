@@ -152,6 +152,37 @@ var STACK_UP_LUA = LAYER_HELPERS + "\n" + [
   'hl.dispatch(hl.dsp.event("expose.window-overview:toggle"))'
 ].join("\n")
 
+// Moves the window under a point to workspace n without following it ("movetoworkspace-
+// silent"). The point is the first line: where the ring was opened (buildCommand puts it
+// in), otherwise the pointer now (a gesture). Hyprland has no "window at" query, so the
+// windows on the monitor's shown workspaces are searched: the special workspace and
+// pinned windows lie above the normal one, fullscreen above the rest, floating above
+// tiled, and among equals the most recently focused is on top.
+var POINT_FROM_CURSOR = 'local p = hl.get_cursor_pos() local px, py = p.x, p.y'
+function moveSilentLua(n) {
+  return [
+    POINT_FROM_CURSOR,
+    'local mon = hl.get_monitor_at(px, py)',
+    'local shown = {}',
+    'if mon then',
+    '  if mon.active_workspace then shown[mon.active_workspace.id] = 1 end',
+    '  if mon.active_special_workspace then shown[mon.active_special_workspace.id] = 0 end',
+    'end',
+    'local best, best_rank',
+    'for _, w in ipairs(hl.get_windows() or {}) do',
+    '  local layer = w.workspace and shown[w.workspace.id]',
+    '  if w.pinned then layer = 0 end',
+    '  if layer and w.mapped and not w.hidden and w.at and w.size',
+    '    and px >= w.at.x and px < w.at.x + w.size.x and py >= w.at.y and py < w.at.y + w.size.y then',
+    '    local rank = layer * 100000 + ((w.fullscreen or 0) > 0 and 0 or 1) * 10000',
+    '      + (w.floating and 0 or 1) * 1000 + (w.focus_history_id or 999)',
+    '    if not best_rank or rank < best_rank then best, best_rank = w, rank end',
+    '  end',
+    'end',
+    'if best then hl.dispatch(hl.dsp.window.move({ workspace = "' + n + '", follow = false, window = best })) end'
+  ].join("\n")
+}
+
 // hyprexpo is a hyprpm plugin; after a Hyprland update it may not be loaded until
 // `hyprpm reload`. Say so instead of failing silently.
 var HYPREXPO_LUA = [
@@ -195,6 +226,27 @@ var DISPATCH = {
   "workspace-8":         { chunk: workspaceLua(8), en: "Workspace 8", de: "Arbeitsfläche 8" },
   "workspace-9":         { chunk: workspaceLua(9), en: "Workspace 9", de: "Arbeitsfläche 9" },
   "workspace-10":        { chunk: workspaceLua(10), en: "Workspace 10", de: "Arbeitsfläche 10" },
+  // Ring 2 by default: each just clockwise of its workspace on ring 1.
+  "window-to-workspace-silent-1": { chunk: moveSilentLua(1), atPoint: true,
+    en: "Move window under pointer to workspace 1", de: "Fenster unter dem Zeiger auf Arbeitsfläche 1" },
+  "window-to-workspace-silent-2": { chunk: moveSilentLua(2), atPoint: true,
+    en: "Move window under pointer to workspace 2", de: "Fenster unter dem Zeiger auf Arbeitsfläche 2" },
+  "window-to-workspace-silent-3": { chunk: moveSilentLua(3), atPoint: true,
+    en: "Move window under pointer to workspace 3", de: "Fenster unter dem Zeiger auf Arbeitsfläche 3" },
+  "window-to-workspace-silent-4": { chunk: moveSilentLua(4), atPoint: true,
+    en: "Move window under pointer to workspace 4", de: "Fenster unter dem Zeiger auf Arbeitsfläche 4" },
+  "window-to-workspace-silent-5": { chunk: moveSilentLua(5), atPoint: true,
+    en: "Move window under pointer to workspace 5", de: "Fenster unter dem Zeiger auf Arbeitsfläche 5" },
+  "window-to-workspace-silent-6": { chunk: moveSilentLua(6), atPoint: true,
+    en: "Move window under pointer to workspace 6", de: "Fenster unter dem Zeiger auf Arbeitsfläche 6" },
+  "window-to-workspace-silent-7": { chunk: moveSilentLua(7), atPoint: true,
+    en: "Move window under pointer to workspace 7", de: "Fenster unter dem Zeiger auf Arbeitsfläche 7" },
+  "window-to-workspace-silent-8": { chunk: moveSilentLua(8), atPoint: true,
+    en: "Move window under pointer to workspace 8", de: "Fenster unter dem Zeiger auf Arbeitsfläche 8" },
+  "window-to-workspace-silent-9": { chunk: moveSilentLua(9), atPoint: true,
+    en: "Move window under pointer to workspace 9", de: "Fenster unter dem Zeiger auf Arbeitsfläche 9" },
+  "window-to-workspace-silent-10": { chunk: moveSilentLua(10), atPoint: true,
+    en: "Move window under pointer to workspace 10", de: "Fenster unter dem Zeiger auf Arbeitsfläche 10" },
   // Handled inside the shell (Service.qml), not by Hyprland: opens the ring menu.
   "ring-menu":           { internal: "ring", en: "Ring menu", de: "Kreismenü" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
@@ -320,14 +372,20 @@ var RING_SLOTS = [
 function ringDefaultsList() {
   return [
     { enabled: true, count: 12, slots: RING_SLOTS, keys: RING_KEYS },
+    // Ring 2 is turned by half a step, so slot k sits just clockwise of ring 1's slot k:
+    // "move the window there" next to each workspace. No keys: 1-0 belong to ring 1.
+    { enabled: false, count: 12,
+      slots: RING_SLOTS.map(function (a) {
+        var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null
+        return m ? dispatch("window-to-workspace-silent-" + m[1]) : none()
+      }),
+      keys: Array.apply(null, Array(12)).map(function () { return "" }) },
     { enabled: false, count: 12,
       slots: [dispatch("window-close"), dispatch("window-fullscreen"), dispatch("window-float-toggle"),
               dispatch("window-to-workspace-prev"), dispatch("window-to-workspace-next"),
               dispatch("scratchpad-toggle"), dispatch("new-terminal"), dispatch("files"),
               dispatch("app-launcher"), dispatch("hyprexpo"), none(), none()],
-      keys: ["q", "f", "s", "a", "d", "n", "t", "o", "l", "x", "", ""] },
-    { enabled: false, count: 16, slots: Array.apply(null, Array(16)).map(none),
-      keys: Array.apply(null, Array(16)).map(function () { return "" }) }
+      keys: ["q", "f", "s", "a", "d", "n", "t", "o", "l", "x", "", ""] }
   ]
 }
 
@@ -444,7 +502,9 @@ function keysLua(sequence) {
 
 // Validated action -> what to run: { argv } or null for "none"/invalid input.
 // Revalidates, so callers can pass settings data straight in.
-function buildCommand(raw) {
+// `point` ({ x, y } in layout pixels, optional): where an action that acts on the window
+// under a point looks (the ring passes where it was opened); without it, the pointer.
+function buildCommand(raw, point) {
   var v = validateAction(raw)
   if (!v.ok) return null
   var a = v.action
@@ -452,7 +512,11 @@ function buildCommand(raw) {
   if (a.type === "dispatch") {
     var d = DISPATCH[a.id]
     if (d.internal) return null  // the caller handles it (see isInternal)
-    return { argv: ["hyprctl", "eval", d.chunk ? d.chunk : "hl.dispatch(" + d.lua + ")"] }
+    var chunk = d.chunk
+    if (d.atPoint && point && isFinite(point.x) && isFinite(point.y))
+      chunk = chunk.replace(POINT_FROM_CURSOR,
+        "local px, py = " + Number(point.x).toFixed(1) + ", " + Number(point.y).toFixed(1))
+    return { argv: ["hyprctl", "eval", chunk ? chunk : "hl.dispatch(" + d.lua + ")"] }
   }
   if (a.type === "exec")
     return { argv: ["bash", "-lc", a.command] }

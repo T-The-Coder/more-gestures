@@ -66,16 +66,20 @@ Other ways in, both open the ring to stay:
 **Up to three rings.** Ring 1 is always there; rings 2 and 3 are switched on in the
 settings and sit further out (drag further to reach them: the distance picks the ring,
 the direction the slot). Slots per ring: 8, 12 or 16 for ring 1, 8, 12, 16 or 24 for
-rings 2 and 3. Ring 2 is turned by half a step, so its slots sit between those of ring 1;
-by default it holds close window (q), fullscreen (f), floating (s), window to workspace
-left/right (a/d), scratchpad (n), terminal (t), Files (o), app launcher (l) and Hyprexpo
-(x). Ring 3 starts empty. Every slot can hold any action, workspaces included; outer
+rings 2 and 3. Ring 2 is turned by half a step, so its slots sit between those of ring 1.
+By default ring 2 moves the window under the pointer (where the ring was opened) to a
+workspace without following it: each slot sits just clockwise of its workspace on ring 1
+and shows an arrow into a small monitor with the number. Ring 3 holds close window (q),
+fullscreen (f), floating (s), window to workspace left/right (a/d), scratchpad (n),
+terminal (t), Files (o), app launcher (l) and Hyprexpo (x). Every slot can hold any
+action, workspaces included; outer
 rings show short names, the full name of the slot under the pointer appears in the
 middle. Rings that do not fit the screen are drawn smaller.
 
 **Keys** while the ring is open: Esc closes; every slot can have one key (letter or
 digit, upper case = Shift+letter), shown in the slot's corner unless the label already
-says it. Defaults: 1-0 workspaces, e Exposé, w wallpaper, ring 2 as above. A key used
+says it. Defaults: 1-0 workspaces, e Exposé, w wallpaper, ring 3 as above; ring 2 has no keys
+(1-0 belong to ring 1), set them in the settings if you like. A key used
 twice keeps its first slot (inner ring first).
 
 Workspaces 1-5 always look normal, 6-0 are faded unless a window is on them; the current

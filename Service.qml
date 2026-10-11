@@ -223,11 +223,13 @@ Item {
     return cmd !== null
   }
 
-  function runRingSlot(action) {
+  function runRingSlot(action, point) {
     if (!action) return
     root.lastGesture = "ring"
     root.lastAction = Actions.actionName(action, root.lang)
-    var cmd = Actions.buildCommand(action)  // revalidates: the slot came from the settings file
+    // Revalidates (the slot came from the settings file); `point` is where the ring was
+    // opened, for actions on the window under the pointer.
+    var cmd = Actions.buildCommand(action, point)
     if (cmd) Quickshell.execDetached(cmd.argv)
   }
 
@@ -248,7 +250,7 @@ Item {
     id: ring
     lang: root.lang
     rings: Config.activeRings(root.config.ring)
-    onChosen: function(action) { root.runRingSlot(action) }
+    onChosen: function(action, point) { root.runRingSlot(action, point) }
   }
 
   GestureOverlay {

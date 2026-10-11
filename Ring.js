@@ -62,6 +62,13 @@ function workspaceOf(action) {
   return m ? Number(m[1]) : 0
 }
 
+// Target workspace of "move the window under the pointer to workspace n", else 0. The
+// ring draws such a slot as an arrow into a small monitor with the number.
+function moveTargetOf(action) {
+  var m = action && action.type === "dispatch" ? /^window-to-workspace-silent-(\d+)$/.exec(action.id || "") : null
+  return m ? Number(m[1]) : 0
+}
+
 // What a slot shows: "1" … "9", "0" for 10; other actions use their name (caller).
 function workspaceLabel(ws) { return ws === 10 ? "0" : String(ws) }
 
@@ -85,5 +92,5 @@ function occupiedFrom(text) {
 if (typeof module !== "undefined") module.exports = {
   sectorFor: sectorFor, position: position, layout: layout, outerRadius: outerRadius, pick: pick,
   workspaceOf: workspaceOf, workspaceLabel: workspaceLabel, emphasized: emphasized,
-  occupiedFrom: occupiedFrom
+  occupiedFrom: occupiedFrom, moveTargetOf: moveTargetOf
 }

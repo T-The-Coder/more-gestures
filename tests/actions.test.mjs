@@ -455,3 +455,18 @@ test("key actions validate when their lists are array-likes from QML", () => {
   assert.deepEqual(v.action.sequence, [{ mods: ["ALT"], key: "Left" }])
   assert.match(A.actionName(action, "en"), /Alt\+Left/)
 })
+
+test("move window under the pointer: the ring's point goes into the Lua, numbers only", () => {
+  const a = { type: "dispatch", id: "window-to-workspace-silent-3" }
+  const plain = A.buildCommand(a).argv[2]
+  assert.match(plain, /^local p = hl\.get_cursor_pos\(\)/)
+  assert.match(plain, /workspace = "3", follow = false, window = best/)
+  const at = A.buildCommand(a, { x: 812.25, y: 40 }).argv[2]
+  assert.match(at, /^local px, py = 812\.3, 40\.0\n/)
+  assert.ok(!/get_cursor_pos/.test(at))
+  // Anything but finite numbers falls back to the pointer.
+  assert.equal(A.buildCommand(a, { x: "1); os.exit(", y: 2 }).argv[2], plain)
+  // Other actions ignore the point.
+  assert.equal(A.buildCommand({ type: "dispatch", id: "workspace-3" }, { x: 1, y: 2 }).argv[2],
+    A.DISPATCH["workspace-3"].chunk)
+})

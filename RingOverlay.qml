@@ -46,7 +46,10 @@ Item {
   property bool sticky: false
   property bool releasePending: false
 
-  signal chosen(var action)
+  // `point`: where the ring was opened, in layout pixels: the window "under the pointer"
+  // for actions that move it (the pointer itself is on a slot by then).
+  signal chosen(var action, var point)
+  property var anchorPoint: null
   property var occupied: []
   property int current: 0
 
@@ -134,8 +137,9 @@ Item {
   }
 
   function finish(action) {
+    var point = root.anchorPoint
     root.cancel()
-    root.chosen(action)
+    root.chosen(action, point)
   }
 
   function track(x, y) {
@@ -208,6 +212,7 @@ Item {
     if (!screen && screens.length > 0) screen = screens[0]
     if (!screen) return
     root.targetScreen = screen
+    root.anchorPoint = pos ? { x: pos.x, y: pos.y } : null
     root.originX = screen.x
     root.originY = screen.y
     // Shrink when the rings at full size would not fit the screen.
@@ -329,6 +334,7 @@ Item {
         required property int index
         readonly property var action: modelData.action
         readonly property int ws: Ring.workspaceOf(action)
+        readonly property int moveTo: Ring.moveTargetOf(action)
         readonly property bool hot: root.selected === index
         readonly property bool strong: Ring.emphasized(action, root.occupied)
         readonly property bool isCurrent: ws > 0 && ws === root.current
@@ -347,7 +353,7 @@ Item {
         // The key, small in the corner, unless the label already says it (1 for
         // workspace 1).
         Text {
-          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key)
+          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key) && parent.moveTo === 0
           anchors.right: parent.right
           anchors.top: parent.top
           anchors.rightMargin: parent.pill ? Style.space(8) : Style.space(4)
@@ -358,8 +364,51 @@ Item {
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
         }
+        // "Move the window there": an arrow into a small monitor that shows the number.
+        Row {
+          id: moveIcon
+          visible: parent.moveTo > 0
+          anchors.centerIn: parent
+          spacing: Math.round(root.slotSize * 0.04)
+          readonly property color ink: parent.hot ? Color.background : Color.foreground
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -Math.round(root.slotSize * 0.04)
+            text: "➜"
+            color: moveIcon.ink
+            font.family: Style.font.family
+            font.pixelSize: Math.round(root.slotSize * 0.26)
+          }
+          Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 0
+            Rectangle {
+              width: Math.round(root.slotSize * 0.42)
+              height: Math.round(root.slotSize * 0.32)
+              radius: Math.max(2, Math.round(root.slotSize * 0.04))
+              color: "transparent"
+              border.width: Math.max(1.5, root.slotSize * 0.035)
+              border.color: moveIcon.ink
+              Text {
+                anchors.centerIn: parent
+                text: Ring.workspaceLabel(moveIcon.parent.moveTo)
+                color: moveIcon.ink
+                font.family: Style.font.family
+                font.pixelSize: Math.round(root.slotSize * 0.22)
+                font.bold: true
+              }
+            }
+            Rectangle {  // the stand
+              anchors.horizontalCenter: parent.horizontalCenter
+              width: Math.round(root.slotSize * 0.16)
+              height: Math.max(1.5, root.slotSize * 0.035)
+              color: moveIcon.ink
+            }
+          }
+        }
         Text {
           id: label
+          visible: parent.moveTo === 0
           anchors.centerIn: parent
           width: parent.pill || parent.ws > 0 ? implicitWidth : parent.width - Style.space(8)
           horizontalAlignment: Text.AlignHCenter

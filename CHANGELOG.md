@@ -14,6 +14,11 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- Ring 2 moves the window under the pointer to a workspace without following it (new
+  actions "Move window under pointer to workspace 1-10", also for gestures): each slot
+  sits just clockwise of its workspace on ring 1 and shows an arrow into a small monitor
+  with the number. The window is the one where the ring was opened. The former ring 2
+  (window and program actions, keys q f s a d n t o l x) is now ring 3.
 - Settings in pages like More Time and More Weather: General, Mouse, Trackpad, Ring menu
   and Update log, with a tab strip, Tab / Shift+Tab to switch, a fixed header and footer
   (Save stays in view) and a page subtitle. The gesture list sits on the Mouse and the

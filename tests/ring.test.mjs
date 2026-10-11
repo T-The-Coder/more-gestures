@@ -74,3 +74,9 @@ test("pick: distance chooses the ring, direction the slot", () => {
   assert.deepEqual(R.pick(p.x, p.y, L, 50), { ring: 1, index: 4 })
   assert.equal(R.pick(0, -2000, L, 50).ring, 1)                     // far out: still the outer ring
 })
+
+test("move slots name their target workspace, others none", () => {
+  assert.equal(R.moveTargetOf({ type: "dispatch", id: "window-to-workspace-silent-10" }), 10)
+  assert.equal(R.moveTargetOf({ type: "dispatch", id: "workspace-1" }), 0)
+  assert.equal(R.moveTargetOf({ type: "none" }), 0)
+})
