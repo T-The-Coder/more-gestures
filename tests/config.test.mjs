@@ -431,3 +431,14 @@ test("Super+1…0 are rebound to the workspace action, unless switched off", () 
   const off = Config.sanitize({ superDigits: false }, A)
   assert.doesNotMatch(Config.hyprLua(off, A), /code:1\d/)
 })
+
+test("ring keys: Shift+digit as ⇧N, typed in several ways; ring 2 has ⇧1 … ⇧0", () => {
+  for (const typed of ["⇧3", "S3", "s 3", "shift+3", "Shift 3", "Umschalt+3"]) assert.equal(Config.ringKeyFrom(typed), "⇧3", typed)
+  assert.equal(Config.ringKeyFrom("a"), "a")
+  const d = Config.defaults().ring
+  assert.deepEqual(d.rings[1].keys, ["", "⇧1", "⇧2", "⇧3", "⇧4", "⇧5", "", "⇧6", "⇧7", "⇧8", "⇧9", "⇧0"])
+  const c = Config.sanitize({ ring: { rings: [{}, { keys: ["S1", "⇧1", "!"] }, {}] } })
+  assert.equal(c.ring.rings[1].keys[0], "⇧1")
+  assert.equal(c.ring.rings[1].keys[1], "")    // used twice
+  assert.equal(c.ring.rings[1].keys[2], "")    // not a key the ring knows
+})

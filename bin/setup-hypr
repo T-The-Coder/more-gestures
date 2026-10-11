@@ -1,0 +1,88 @@
+#!/bin/bash
+# Lets Hyprland load the file More Gestures writes for it
+# (~/.local/state/omarchy/settings/more-gestures-hypr.lua: Hyprland's own workspace swipe,
+# the ring's keyboard shortcut, Super+1…0). Without this, those three are missing.
+#
+#   setup-hypr           add a marked block to ~/.config/hypr/input.lua (backup first),
+#                        then `hyprctl reload`; does nothing if the file is loaded already
+#   setup-hypr --check   exit 0 if a Hyprland config file loads it, 1 if not
+#   setup-hypr --remove  take the marked block out again (backup first)
+#
+# input.lua because Omarchy's hyprland.lua requires it after Omarchy's own bindings:
+# the generated file unbinds and rebinds Super+1…0, which must exist by then. The
+# block only loads the file if it is there, so removing the plugin breaks nothing.
+
+set -u
+
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+hypr_dir="$config_home/hypr"
+input="$hypr_dir/input.lua"
+begin="-- >>> more-gestures (added by More Gestures, remove with: setup-hypr --remove)"
+end="-- <<< more-gestures"
+
+loaded() {
+  grep -qs "more-gestures-hypr.lua" "$hypr_dir"/*.lua
+}
+
+backup() {
+  local copy
+  copy="$input.bak.more-gestures-$(date +%Y%m%d-%H%M%S)"
+  cp -p "$input" "$copy" && echo "Backup: $copy"
+}
+
+reload() {
+  # MORE_GESTURES_NO_RELOAD: the tests run on a throwaway config, not the live Hyprland.
+  [[ -n ${MORE_GESTURES_NO_RELOAD:-} ]] && return 0
+  command -v hyprctl >/dev/null && hyprctl reload >/dev/null 2>&1 || true
+}
+
+case "${1:-}" in
+--check)
+  loaded
+  exit $?
+  ;;
+--remove)
+  if ! grep -qsF -e "$begin" "$input"; then
+    echo "No block from More Gestures in $input."
+    loaded && echo "The file is loaded from a line added by hand; remove that one yourself."
+    exit 0
+  fi
+  backup || exit 1
+  tmp=$(mktemp "$input.XXXXXX")
+  awk -v b="$begin" -v e="$end" '$0 == b { skip = 1; next } skip && $0 == e { skip = 0; next } !skip' "$input" >"$tmp" &&
+    mv -f "$tmp" "$input"
+  reload
+  echo "Removed the More Gestures block from $input."
+  exit 0
+  ;;
+"") ;;
+*)
+  echo "usage: setup-hypr [--check | --remove]" >&2
+  exit 2
+  ;;
+esac
+
+if loaded; then
+  echo "Hyprland loads more-gestures-hypr.lua already."
+  exit 0
+fi
+if [[ ! -f $input ]]; then
+  echo "$input not found: add the lines from the README to your Hyprland config yourself." >&2
+  exit 1
+fi
+
+backup || exit 1
+cat >>"$input" <<LUA
+
+$begin
+-- Hyprland's workspace swipe, the ring's shortcut and Super+1…0, written by the plugin.
+local more_gestures = os.getenv("HOME") .. "/.local/state/omarchy/settings/more-gestures-hypr.lua"
+local more_gestures_file = io.open(more_gestures, "r")
+if more_gestures_file then
+  more_gestures_file:close()
+  dofile(more_gestures)
+end
+$end
+LUA
+reload
+echo "Added the More Gestures block to $input."

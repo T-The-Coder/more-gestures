@@ -71,7 +71,16 @@ function cleanTrailStyle(raw) {
 }
 
 // Letters and digits; upper case means Shift+letter, so "a" and "A" are two keys.
-var RING_KEY_PATTERN = /^[a-zA-Z0-9]$/
+// "⇧1" … "⇧0": Shift with a key of the digit row, matched by its position (scan code),
+// since the character Shift+digit gives depends on the keyboard layout.
+var RING_KEY_PATTERN = /^([a-zA-Z0-9]|⇧[0-9])$/
+
+// A typed key as stored: "S3", "shift+3", "Shift 3", "⇧ 3" all become "⇧3".
+function ringKeyFrom(text) {
+  var t = String(text || "").trim()
+  var m = /^(?:⇧|s|shift|umschalt)\s*\+?\s*([0-9])$/i.exec(t)
+  return m ? "⇧" + m[1] : t
+}
 
 // Keys of all rings at once: a key used twice keeps its first slot (inner ring first),
 // anything that is not one letter or digit becomes "" (no key).
@@ -79,7 +88,7 @@ function cleanRingKeys(rings) {
   var seen = {}
   return rings.map(function (r) {
     return r.keys.map(function (k) {
-      var key = typeof k === "string" ? k.trim() : ""
+      var key = typeof k === "string" ? ringKeyFrom(k) : ""
       if (!RING_KEY_PATTERN.test(key) || seen[key]) return ""
       seen[key] = true
       return key
@@ -576,5 +585,5 @@ if (typeof module !== "undefined") module.exports = {
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
   removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage,
-  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, TRACKPAD_GROUPS: TRACKPAD_GROUPS, RING_STYLES: RING_STYLES
+  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, ringKeyFrom: ringKeyFrom, TRACKPAD_GROUPS: TRACKPAD_GROUPS, RING_STYLES: RING_STYLES
 }

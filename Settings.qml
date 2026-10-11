@@ -52,6 +52,27 @@ Item {
   readonly property string statePath: Quickshell.env("HOME") + Config.PATH_SUFFIX
   // Exposé is an action here, but it needs the expose.window-overview plugin.
   ExposeCheck { id: exposeCheck }
+
+  // Whether Hyprland loads the generated file (bin/setup-hypr --check). Without it the
+  // workspace swipe, the ring's shortcut and Super+1…0 are missing, so the settings
+  // offer to set it up (a marked block in input.lua, with a backup).
+  property bool hyprHooked: true
+  property string hyprSetupMessage: ""
+  readonly property string setupScript: String(Qt.resolvedUrl("bin/setup-hypr")).replace(/^file:\/\//, "")
+  Process {
+    id: hyprCheck
+    command: [root.setupScript, "--check"]
+    onExited: function(code) { root.hyprHooked = code === 0 }
+  }
+  Process {
+    id: hyprSetup
+    command: [root.setupScript]
+    stdout: StdioCollector { id: hyprSetupOut; waitForEnd: true }
+    onExited: function(code) {
+      root.hyprSetupMessage = code === 0 ? root.tr("hyprSetupDone") : String(hyprSetupOut.text || "").trim()
+      hyprCheck.running = true
+    }
+  }
   readonly property bool exposeInstalled: exposeCheck.available
   readonly property string exposeInstallCommand: "omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable"
 
@@ -137,6 +158,8 @@ Item {
 
   function open(payloadJson) {
     exposeCheck.refresh()
+    root.hyprSetupMessage = ""
+    hyprCheck.running = true
     desktopFile.reload()
     stateFile.reload()
     root.loading = true
@@ -590,6 +613,24 @@ Item {
     wrapMode: Text.WordWrap
   }
 
+  // Shown while Hyprland does not load the generated file.
+  component HyprTip: Column {
+    width: parent ? parent.width : 0
+    spacing: Style.spacing.sm
+    visible: !root.hyprHooked || root.hyprSetupMessage !== ""
+    Hint {
+      width: parent.width
+      color: root.hyprHooked ? root.foreground : root.accent
+      text: root.hyprHooked ? root.hyprSetupMessage : root.tr("hyprNotLoaded")
+    }
+    SmallButton {
+      visible: !root.hyprHooked
+      enabled: !hyprSetup.running
+      text: root.tr("hyprSetup")
+      onClicked: hyprSetup.running = true
+    }
+  }
+
   // Shown while the Exposé plugin is missing or disabled: what it adds, what happens
   // without it, and the command to install it (copied with a click).
   component ExposeTip: Column {
@@ -844,6 +885,7 @@ Item {
               spacing: Style.spacing.huge
               visible: root.page === "general"
 
+              HyprTip {}
               ExposeTip {}
 
               // Language first, as in More Time and More Weather.
@@ -1295,6 +1337,7 @@ Item {
                 }
 
                 Hint { width: parent.width; visible: root.working.touchpad.enabled; text: root.tr("swipeFileHint") }
+                HyprTip {}
                 ExposeTip {}
 
                 Toggle {
@@ -1327,6 +1370,7 @@ Item {
                 width: parent.width
                 spacing: Style.spacing.md
 
+                HyprTip {}
                 ExposeTip {}
                 Toggle {
                   width: parent.width
@@ -1524,7 +1568,7 @@ Item {
                               width: Style.space(44)
                               text: ringBlock.modelData.keys[index] || ""
                               placeholderText: "–"
-                              maximumLength: 1
+                              maximumLength: 8   // "⇧3", also typed as "S3" or "shift+3"
                               horizontalAlignment: Text.AlignHCenter
                               foreground: root.foreground
                               accent: root.accent

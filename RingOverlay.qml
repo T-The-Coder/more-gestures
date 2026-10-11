@@ -267,8 +267,12 @@ Item {
       Keys.onPressed: function(event) {
         event.accepted = true
         if (event.key === Qt.Key_Escape) { root.cancel(); return }
-        // event.text keeps the case: "a" and Shift+a ("A") are two keys.
-        var k = String(event.text || "")
+        // Shift with the digit row by position (XKB keycodes 10 … 19, as Omarchy's
+        // Super+digit binds): "⇧1" … "⇧0", whatever character the layout gives.
+        var code = event.nativeScanCode
+        var k = (event.modifiers & Qt.ShiftModifier) && code >= 10 && code <= 19 ? "⇧" + ((code - 9) % 10)
+          // event.text keeps the case: "a" and Shift+a ("A") are two keys.
+          : String(event.text || "")
         if (k === "") return
         for (var c = 0; c < root.chips.length; c++) {
           var chip = root.chips[c]

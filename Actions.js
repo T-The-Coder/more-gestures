@@ -408,13 +408,16 @@ function ringDefaultsList() {
   return [
     { enabled: true, count: 12, slots: RING_SLOTS, keys: RING_KEYS },
     // Ring 2's slot k sits straight outside ring 1's slot k: "move the window there"
-    // right behind each workspace. No keys: 1-0 belong to ring 1.
+    // right behind each workspace. Keys ⇧1 … ⇧0, like Super+Shift+digit in Omarchy.
     { enabled: false, count: 12,
       slots: RING_SLOTS.map(function (a) {
         var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null
         return m ? dispatch("window-to-workspace-silent-" + m[1]) : none()
       }),
-      keys: Array.apply(null, Array(12)).map(function () { return "" }) },
+      keys: RING_SLOTS.map(function (a) {
+        var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null
+        return m ? "⇧" + (Number(m[1]) % 10) : ""
+      }) },
     { enabled: false, count: 12,
       slots: [dispatch("window-close"), dispatch("window-fullscreen"), dispatch("window-float-toggle"),
               dispatch("window-to-workspace-prev"), dispatch("window-to-workspace-next"),
