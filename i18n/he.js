@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "שימוש ב־4 אצבעות",
   fingersHint: "מה כל מחווה עושה מוגדר למטה לכל מחווה (התקן: 3 או 4 אצבעות, או הכול).",
   style_plain: "פשוט",
+  trail_plain: "פשוט",
   style_comets: "שביטים",
   style_clouds: "עננים נודדים",
   style_radar: "מכ״ם",

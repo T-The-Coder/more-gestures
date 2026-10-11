@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "4 उँगलियाँ उपयोग करें",
   fingersHint: "हर इशारा क्या करता है, यह नीचे हर इशारे के लिए तय होता है (डिवाइस: 3 या 4 उँगलियाँ, या सभी)।",
   style_plain: "सादा",
+  trail_plain: "सादा",
   style_comets: "धूमकेतु",
   style_clouds: "भटकते बादल",
   style_radar: "रडार",

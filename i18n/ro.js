@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Folosește 4 degete",
   fingersHint: "Ce face fiecare gest se setează mai jos pe gest (dispozitiv: 3 sau 4 degete, sau Toate).",
   style_plain: "Simplu",
+  trail_plain: "Simplu",
   style_comets: "Comete",
   style_clouds: "Nori călători",
   style_radar: "Radar",

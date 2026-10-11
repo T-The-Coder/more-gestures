@@ -78,7 +78,7 @@ var languageNames = {
   he: "עברית", fa: "فارسی", hi: "हिन्दी", id: "Bahasa Indonesia", vi: "Tiếng Việt", th: "ไทย"
 }
 
-var LANGUAGES = ["en", "de", "es", "fr", "pt", "it", "nl", "pl", "ru", "uk", "tr", "cs", "sv", "fi", "nb", "da", "ro", "hu", "el", "hi", "id", "vi", "th", "ja", "ko", "zh_CN", "zh_TW", "ar", "he", "fa"]
+var LANGUAGES = Object.keys(catalogs)
 
 // A language code, or a locale name such as "de_DE" / "pt-BR" / "zh_TW.UTF-8", to the
 // catalogue it uses; unknown ones get English.
@@ -118,10 +118,7 @@ function keyError(l, code) {
   return tr(l, map[code] || "err_action")
 }
 
-// The English and German tables under their old name, for the tests.
-var STRINGS = { en: catalogs.en, de: catalogs.de }
-
 if (typeof module !== "undefined") module.exports = {
-  STRINGS: STRINGS, catalogs: catalogs, LANGUAGES: LANGUAGES, languageNames: languageNames,
+  catalogs: catalogs, LANGUAGES: LANGUAGES, languageNames: languageNames,
   lang: lang, has: has, tr: tr, languageName: languageName, keyError: keyError
 }

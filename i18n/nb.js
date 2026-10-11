@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Bruk 4 fingre",
   fingersHint: "Hva hver gest gjør, stilles inn per gest nedenfor (enhet: 3 eller 4 fingre, eller Alle).",
   style_plain: "Enkel",
+  trail_plain: "Enkel",
   style_comets: "Kometer",
   style_clouds: "Drivende skyer",
   style_radar: "Radar",

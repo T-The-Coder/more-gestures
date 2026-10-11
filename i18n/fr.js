@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Utiliser 4 doigts",
   fingersHint: "Ce que fait chaque geste se règle par geste ci-dessous (appareil : 3 ou 4 doigts, ou Tous).",
   style_plain: "Sobre",
+  trail_plain: "Sobre",
   style_comets: "Comètes",
   style_clouds: "Nuages vagabonds",
   style_radar: "Radar",

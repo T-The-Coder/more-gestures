@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "4 vingers gebruiken",
   fingersHint: "Wat elk gebaar doet stel je hieronder per gebaar in (apparaat: 3 of 4 vingers, of Alle).",
   style_plain: "Eenvoudig",
+  trail_plain: "Eenvoudig",
   style_comets: "Kometen",
   style_clouds: "Drijvende wolken",
   style_radar: "Radar",

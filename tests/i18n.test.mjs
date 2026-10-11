@@ -5,30 +5,28 @@ const I = load("I18n.js")
 const A = load("Actions.js")
 
 const en = I.catalogs.en
-// Names other languages bring for Actions.js (English and German live there).
-const actionKeys = Object.keys(A.DISPATCH)
-  .filter(id => !/^(workspace|window-to-workspace-silent)-\d+$/.test(id))
-  .map(id => "act_" + id)
-  .concat(["act_workspace-n", "act_window-to-workspace-silent-n"])
-const labelKeys = Object.keys(A.LABELS).map(id => "label_" + id)
 const placeholders = text => (String(text).match(/\{[a-z]+\}|%1/g) || []).sort()
 
 test("30 languages, each complete, with the same placeholders as English", () => {
   assert.equal(I.LANGUAGES.length, 30)
   for (const code of I.LANGUAGES) {
     const cat = I.catalogs[code]
-    assert.ok(cat, code)
     for (const key of Object.keys(en)) {
       assert.ok(Object.prototype.hasOwnProperty.call(cat, key), `${code}: ${key}`)
       assert.ok(String(cat[key]).trim() !== "", `${code}: ${key} empty`)
       assert.deepEqual(placeholders(cat[key]), placeholders(en[key]), `${code}: ${key}`)
     }
-    for (const key of Object.keys(cat)) assert.ok(key in en || actionKeys.includes(key) || labelKeys.includes(key), `${code}: stray ${key}`)
-    if (code === "en" || code === "de") continue
-    for (const key of actionKeys.concat(labelKeys)) assert.ok(cat[key], `${code}: ${key}`)
-    assert.ok(cat["act_workspace-n"].includes("%1"), code)
-    assert.ok(cat["act_window-to-workspace-silent-n"].includes("%1"), code)
+    for (const key of Object.keys(cat)) assert.ok(key in en, `${code}: stray ${key}`)
   }
+})
+
+test("every desktop action has a name, the numbered ones a template", () => {
+  for (const id of Object.keys(A.DISPATCH)) {
+    const name = A.dispatchName(id, "en")
+    assert.ok(name && !name.startsWith("act_"), id)
+  }
+  assert.ok(en["act_workspace-n"].includes("%1"))
+  assert.ok(en["act_window-to-workspace-silent-n"].includes("%1"))
 })
 
 test("locale names map to catalogues; names in other languages come from them", () => {

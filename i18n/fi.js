@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Käytä 4 sormea",
   fingersHint: "Mitä kukin ele tekee, asetetaan alla eleittäin (laite: 3 tai 4 sormea, tai Kaikki).",
   style_plain: "Pelkistetty",
+  trail_plain: "Pelkistetty",
   style_comets: "Komeetat",
   style_clouds: "Ajelehtivat pilvet",
   style_radar: "Tutka",

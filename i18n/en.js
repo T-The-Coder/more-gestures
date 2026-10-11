@@ -1,8 +1,7 @@
 .pragma library
 
 // More Gestures' texts in en (I18n.js). The base: every other language is an overlay on it.
-// Action and label names in English and German live in Actions.js; other languages add
-// them here as act_<id> and label_<label>.
+// Action names are act_<id> (numbered ones act_<kind>-n with %1), labels label_<label>.
 var catalog = {
   title: "More Gestures",
   closeWindow: "Close",
@@ -155,6 +154,7 @@ var catalog = {
   fingers_tp4: "Use 4 fingers",
   fingersHint: "Which gesture does what is set per gesture below (device: 3 or 4 fingers, or All).",
   style_plain: "Plain",
+  trail_plain: "Plain",
   style_comets: "Comets",
   style_clouds: "Drifting clouds",
   style_radar: "Radar",
@@ -228,7 +228,50 @@ var catalog = {
   exclusionsHint: "Window classes or tags where the mouse is passed through untouched (games, VMs). A trailing * matches a prefix.",
   excludeAdd: "Add",
   excludePlaceholder: "Class or tag, e.g. steam_app_*",
-  excludeDefaults: "Restore defaults"
+  excludeDefaults: "Restore defaults",
+  "act_workspace-prev": "Workspace left",
+  "act_workspace-next": "Workspace right",
+  "act_workspace-previous": "Last workspace",
+  "act_window-close": "Close window",
+  "act_window-float-toggle": "Toggle floating",
+  "act_window-fullscreen": "Toggle fullscreen",
+  "act_window-maximize": "Toggle full width",
+  "act_window-pseudo": "Pseudo-tile",
+  "act_window-pin": "Pin window",
+  "act_window-to-workspace-prev": "Move window to workspace left",
+  "act_window-to-workspace-next": "Move window to workspace right",
+  "act_focus-left": "Focus left",
+  "act_focus-right": "Focus right",
+  "act_focus-up": "Focus up",
+  "act_focus-down": "Focus down",
+  "act_window-next": "Next window",
+  "act_window-prev": "Previous window",
+  "act_group-next": "Next window in group",
+  "act_group-prev": "Previous window in group",
+  "act_scratchpad-toggle": "Toggle scratchpad",
+  "act_workspace-n": "Workspace %1",
+  "act_window-to-workspace-silent-n": "Window under pointer → workspace %1",
+  "act_ring-menu": "Ring menu",
+  "act_hypr-workspace-swipe": "Swipe workspaces (Hyprland, follows the fingers)",
+  act_expose: "Exposé (all windows; app launcher without the plugin)",
+  "act_show-desktop": "Wallpaper (show wallpaper)",
+  "act_stack-down": "Down: close launcher / Exposé, wallpaper, files",
+  "act_stack-up": "Up: close files / back, Exposé, launcher",
+  act_hyprexpo: "Workspace grid (Hyprexpo)",
+  "act_app-launcher": "App launcher",
+  "act_new-terminal": "New terminal",
+  act_files: "Files",
+  label_back: "Back",
+  label_forward: "Forward",
+  "label_new-tab": "New tab",
+  "label_close-tab": "Close tab",
+  label_reload: "Reload",
+  "label_reopen-tab": "Reopen closed tab",
+  "label_duplicate-tab": "Duplicate tab",
+  "label_next-tab": "Next tab",
+  "label_prev-tab": "Previous tab",
+  label_launcher: "App launcher",
+  label_terminal: "New terminal"
 }
 
 if (typeof module !== "undefined") module.exports = { catalog: catalog }

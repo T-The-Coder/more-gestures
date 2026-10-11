@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "네 손가락 사용",
   fingersHint: "각 제스처의 동작은 아래에서 제스처별로 설정합니다(장치: 세·네 손가락 또는 모두).",
   style_plain: "단순",
+  trail_plain: "단순",
   style_comets: "혜성",
   style_clouds: "떠다니는 구름",
   style_radar: "레이더",

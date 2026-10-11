@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Používat 4 prsty",
   fingersHint: "Co které gesto dělá, se nastavuje níže u každého gesta (zařízení: 3 nebo 4 prsty, nebo Vše).",
   style_plain: "Prostý",
+  trail_plain: "Prostý",
   style_comets: "Komety",
   style_clouds: "Putující mraky",
   style_radar: "Radar",

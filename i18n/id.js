@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Gunakan 4 jari",
   fingersHint: "Apa yang dilakukan tiap gestur diatur per gestur di bawah (perangkat: 3 atau 4 jari, atau Semua).",
   style_plain: "Polos",
+  trail_plain: "Polos",
   style_comets: "Komet",
   style_clouds: "Awan berarak",
   style_radar: "Radar",

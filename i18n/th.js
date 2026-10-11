@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "ใช้ 4 นิ้ว",
   fingersHint: "ท่าทางไหนทำอะไรตั้งได้ทีละท่าด้านล่าง (อุปกรณ์: 3 หรือ 4 นิ้ว หรือทั้งหมด)",
   style_plain: "เรียบ",
+  trail_plain: "เรียบ",
   style_comets: "ดาวหาง",
   style_clouds: "เมฆลอย",
   style_radar: "เรดาร์",

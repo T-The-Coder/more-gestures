@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Usar 4 dedos",
   fingersHint: "O que cada gesto faz é definido por gesto abaixo (dispositivo: 3 ou 4 dedos, ou Todos).",
   style_plain: "Simples",
+  trail_plain: "Simples",
   style_comets: "Cometas",
   style_clouds: "Nuvens errantes",
   style_radar: "Radar",

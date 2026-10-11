@@ -1,6 +1,6 @@
 .pragma library
 
-// Looks for the ring menu and the gesture trail (names: style_* / trail_* in i18n/) ("Style" in Settings › Ring menu). Each
+// Looks for the ring menu ("Style" in Settings › Ring menu) and the gesture trail; their names are style_* / trail_* in i18n/. Each
 // style draws onto a Canvas 2D context: drawRing() behind the ring's slots, drawTrail()
 // instead of the plain line. Pure functions of their state: no timers, no randomness
 // that is not derived from an index (rand), so a frame depends only on the time `t` and

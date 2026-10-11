@@ -32,7 +32,7 @@ Column {
   readonly property int firstShown: 3
   readonly property var shownSections: showOlder ? sections : sections.slice(0, firstShown)
 
-  function filePath(name) { return String(Qt.resolvedUrl(name)).replace(/^file:\/\//, "") }
+  function filePath(name) { return decodeURIComponent(String(Qt.resolvedUrl(name)).replace(/^file:\/\//, "")) }
   function isGroup(item) {
     return item.title === "" && /^(Added|Changed|Fixed|Removed|Deprecated|Security)\b[^.]*$/.test(item.text)
   }
@@ -69,7 +69,7 @@ Column {
   }
 
   Text {
-    visible: changesPage.page.lang.indexOf("en") !== 0
+    visible: changesPage.page.lang !== "en"
     width: parent.width
     text: changesPage.page.tr("changesEnglishNote")
     color: changesPage.page.muted

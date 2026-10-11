@@ -291,7 +291,6 @@ test("every default action is valid and has a name in both languages", () => {
     assert.match(key, /^(\*|mouse|tp3|tp4|tap):/)
   }
   for (const [id, d] of Object.entries(A.DISPATCH)) {
-    assert.ok(d.en && d.de, id)
     // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
     // hyprexpo) that is passed to `hyprctl eval` as is.
     if (d.internal) assert.ok(["ring", "swipe"].includes(d.internal), id)

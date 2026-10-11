@@ -30,7 +30,7 @@ const trailState = (over = {}) => ({
   t: 1.5, still: false, points: path, times: path.map((_, i) => 0.5 + i * 0.015), lineWidth: 4, colors, ...over
 })
 
-test("every style has names and draws ring and trail with finite numbers", () => {
+test("every style draws ring and trail with finite numbers", () => {
   assert.equal(E.STYLES[0], "plain")
   assert.equal(E.STYLES.length, 11)
   for (const style of E.STYLES) {

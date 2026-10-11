@@ -1,5 +1,6 @@
 .pragma library
 .import "I18n.js" as I18n
+.import "Ring.js" as Ring
 
 // Gesture -> action mapping and command building. Pure functions only (no QML, no
 // I/O), so the same file runs in the shell and under `node --test`.
@@ -223,92 +224,65 @@ var HYPREXPO_LUA = EXPOSE_AVAILABLE_LUA + "\n" + [
 // id -> { lua, en, de }. `lua` is a complete hl.dsp expression; copied from the
 // shapes used in /usr/share/omarchy/default/hypr/bindings/tiling.lua.
 var DISPATCH = {
-  "workspace-prev":      { lua: 'hl.dsp.focus({ workspace = "e-1" })', en: "Workspace left", de: "Arbeitsfläche links" },
-  "workspace-next":      { lua: 'hl.dsp.focus({ workspace = "e+1" })', en: "Workspace right", de: "Arbeitsfläche rechts" },
-  "workspace-previous":  { lua: 'hl.dsp.focus({ workspace = "previous" })', en: "Last workspace", de: "Letzte Arbeitsfläche" },
-  "window-close":        { lua: 'hl.dsp.window.close()', en: "Close window", de: "Fenster schließen" },
-  "window-float-toggle": { lua: 'hl.dsp.window.float({ action = "toggle" })', en: "Toggle floating", de: "Schwebend umschalten" },
-  "window-fullscreen":   { lua: 'hl.dsp.window.fullscreen({ mode = "fullscreen" })', en: "Toggle fullscreen", de: "Vollbild umschalten" },
-  "window-maximize":     { lua: 'hl.dsp.window.fullscreen({ mode = "maximized" })', en: "Toggle full width", de: "Volle Breite umschalten" },
-  "window-pseudo":       { lua: 'hl.dsp.window.pseudo()', en: "Pseudo-tile", de: "Pseudo-Kachel" },
-  "window-pin":          { lua: 'hl.dsp.window.pin()', en: "Pin window", de: "Fenster anheften" },
-  "window-to-workspace-prev": { lua: 'hl.dsp.window.move({ workspace = "e-1" })', en: "Move window to workspace left", de: "Fenster auf Arbeitsfläche links" },
-  "window-to-workspace-next": { lua: 'hl.dsp.window.move({ workspace = "e+1" })', en: "Move window to workspace right", de: "Fenster auf Arbeitsfläche rechts" },
-  "focus-left":          { lua: 'hl.dsp.focus({ direction = "l" })', en: "Focus left", de: "Fokus nach links" },
-  "focus-right":         { lua: 'hl.dsp.focus({ direction = "r" })', en: "Focus right", de: "Fokus nach rechts" },
-  "focus-up":            { lua: 'hl.dsp.focus({ direction = "u" })', en: "Focus up", de: "Fokus nach oben" },
-  "focus-down":          { lua: 'hl.dsp.focus({ direction = "d" })', en: "Focus down", de: "Fokus nach unten" },
-  "window-next":         { lua: 'hl.dsp.window.cycle_next()', en: "Next window", de: "Nächstes Fenster" },
-  "window-prev":         { lua: 'hl.dsp.window.cycle_next({ next = false })', en: "Previous window", de: "Vorheriges Fenster" },
-  "group-next":          { lua: 'hl.dsp.group.next()', en: "Next window in group", de: "Nächstes Fenster in Gruppe" },
-  "group-prev":          { lua: 'hl.dsp.group.prev()', en: "Previous window in group", de: "Vorheriges Fenster in Gruppe" },
-  "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")', en: "Toggle scratchpad", de: "Notizblock umschalten" },
+  "workspace-prev":      { lua: 'hl.dsp.focus({ workspace = "e-1" })' },
+  "workspace-next":      { lua: 'hl.dsp.focus({ workspace = "e+1" })' },
+  "workspace-previous":  { lua: 'hl.dsp.focus({ workspace = "previous" })' },
+  "window-close":        { lua: 'hl.dsp.window.close()' },
+  "window-float-toggle": { lua: 'hl.dsp.window.float({ action = "toggle" })' },
+  "window-fullscreen":   { lua: 'hl.dsp.window.fullscreen({ mode = "fullscreen" })' },
+  "window-maximize":     { lua: 'hl.dsp.window.fullscreen({ mode = "maximized" })' },
+  "window-pseudo":       { lua: 'hl.dsp.window.pseudo()' },
+  "window-pin":          { lua: 'hl.dsp.window.pin()' },
+  "window-to-workspace-prev": { lua: 'hl.dsp.window.move({ workspace = "e-1" })' },
+  "window-to-workspace-next": { lua: 'hl.dsp.window.move({ workspace = "e+1" })' },
+  "focus-left":          { lua: 'hl.dsp.focus({ direction = "l" })' },
+  "focus-right":         { lua: 'hl.dsp.focus({ direction = "r" })' },
+  "focus-up":            { lua: 'hl.dsp.focus({ direction = "u" })' },
+  "focus-down":          { lua: 'hl.dsp.focus({ direction = "d" })' },
+  "window-next":         { lua: 'hl.dsp.window.cycle_next()' },
+  "window-prev":         { lua: 'hl.dsp.window.cycle_next({ next = false })' },
+  "group-next":          { lua: 'hl.dsp.group.next()' },
+  "group-prev":          { lua: 'hl.dsp.group.prev()' },
+  "scratchpad-toggle":   { lua: 'hl.dsp.workspace.toggle_special("scratchpad")' },
   // Event the expose.window-overview plugin listens for (same as its CTRL+ALT+TAB bind).
-  "workspace-1":         { chunk: workspaceLua(1), en: "Workspace 1", de: "Arbeitsfläche 1" },
-  "workspace-2":         { chunk: workspaceLua(2), en: "Workspace 2", de: "Arbeitsfläche 2" },
-  "workspace-3":         { chunk: workspaceLua(3), en: "Workspace 3", de: "Arbeitsfläche 3" },
-  "workspace-4":         { chunk: workspaceLua(4), en: "Workspace 4", de: "Arbeitsfläche 4" },
-  "workspace-5":         { chunk: workspaceLua(5), en: "Workspace 5", de: "Arbeitsfläche 5" },
-  "workspace-6":         { chunk: workspaceLua(6), en: "Workspace 6", de: "Arbeitsfläche 6" },
-  "workspace-7":         { chunk: workspaceLua(7), en: "Workspace 7", de: "Arbeitsfläche 7" },
-  "workspace-8":         { chunk: workspaceLua(8), en: "Workspace 8", de: "Arbeitsfläche 8" },
-  "workspace-9":         { chunk: workspaceLua(9), en: "Workspace 9", de: "Arbeitsfläche 9" },
-  "workspace-10":        { chunk: workspaceLua(10), en: "Workspace 10", de: "Arbeitsfläche 10" },
+  "workspace-1":         { chunk: workspaceLua(1) },
+  "workspace-2":         { chunk: workspaceLua(2) },
+  "workspace-3":         { chunk: workspaceLua(3) },
+  "workspace-4":         { chunk: workspaceLua(4) },
+  "workspace-5":         { chunk: workspaceLua(5) },
+  "workspace-6":         { chunk: workspaceLua(6) },
+  "workspace-7":         { chunk: workspaceLua(7) },
+  "workspace-8":         { chunk: workspaceLua(8) },
+  "workspace-9":         { chunk: workspaceLua(9) },
+  "workspace-10":        { chunk: workspaceLua(10) },
   // Ring 2 by default: each just clockwise of its workspace on ring 1.
-  "window-to-workspace-silent-1": { chunk: moveSilentLua(1), atPoint: true,
-    en: "Window under pointer → workspace 1", de: "Fenster unterm Zeiger → Arbeitsfläche 1" },
-  "window-to-workspace-silent-2": { chunk: moveSilentLua(2), atPoint: true,
-    en: "Window under pointer → workspace 2", de: "Fenster unterm Zeiger → Arbeitsfläche 2" },
-  "window-to-workspace-silent-3": { chunk: moveSilentLua(3), atPoint: true,
-    en: "Window under pointer → workspace 3", de: "Fenster unterm Zeiger → Arbeitsfläche 3" },
-  "window-to-workspace-silent-4": { chunk: moveSilentLua(4), atPoint: true,
-    en: "Window under pointer → workspace 4", de: "Fenster unterm Zeiger → Arbeitsfläche 4" },
-  "window-to-workspace-silent-5": { chunk: moveSilentLua(5), atPoint: true,
-    en: "Window under pointer → workspace 5", de: "Fenster unterm Zeiger → Arbeitsfläche 5" },
-  "window-to-workspace-silent-6": { chunk: moveSilentLua(6), atPoint: true,
-    en: "Window under pointer → workspace 6", de: "Fenster unterm Zeiger → Arbeitsfläche 6" },
-  "window-to-workspace-silent-7": { chunk: moveSilentLua(7), atPoint: true,
-    en: "Window under pointer → workspace 7", de: "Fenster unterm Zeiger → Arbeitsfläche 7" },
-  "window-to-workspace-silent-8": { chunk: moveSilentLua(8), atPoint: true,
-    en: "Window under pointer → workspace 8", de: "Fenster unterm Zeiger → Arbeitsfläche 8" },
-  "window-to-workspace-silent-9": { chunk: moveSilentLua(9), atPoint: true,
-    en: "Window under pointer → workspace 9", de: "Fenster unterm Zeiger → Arbeitsfläche 9" },
-  "window-to-workspace-silent-10": { chunk: moveSilentLua(10), atPoint: true,
-    en: "Window under pointer → workspace 10", de: "Fenster unterm Zeiger → Arbeitsfläche 10" },
+  "window-to-workspace-silent-1": { chunk: moveSilentLua(1), atPoint: true },
+  "window-to-workspace-silent-2": { chunk: moveSilentLua(2), atPoint: true },
+  "window-to-workspace-silent-3": { chunk: moveSilentLua(3), atPoint: true },
+  "window-to-workspace-silent-4": { chunk: moveSilentLua(4), atPoint: true },
+  "window-to-workspace-silent-5": { chunk: moveSilentLua(5), atPoint: true },
+  "window-to-workspace-silent-6": { chunk: moveSilentLua(6), atPoint: true },
+  "window-to-workspace-silent-7": { chunk: moveSilentLua(7), atPoint: true },
+  "window-to-workspace-silent-8": { chunk: moveSilentLua(8), atPoint: true },
+  "window-to-workspace-silent-9": { chunk: moveSilentLua(9), atPoint: true },
+  "window-to-workspace-silent-10": { chunk: moveSilentLua(10), atPoint: true },
   // Handled inside the shell (Service.qml), not by Hyprland: opens the ring menu.
-  "ring-menu":           { internal: "ring", en: "Ring menu", de: "Kreismenü" },
+  "ring-menu":           { internal: "ring" },
   // Not run by the plugin: bound to a "swipe" gesture it becomes Hyprland's own gesture
   // in the generated Lua file, where the workspace follows the fingers.
-  "hypr-workspace-swipe": { internal: "swipe", en: "Swipe workspaces (Hyprland, follows the fingers)",
-                           de: "Arbeitsflächen wischen (Hyprland, folgt den Fingern)" },
-  "expose":              { chunk: EXPOSE_LUA, en: "Exposé (all windows; app launcher without the plugin)",
-                           de: "Exposé (alle Fenster; ohne Plugin App-Launcher)" },
+  "hypr-workspace-swipe": { internal: "swipe" },
+  "expose":              { chunk: EXPOSE_LUA },
   // The ring shows only the part before the brackets ("Wallpaper").
-  "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Wallpaper (show wallpaper)", de: "Wallpaper (Hintergrund anzeigen)" },
+  "show-desktop":        { chunk: SHOW_DESKTOP_LUA },
   // Four-finger up/down as layers: what a swipe does depends on what is open, and the
   // opposite swipe takes it back (see STACK_DOWN_LUA / STACK_UP_LUA).
-  "stack-down":          { chunk: STACK_DOWN_LUA, en: "Down: close launcher / Exposé, wallpaper, files", de: "Runter: Launcher / Exposé zu, Wallpaper, Dateien" },
-  "stack-up":            { chunk: STACK_UP_LUA, en: "Up: close files / back, Exposé, launcher", de: "Hoch: Dateien zu / zurück, Exposé, Launcher" },
-  "hyprexpo":            { chunk: HYPREXPO_LUA, en: "Workspace grid (Hyprexpo)", de: "Arbeitsflächen-Raster (Hyprexpo)" },
+  "stack-down":          { chunk: STACK_DOWN_LUA },
+  "stack-up":            { chunk: STACK_UP_LUA },
+  "hyprexpo":            { chunk: HYPREXPO_LUA },
   // Programs as dispatch ids, so the ring settings can offer them in the dropdown.
-  "app-launcher":        { chunk: 'hl.exec_cmd("omarchy-menu toggle apps")', en: "App launcher", de: "App-Launcher" },
-  "new-terminal":        { chunk: 'hl.exec_cmd("omarchy-launch-terminal")', en: "New terminal", de: "Neues Terminal" },
-  "files":               { chunk: 'hl.exec_cmd("uwsm-app -- nautilus --new-window")', en: "Files", de: "Dateien" }
-}
-
-// Names for the default key combos; anything else shows the combo itself.
-var LABELS = {
-  "back":          { en: "Back", de: "Zurück" },
-  "forward":       { en: "Forward", de: "Vor" },
-  "new-tab":       { en: "New tab", de: "Neuer Tab" },
-  "close-tab":     { en: "Close tab", de: "Tab schließen" },
-  "reload":        { en: "Reload", de: "Neu laden" },
-  "reopen-tab":    { en: "Reopen closed tab", de: "Geschlossenen Tab öffnen" },
-  "duplicate-tab": { en: "Duplicate tab", de: "Tab duplizieren" },
-  "next-tab":      { en: "Next tab", de: "Nächster Tab" },
-  "prev-tab":      { en: "Previous tab", de: "Vorheriger Tab" },
-  "launcher":      { en: "App launcher", de: "App-Launcher" },
-  "terminal":      { en: "New terminal", de: "Neues Terminal" }
+  "app-launcher":        { chunk: 'hl.exec_cmd("omarchy-menu toggle apps")' },
+  "new-terminal":        { chunk: 'hl.exec_cmd("omarchy-launch-terminal")' },
+  "files":               { chunk: 'hl.exec_cmd("uwsm-app -- nautilus --new-window")' }
 }
 
 var MODIFIER_NAMES = {
@@ -412,12 +386,12 @@ function ringDefaultsList() {
     // right behind each workspace. Keys ⇧1 … ⇧0, like Super+Shift+digit in Omarchy.
     { enabled: false, count: 12,
       slots: RING_SLOTS.map(function (a) {
-        var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null
-        return m ? dispatch("window-to-workspace-silent-" + m[1]) : none()
+        var ws = Ring.workspaceOf(a)
+        return ws ? dispatch("window-to-workspace-silent-" + ws) : none()
       }),
       keys: RING_SLOTS.map(function (a) {
-        var m = a.type === "dispatch" ? /^workspace-(\d+)$/.exec(a.id) : null
-        return m ? "⇧" + (Number(m[1]) % 10) : ""
+        var ws = Ring.workspaceOf(a)
+        return ws ? "⇧" + Ring.workspaceLabel(ws) : ""
       }) },
     { enabled: false, count: 12,
       slots: [dispatch("window-close"), dispatch("window-fullscreen"), dispatch("window-float-toggle"),
@@ -571,33 +545,17 @@ function internalOf(raw) {
 
 // ------------------------------------------------------------------- display
 
-// The interface language's code (I18n.lang: "de", "fr", "zh_TW" …).
-function lang(l) { return I18n.lang(l) }
-
-// English and German names live here; other languages in their catalogue
-// (act_<id>, label_<label>), else English.
-function localName(entry, l, key) {
-  var code = lang(l)
-  if (entry[code]) return entry[code]
-  return I18n.has(code, key) ? I18n.tr(code, key) : entry.en
-}
-
-// Numbered actions share one entry per language with "%1" for the number:
-// act_workspace-n ("Workspace %1"), act_window-to-workspace-silent-n.
+// Names come from the catalogues: act_<id>, numbered actions one act_<kind>-n with
+// "%1" for the number (act_workspace-n = "Workspace %1").
 function dispatchName(id, l) {
-  if (!Object.prototype.hasOwnProperty.call(DISPATCH, id)) return id
   var m = /^(workspace|window-to-workspace-silent)-(\d+)$/.exec(id)
-  if (m) {
-    var code = lang(l), key = "act_" + m[1] + "-n"
-    if (!DISPATCH[id][code] && I18n.has(code, key)) return I18n.tr(code, key).replace("%1", m[2])
-  }
-  return localName(DISPATCH[id], l, "act_" + id)
+  return m ? I18n.tr(l, "act_" + m[1] + "-n").replace("%1", m[2]) : I18n.tr(l, "act_" + id)
 }
 
 // Key names stay English or German in every other language: the settings read a typed
 // combination back, and only those two spellings are understood (Keys.comboFromText).
 function comboText(combo, l) {
-  var names = MODIFIER_NAMES[lang(l)] || MODIFIER_NAMES.en
+  var names = MODIFIER_NAMES[I18n.lang(l) === "de" ? "de" : "en"]
   var parts = combo.mods.map(function (m) { return names[m] })
   parts.push(combo.key)
   return parts.join("+")
@@ -614,8 +572,8 @@ function actionName(raw, l) {
   if (!v.ok || v.action.type === "none") return "—"
   var a = v.action
   if (a.type === "dispatch") return dispatchName(a.id, l)
-  var known = a.label && Object.prototype.hasOwnProperty.call(LABELS, a.label) ? localName(LABELS[a.label], l, "label_" + a.label) : ""
-  var name = known || a.label
+  // The default key combos carry a known label (label_back …); others show their own.
+  var name = a.label && I18n.has("en", "label_" + a.label) ? I18n.tr(l, "label_" + a.label) : a.label
   if (a.type === "exec") return name || a.command.slice(0, MAX_LABEL_LENGTH)
   var text = keysText(a.sequence, l)
   return name ? name + " (" + text + ")" : text
@@ -858,7 +816,7 @@ if (typeof module !== "undefined") module.exports = {
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
   EXPOSE_AVAILABLE_LUA: EXPOSE_AVAILABLE_LUA, exposeAvailable: exposeAvailable,
-  dispatchName: dispatchName, LABELS: LABELS,
+  dispatchName: dispatchName,
   recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,

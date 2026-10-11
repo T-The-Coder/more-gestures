@@ -269,8 +269,8 @@ Item {
         if (event.key === Qt.Key_Escape) { root.cancel(); return }
         // Shift with the digit row by position (XKB keycodes 10 … 19, as Omarchy's
         // Super+digit binds): "⇧1" … "⇧0", whatever character the layout gives.
-        var code = event.nativeScanCode
-        var k = (event.modifiers & Qt.ShiftModifier) && code >= 10 && code <= 19 ? "⇧" + ((code - 9) % 10)
+        var digitWs = Ring.workspaceOfKeycode(event.nativeScanCode)
+        var k = (event.modifiers & Qt.ShiftModifier) && digitWs ? "⇧" + Ring.workspaceLabel(digitWs)
           // event.text keeps the case: "a" and Shift+a ("A") are two keys.
           : String(event.text || "")
         if (k === "") return
@@ -444,16 +444,15 @@ Item {
         color: hot ? Color.accent : modelData.ring > 0 ? Util.alpha(Color.foreground, 0.06) : "transparent"
         border.width: isCurrent ? Math.max(2, Style.space(3)) : 0
         border.color: Color.accent
-        // The key, small in the corner, unless the label already says it (1 for
-        // workspace 1). A move slot's icon shows the digit, so ⇧3 there is just "⇧".
+        // The key, small in the corner, unless the label already says it (Ring.keyHint).
         Text {
-          readonly property bool digitShown: parent.moveTo > 0 && modelData.key === "⇧" + Ring.workspaceLabel(parent.moveTo)
-          visible: modelData.key !== "" && !(parent.ws > 0 && Ring.workspaceLabel(parent.ws) === modelData.key)
+          readonly property string hint: Ring.keyHint(modelData.key, modelData.action)
+          visible: hint !== ""
           anchors.right: parent.right
           anchors.top: parent.top
           anchors.rightMargin: parent.pill ? Style.space(8) : Style.space(4)
           anchors.topMargin: Style.space(2)
-          text: digitShown ? "⇧" : modelData.key
+          text: hint
           color: parent.hot ? Color.background : Color.foreground
           opacity: 0.6
           font.family: Style.font.family

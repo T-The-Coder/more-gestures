@@ -1,4 +1,7 @@
 .pragma library
+.import "I18n.js" as I18n
+.import "Ring.js" as Ring
+.import "Keys.js" as Keys
 
 // Settings file contract shared by Service.qml (reads, applies live) and Settings.qml
 // (edits, writes). Pure functions (no QML, no I/O) so the same file runs in the shell and
@@ -9,8 +12,8 @@
 // default behaviour instead of a dead service. `bindings` holds only the user's overrides
 // (profile -> gesture key -> action); Actions.mergeBindings layers them over the defaults.
 //
-// Actions.js is passed in by the caller (`Config.parse(text, Actions)`): a .pragma library
-// cannot `.import` and still load under node. Without the argument node falls back to require.
+// Actions.js is passed in by the caller (`Config.parse(text, Actions)`); without the
+// argument node falls back to require.
 
 var PATH_SUFFIX = "/.local/state/omarchy/settings/more-gestures.json"
 var VERSION = 1
@@ -19,7 +22,7 @@ var BUTTONS = ["right", "middle", "side", "extra"]
 var PROFILES = ["default", "browser", "terminal"]
 // Interface language: "auto" follows the system locale; More Time and More Weather have
 // the same setting, so all three can show German on an English system.
-var LANGUAGES = ["auto", "en", "de", "es", "fr", "pt", "it", "nl", "pl", "ru", "uk", "tr", "cs", "sv", "fi", "nb", "da", "ro", "hu", "el", "hi", "id", "vi", "th", "ja", "ko", "zh_CN", "zh_TW", "ar", "he", "fa"]   // "auto" + I18n.LANGUAGES (a test keeps them equal)
+var LANGUAGES = ["auto"].concat(I18n.LANGUAGES)
 
 var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
@@ -78,8 +81,10 @@ var RING_KEY_PATTERN = /^([a-zA-Z0-9]|⇧[0-9])$/
 // A typed key as stored: "S3", "shift+3", "Shift 3", "⇧ 3" all become "⇧3".
 function ringKeyFrom(text) {
   var t = String(text || "").trim()
-  var m = /^(?:⇧|s|shift|umschalt)\s*\+?\s*([0-9])$/i.exec(t)
-  return m ? "⇧" + m[1] : t
+  var m = /^(\S+?)\s*\+?\s*([0-9])$/.exec(t)
+  var mod = m ? m[1].toLowerCase() : ""
+  // Keys.js's Shift spellings (Shift, Umschalt, ⇧), plus the short "S".
+  return m && (mod === "s" || Keys.MODIFIER_ALIASES[mod] === "SHIFT") ? "⇧" + m[2] : t
 }
 
 // Keys of all rings at once: a key used twice keeps its first slot (inner ring first),
@@ -262,7 +267,7 @@ function hyprLua(config, actions) {
   if (config.superDigits !== false) {
     var A2 = actionsModule(actions)
     for (var n = 1; n <= 10; n++) {
-      var key = "SUPER + code:" + (n + 9)
+      var key = "SUPER + code:" + Ring.digitKeycode(n)
       lines.push('hl.unbind("' + key + '")')
       lines.push('hl.bind("' + key + '", function()\n' + A2.DISPATCH["workspace-" + n].chunk
         + '\nend, { description = "Switch to workspace ' + n + ' (More Gestures: shows hidden windows)" })')
@@ -475,11 +480,12 @@ function listBindings(config, profile, actions) {
   })
 }
 
-// The language the interface uses: the chosen code, or with "auto" the locale name,
-// which I18n.lang maps to a catalogue ("de_DE" -> "de", unknown -> "en").
+// The catalogue the interface uses: the chosen language, or with "auto" the one
+// the locale maps to ("de_DE" -> "de", unknown -> "en"). Always a catalogue code, so
+// the rest can compare it directly.
 function uiLanguage(config, localeName) {
   var chosen = config && LANGUAGES.indexOf(config.language) > 0 ? config.language : ""
-  return chosen || String(localeName || "en")
+  return I18n.lang(chosen || localeName)
 }
 
 // The settings pages, in the order of the tab strip.

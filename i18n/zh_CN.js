@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "使用四指",
   fingersHint: "每个手势的操作在下方逐个设置（设备：三指、四指或全部）。",
   style_plain: "简洁",
+  trail_plain: "简洁",
   style_comets: "彗星",
   style_clouds: "飘云",
   style_radar: "雷达",

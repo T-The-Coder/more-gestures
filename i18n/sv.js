@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Använd 4 fingrar",
   fingersHint: "Vad varje gest gör ställs in per gest nedan (enhet: 3 eller 4 fingrar, eller Alla).",
   style_plain: "Enkel",
+  trail_plain: "Enkel",
   style_comets: "Kometer",
   style_clouds: "Drivande moln",
   style_radar: "Radar",

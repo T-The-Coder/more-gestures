@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "استفاده از ۴ انگشت",
   fingersHint: "اینکه هر ژست چه می‌کند، پایین برای هر ژست تنظیم می‌شود (دستگاه: ۳ یا ۴ انگشت، یا همه).",
   style_plain: "ساده",
+  trail_plain: "ساده",
   style_comets: "دنباله‌دارها",
   style_clouds: "ابرهای روان",
   style_radar: "رادار",

@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Χρήση 4 δαχτύλων",
   fingersHint: "Τι κάνει κάθε χειρονομία ορίζεται παρακάτω ανά χειρονομία (συσκευή: 3 ή 4 δάχτυλα, ή Όλες).",
   style_plain: "Απλό",
+  trail_plain: "Απλό",
   style_comets: "Κομήτες",
   style_clouds: "Περιπλανώμενα σύννεφα",
   style_radar: "Ραντάρ",

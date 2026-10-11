@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "4 本指を使う",
   fingersHint: "各ジェスチャーの動作は下でジェスチャーごとに設定します（デバイス：3 本・4 本指、またはすべて）。",
   style_plain: "シンプル",
+  trail_plain: "シンプル",
   style_comets: "彗星",
   style_clouds: "流れる雲",
   style_radar: "レーダー",

@@ -58,7 +58,9 @@ Item {
   // offer to set it up (a marked block in input.lua, with a backup).
   property bool hyprHooked: true
   property string hyprSetupMessage: ""
-  readonly property string setupScript: String(Qt.resolvedUrl("bin/setup-hypr")).replace(/^file:\/\//, "")
+  // A file of the plugin as a plain path (decoded, so a folder with spaces works).
+  function pluginPath(name) { return decodeURIComponent(String(Qt.resolvedUrl(name)).replace(/^file:\/\//, "")) }
+  readonly property string setupScript: pluginPath("bin/setup-hypr")
   Process {
     id: hyprCheck
     command: [root.setupScript, "--check"]
@@ -131,7 +133,7 @@ Item {
   function setLauncher(on) {
     if (launcherProc.running || on === root.launcherInstalled) return
     root.launcherInstalled = on   // shown at once; the file check confirms or reverts it
-    var script = String(Qt.resolvedUrl("bin/install-app-entry")).replace(/^file:\/\//, "")
+    var script = root.pluginPath("bin/install-app-entry")
     launcherProc.command = on ? [script] : [script, "--remove"]
     launcherProc.running = true
   }
@@ -261,9 +263,6 @@ Item {
   }
 
   // Trail styles are named after what the line becomes.
-  function trailStyleName(s) {
-    return root.tr(s === "plain" ? "style_plain" : "trail_" + s)
-  }
 
   // The swipe gesture can only swipe (Hyprland) or do nothing.
   function setSwipeGesture() {
@@ -519,7 +518,7 @@ Item {
   }
 
   function setRingKey(ringIndex, index, value) {
-    root.editRing(ringIndex, function(r) { r.keys[index] = String(value || "").trim() })
+    root.editRing(ringIndex, function(r) { r.keys[index] = Config.ringKeyFrom(value) })
   }
 
   function setSlot(ringIndex, index, value) {
@@ -1223,7 +1222,7 @@ Item {
                         width: Style.space(240)
                         showLabel: false
                         fontFamily: root.fontFamily
-                        options: Effects.STYLES.map(function(s) { return { value: s, label: root.trailStyleName(s) } })
+                        options: Effects.STYLES.map(function(s) { return { value: s, label: root.tr("trail_" + s) } })
                         value: root.working.trailStyle
                         onChanged: function(v) { root.set("trailStyle", v) }
                       }
@@ -1566,7 +1565,7 @@ Item {
                               width: Style.space(44)
                               text: ringBlock.modelData.keys[index] || ""
                               placeholderText: "–"
-                              maximumLength: 8   // "⇧3", also typed as "S3" or "shift+3"
+                              maximumLength: 12  // "⇧3", also typed as "S3" or "Umschalt + 3"
                               horizontalAlignment: Text.AlignHCenter
                               foreground: root.foreground
                               accent: root.accent

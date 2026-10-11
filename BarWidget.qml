@@ -48,9 +48,10 @@ BarWidget {
     var name = function (a) { return a && a !== "none" ? tr("tip_" + a) : "" }
     var b = root.config.bar
     var parts = []
-    if (name(b.left)) parts.push(tr("tipLeft") + ": " + name(b.left))
-    if (name(b.middle)) parts.push(tr("tipMiddle") + ": " + name(b.middle))
-    if (name(b.right)) parts.push(tr("tipRight") + ": " + name(b.right))
+    ;[["tipLeft", b.left], ["tipMiddle", b.middle], ["tipRight", b.right]].forEach(function (p) {
+      var n = name(p[1])
+      if (n) parts.push(tr(p[0]) + ": " + n)
+    })
     return "More Gestures: " + state + (parts.length ? "\n" + parts.join(" · ") : "")
   }
 

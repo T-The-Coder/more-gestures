@@ -1,6 +1,7 @@
 """bin/setup-hypr on a throwaway config: adds its block once, detects a hand-made hook,
 removes only its own block, keeps backups."""
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +11,12 @@ SCRIPT = Path(__file__).resolve().parent.parent / "bin" / "setup-hypr"
 
 
 class SetupHyprTest(unittest.TestCase):
+    def test_loads_the_file_config_js_writes(self):
+        # The script cannot import Config.js; this keeps the two paths in step.
+        config = (SCRIPT.parent.parent / "Config.js").read_text()
+        suffix = re.search(r'var HYPR_FILE_SUFFIX = "([^"]+)"', config).group(1)
+        self.assertIn('os.getenv("HOME") .. "' + suffix + '"', SCRIPT.read_text())
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.hypr = Path(self.tmp.name) / "hypr"

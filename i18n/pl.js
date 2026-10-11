@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Używaj 4 palców",
   fingersHint: "Co robi każdy gest, ustawiasz niżej dla każdego gestu (urządzenie: 3 lub 4 palce albo Wszystkie).",
   style_plain: "Prosty",
+  trail_plain: "Prosty",
   style_comets: "Komety",
   style_clouds: "Wędrujące chmury",
   style_radar: "Radar",

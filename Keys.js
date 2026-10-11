@@ -124,5 +124,5 @@ function comboFromText(text) {
 
 if (typeof module !== "undefined") module.exports = {
   isModifierKey: isModifierKey, keyName: keyName, comboFromQt: comboFromQt,
-  comboFromText: comboFromText, keyFromToken: keyFromToken
+  comboFromText: comboFromText, keyFromToken: keyFromToken, MODIFIER_ALIASES: MODIFIER_ALIASES
 }

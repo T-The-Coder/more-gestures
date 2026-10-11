@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "4 ujj használata",
   fingersHint: "Hogy melyik gesztus mit tesz, lent gesztusonként állítható (eszköz: 3 vagy 4 ujj, vagy Mind).",
   style_plain: "Egyszerű",
+  trail_plain: "Egyszerű",
   style_comets: "Üstökösök",
   style_clouds: "Vándorló felhők",
   style_radar: "Radar",

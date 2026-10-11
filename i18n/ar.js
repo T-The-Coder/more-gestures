@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "استخدام 4 أصابع",
   fingersHint: "ما تفعله كل إيماءة يُضبط أدناه لكل إيماءة (الجهاز: 3 أو 4 أصابع، أو الكل).",
   style_plain: "بسيط",
+  trail_plain: "بسيط",
   style_comets: "مذنبات",
   style_clouds: "سحب عابرة",
   style_radar: "رادار",

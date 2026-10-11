@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "Dùng 4 ngón",
   fingersHint: "Mỗi cử chỉ làm gì được đặt riêng bên dưới (thiết bị: 3 hoặc 4 ngón, hoặc Tất cả).",
   style_plain: "Đơn giản",
+  trail_plain: "Đơn giản",
   style_comets: "Sao chổi",
   style_clouds: "Mây trôi",
   style_radar: "Radar",

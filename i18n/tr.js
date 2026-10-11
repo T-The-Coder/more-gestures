@@ -153,6 +153,7 @@ var catalog = {
   fingers_tp4: "4 parmak kullan",
   fingersHint: "Her hareketin ne yaptığı aşağıda hareket başına ayarlanır (aygıt: 3 ya da 4 parmak veya Tümü).",
   style_plain: "Sade",
+  trail_plain: "Sade",
   style_comets: "Kuyruklu yıldızlar",
   style_clouds: "Gezgin bulutlar",
   style_radar: "Radar",

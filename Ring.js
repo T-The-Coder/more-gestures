@@ -93,6 +93,20 @@ function moveTargetOf(action) {
 // What a slot shows: "1" … "9", "0" for 10; other actions use their name (caller).
 function workspaceLabel(ws) { return ws === 10 ? "0" : String(ws) }
 
+// Workspace n's key on the digit row as an XKB keycode (code:10 … code:19, how Omarchy
+// binds Super+1…0), and back: the digit row by position, whatever the layout prints.
+function digitKeycode(ws) { return ws + 9 }
+function workspaceOfKeycode(code) { return code >= 10 && code <= 19 ? code - 9 : 0 }
+
+// The key hint in a slot's corner: what the label does not already say. Workspace 1
+// with key "1" needs none; a move slot shows its digit in the icon, so "⇧3" becomes "⇧".
+function keyHint(key, action) {
+  var k = String(key || ""), ws = workspaceOf(action), to = moveTargetOf(action)
+  if (ws && k === workspaceLabel(ws)) return ""
+  if (to && k === "⇧" + workspaceLabel(to)) return "⇧"
+  return k
+}
+
 // Workspaces 1-5 always look normal; 6-10 are faded unless something is on them.
 // Other actions always look normal, empty slots are not drawn.
 function emphasized(action, occupied) {
@@ -113,5 +127,6 @@ function occupiedFrom(text) {
 if (typeof module !== "undefined") module.exports = {
   sectorFor: sectorFor, position: position, layout: layout, outerRadius: outerRadius, pick: pick,
   workspaceOf: workspaceOf, workspaceLabel: workspaceLabel, emphasized: emphasized,
-  occupiedFrom: occupiedFrom, moveTargetOf: moveTargetOf, dividers: dividers
+  occupiedFrom: occupiedFrom, moveTargetOf: moveTargetOf, dividers: dividers,
+  digitKeycode: digitKeycode, workspaceOfKeycode: workspaceOfKeycode, keyHint: keyHint
 }
