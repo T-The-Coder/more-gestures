@@ -410,9 +410,14 @@ test("ring style: plain by default, known styles only, trail follows by default"
   assert.deepEqual(Config.RING_STYLES, E.STYLES)
   const d = Config.defaults().ring
   assert.equal(d.style, "plain")
-  assert.equal(d.styleTrail, true)
-  assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.style, "neon")
-  assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.styleTrail, false)
+  assert.equal(d.styleTrail, undefined)
+  assert.equal(Config.sanitize({ ring: { style: "neon" } }).ring.style, "neon")
+  // The trail has its own style; the old "trail follows the ring" setting carries over.
+  assert.equal(Config.defaults().trailStyle, "plain")
+  assert.equal(Config.sanitize({ trailStyle: "comets", ring: { style: "neon" } }).trailStyle, "comets")
+  assert.equal(Config.sanitize({ ring: { style: "neon" } }).trailStyle, "neon")
+  assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).trailStyle, "plain")
+  assert.equal(Config.sanitize({ trailStyle: "glitter" }).trailStyle, "plain")
   assert.equal(Config.sanitize({ ring: { style: "glitter" } }).ring.style, "plain")
 })
 

@@ -287,7 +287,7 @@ Item {
     indicator: root.config.indicator
     animations: root.config.animations
     lang: root.lang
-    trailStyle: root.config.ring.styleTrail ? root.config.ring.style : "plain"
+    trailStyle: root.config.trailStyle
   }
 
   function daemonCommand() {

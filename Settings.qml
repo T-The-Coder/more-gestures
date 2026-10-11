@@ -167,6 +167,7 @@ Item {
     mmField.field.value = root.working.touchpad.thresholdMm
     languagePicker.value = root.working.language
     stylePicker.value = root.working.ring.style
+    trailPicker.value = root.working.trailStyle
     cornerField.field.value = root.working.taps.cornerMm
     doubleField.field.value = root.working.ring.doubleMs
   }
@@ -235,6 +236,11 @@ Item {
     }).map(function(id) {
       return { value: id, label: Actions.DISPATCH[id][code] }
     })
+  }
+
+  // Trail styles are named after what the line becomes.
+  function trailStyleName(s) {
+    return s === "plain" ? Effects.name(s, root.lang) : root.tr("trail_" + s)
   }
 
   // The swipe gesture can only swipe (Hyprland) or do nothing.
@@ -1155,6 +1161,88 @@ Item {
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.set("wheel", !root.working.wheel)
                 }
+
+                // Look of the gesture trail (Effects.drawTrail), for mouse and trackpad
+                // gestures, with a preview: a ↓→ line drawn in 1.6 s, held, drawn again.
+                Row {
+                  spacing: Style.spacing.huge
+                  Column {
+                    spacing: Style.spacing.md
+                    Row {
+                      spacing: Style.spacing.md
+                      Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Style.space(120)
+                        text: root.tr("trailStyle")
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.body
+                      }
+                      Dropdown {
+                        id: trailPicker
+                        width: Style.space(240)
+                        showLabel: false
+                        fontFamily: root.fontFamily
+                        options: Effects.STYLES.map(function(s) { return { value: s, label: root.trailStyleName(s) } })
+                        value: root.working.trailStyle
+                        onChanged: function(v) { root.set("trailStyle", v) }
+                      }
+                    }
+                    Hint { width: Style.space(380); text: root.tr("trailStyleHint") }
+                  }
+                  Rectangle {
+                    width: Style.space(260)
+                    height: Style.space(180)
+                    radius: Style.cornerRadius
+                    color: Util.alpha(Color.background, 0.82)
+                    border.width: 1
+                    border.color: Util.alpha(root.foreground, 0.12)
+                    Canvas {
+                      id: trailPreview
+                      anchors.fill: parent
+                      property real t: 0
+                      readonly property string style: root.working.trailStyle
+                      readonly property bool running: root.opened && root.page === "mouse"
+                      onStyleChanged: { t = 0; requestPaint() }
+                      onRunningChanged: if (running) requestPaint()
+                      onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        var w = width, h = height
+                        var colors = { accent: Color.accent, fg: root.foreground, bg: Color.background }
+                        var still = !root.working.animations
+                        var cycle = t % 3.2
+                        var shown = still ? 1 : Math.min(1, cycle / 1.6)
+                        var pts = [], times = [], n = 48
+                        for (var j = 0; j <= n * shown; j++) {
+                          var f = j / n
+                          pts.push(f < 0.5 ? { x: w * 0.3, y: h * (0.15 + f * 1.4) } : { x: w * (0.3 + (f - 0.5) * 0.9), y: h * 0.85 })
+                          times.push(f * 1.6)
+                        }
+                        if (pts.length < 2) return
+                        if (style === "plain") {
+                          ctx.strokeStyle = Effects.rgba(Color.accent, 1)
+                          ctx.lineWidth = 4
+                          ctx.lineCap = "round"
+                          ctx.lineJoin = "round"
+                          ctx.beginPath()
+                          ctx.moveTo(pts[0].x, pts[0].y)
+                          for (var p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y)
+                          ctx.stroke()
+                          return
+                        }
+                        Effects.drawTrail(ctx, style, { t: cycle, still: still, points: pts, times: times,
+                          lineWidth: 4, colors: colors })
+                      }
+                      Timer {
+                        interval: 40
+                        repeat: true
+                        running: trailPreview.running && root.working.animations
+                        onTriggered: { trailPreview.t += 0.04; trailPreview.requestPaint() }
+                      }
+                    }
+                  }
+                }
               }
             }
 
@@ -1294,8 +1382,8 @@ Item {
                   onClicked: root.setRing("dividers", !root.working.ring.dividers)
                 }
 
-                // Look of the ring and the trail (Effects.js), with a live preview: a small
-                // ring and a gesture line drawn over and over.
+                // Look of the ring (Effects.js), with a live preview of a small ring. The
+                // gesture trail has its own style on the Mouse page.
                 Row {
                   spacing: Style.spacing.huge
                   Column {
@@ -1321,14 +1409,6 @@ Item {
                       }
                     }
                     Hint { width: Style.space(380); text: root.tr("ringStyleHint") }
-                    Toggle {
-                      width: Style.space(380)
-                      label: root.tr("ringStyleTrail")
-                      description: root.tr("ringStyleTrailHint")
-                      checked: root.working.ring.styleTrail
-                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                      onClicked: root.setRing("styleTrail", !root.working.ring.styleTrail)
-                    }
                   }
                   Rectangle {
                     width: Style.space(260)
@@ -1345,8 +1425,7 @@ Item {
                       readonly property bool running: root.opened && root.page === "ring"
                       onStyleChanged: { t = 0; requestPaint() }
                       onRunningChanged: if (running) requestPaint()
-                      // A mini ring: two rings of twelve, and a ↓→ line drawn in 1.6 s,
-                      // held, then drawn again.
+                      // A mini ring: two rings of twelve, the outer 12 o'clock slot selected.
                       onPaint: {
                         var ctx = getContext("2d")
                         ctx.reset()
@@ -1366,16 +1445,6 @@ Item {
                             ctx.arc(c + Math.sin(a) * rings[k].radius, c - Math.cos(a) * rings[k].radius, slot * 0.18, 0, 2 * Math.PI)
                             ctx.fill()
                           }
-                        if (!root.working.ring.styleTrail || style === "plain") return
-                        var shown = still ? 1 : Math.min(1, cycle / 1.6)
-                        var pts = [], times = [], n = 40
-                        for (var j = 0; j <= n * shown; j++) {
-                          var f = j / n
-                          pts.push(f < 0.5 ? { x: w * 0.3, y: w * (0.25 + f * 1.0) } : { x: w * (0.3 + (f - 0.5) * 0.8), y: w * 0.75 })
-                          times.push(f * 1.6)
-                        }
-                        Effects.drawTrail(ctx, style, { t: cycle, still: still, points: pts, times: times,
-                          lineWidth: 3, colors: colors })
                       }
                       Timer {
                         interval: 40

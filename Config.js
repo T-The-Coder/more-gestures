@@ -53,12 +53,22 @@ var RING_HOTKEY = { mods: ["SUPER", "ALT"], key: "R" }
 function ringDefaults(actions) {
   var A = actionsModule(actions)
   return { enabled: false, doubleMs: LIMITS.doubleMs.def, hotkey: clone(RING_HOTKEY),
-           dividers: true, style: "plain", styleTrail: true, rings: clone(A.ringDefaultsList()) }
+           dividers: true, style: "plain", rings: clone(A.ringDefaultsList()) }
 }
 
 // The ring's looks; the same list as Effects.STYLES (a test keeps them equal).
 var RING_STYLES = ["plain", "comets", "clouds", "radar", "orbits", "ink", "neon", "pulse",
                    "clockwork", "aurora", "fireflies"]
+
+// Look of the gesture trail (Settings › Mouse; Effects.drawTrail), for mouse and trackpad.
+// Before it had its own setting the trail followed the ring's style unless
+// ring.styleTrail was false: that choice is carried over.
+function cleanTrailStyle(raw) {
+  if (RING_STYLES.indexOf(raw.trailStyle) >= 0) return raw.trailStyle
+  var ring = isPlainObject(raw.ring) ? raw.ring : null
+  if (ring && ring.styleTrail !== false && RING_STYLES.indexOf(ring.style) >= 0) return ring.style
+  return "plain"
+}
 
 // Letters and digits; upper case means Shift+letter, so "a" and "A" are two keys.
 var RING_KEY_PATTERN = /^[a-zA-Z0-9]$/
@@ -126,9 +136,8 @@ function cleanRing(raw, actions) {
            hotkey: Object.prototype.hasOwnProperty.call(raw, "hotkey") ? cleanHotkey(raw.hotkey, A) : clone(RING_HOTKEY),
            // Soft lines between the rings and their slots.
            dividers: raw.dividers !== false,
-           // Look of the ring (Effects.js); styleTrail: the gesture trail matches it.
+           // Look of the ring (Effects.js); the gesture trail has its own (trailStyle).
            style: RING_STYLES.indexOf(raw.style) >= 0 ? raw.style : "plain",
-           styleTrail: raw.styleTrail !== false,
            rings: rings }
 }
 
@@ -330,6 +339,7 @@ function defaults(actions) {
     enabled: true,
     language: "auto",
     superDigits: true,
+    trailStyle: "plain",
     button: "right",
     threshold: LIMITS.threshold.def,
     holdMs: LIMITS.holdMs.def,
@@ -357,6 +367,7 @@ function sanitize(raw, actions) {
     // Super+1…0 run the plugin's workspace action (hyprLua), so they bring back windows
     // the wallpaper layer hid and close Exposé, like the ring's workspace slots.
     superDigits: raw.superDigits !== false,
+    trailStyle: cleanTrailStyle(raw),
     button: BUTTONS.indexOf(raw.button) >= 0 ? raw.button : "right",
     threshold: clampInt(raw.threshold, LIMITS.threshold),
     holdMs: clampInt(raw.holdMs, LIMITS.holdMs),

@@ -25,8 +25,10 @@
   default; rebinds Omarchy's keys in the generated Hyprland file).
 - Ten styles for the ring menu, each with a matching gesture trail (Ring menu › Style,
   live preview): Comets, Drifting clouds, Radar, Orbits, Ink in water, Neon, Pulse,
-  Clockwork, Aurora, Fireflies; "Plain" stays the default. "Gesture trail in the same
-  style" can be switched off; with animations off each style is a still frame.
+  Clockwork, Aurora, Fireflies; "Plain" stays the default. The gesture trail has its own
+  style under Mouse › Trail (Comet, Vapour trail, Blips, Stardust, Brush stroke, Neon,
+  Pulsing line, Dashes, Ribbon of light, Sparks), also with a preview; with animations off
+  each style is a still frame.
 
 ### Changed
 - Trackpad gestures in groups: taps (by corner, then count; the 4-finger double tap

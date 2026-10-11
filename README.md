@@ -102,9 +102,10 @@ action, workspaces included; outer
 rings show short names, the full name of the slot under the pointer appears in the
 middle. Rings that do not fit the screen are drawn smaller.
 
-**Styles** (Ring menu › Style), with a live preview in the settings; the gesture trail
-takes the same style unless "Gesture trail in the same style" is off. With animations off
-(General) every style is a still frame.
+**Styles**, each with a live preview in the settings: the ring under Ring menu › Style,
+the gesture trail (mouse and trackpad) separately under Mouse › Trail. With animations off
+(General) every style is a still frame. The rows below pair them by theme; any ring style
+goes with any trail.
 
 | Style | Ring | Trail |
 |---|---|---|
