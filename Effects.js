@@ -370,6 +370,9 @@ function drawTrail(ctx, style, s) {
   ctx.restore()
 }
 
+// How long a piece of the comet trail takes to burn out, in seconds.
+var COMET_FADE = 1.1
+
 // Seconds since point i was drawn (0 when still or unknown).
 function age(s, i) {
   if (s.still || !s.times || s.times[i] === undefined) return 0
@@ -377,19 +380,26 @@ function age(s, i) {
 }
 
 var TRAIL = {
-  // The line is a comet: a bright head at the pointer, the tail fading back along the path.
+  // The line is a comet: a bright head at the pointer, the tail burning out behind it.
+  // Each piece fades with its age (COMET_FADE seconds), so the tail slowly disappears
+  // even while the pointer rests; without times (a still frame) it fades by distance.
   comets: function (ctx, s) {
     var P = s.points, L = lengths(P), total = L[L.length - 1], tail = Math.min(total, 700)
+    var timed = !s.still && s.times && s.times.length === P.length
     for (var i = 1; i < P.length; i++) {
-      var f = 1 - (total - L[i]) / Math.max(1, tail)
+      var f = timed ? 1 - age(s, i) / COMET_FADE : 1 - (total - L[i]) / Math.max(1, tail)
       if (f <= 0) continue
+      f = f * f * (3 - 2 * f)   // smoothstep: a soft end instead of a hard cut
       ctx.strokeStyle = rgba(s.colors.accent, f * 0.9)
       ctx.lineWidth = s.lineWidth * (0.3 + f)
       polyline(ctx, P, i - 1, i); ctx.stroke()
     }
+    // The head dims too once the pointer stops (and after the release).
     var h = P[P.length - 1]
-    glow(ctx, h.x, h.y, s.lineWidth * 5, s.colors.accent, 0.9)
-    glow(ctx, h.x, h.y, s.lineWidth * 1.6, s.colors.fg, 1)
+    var lit = timed ? Math.max(0, 1 - age(s, P.length - 1) / COMET_FADE) : 1
+    if (lit <= 0) return
+    glow(ctx, h.x, h.y, s.lineWidth * 5, s.colors.accent, 0.9 * lit)
+    glow(ctx, h.x, h.y, s.lineWidth * 1.6, s.colors.fg, lit)
   },
 
   // A vapour trail that widens and dissolves into puffs.

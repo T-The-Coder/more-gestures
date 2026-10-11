@@ -28,7 +28,8 @@
   Clockwork, Aurora, Fireflies; "Plain" stays the default. The gesture trail has its own
   style under Mouse › Trail (Comet, Vapour trail, Blips, Stardust, Brush stroke, Neon,
   Pulsing line, Dashes, Ribbon of light, Sparks), also with a preview; with animations off
-  each style is a still frame.
+  each style is a still frame. The comet's tail burns out with time, also after the
+  release (about a second, the surface takes no input meanwhile).
 
 ### Changed
 - Trackpad gestures in groups: taps (by corner, then count; the 4-finger double tap

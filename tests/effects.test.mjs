@@ -78,3 +78,16 @@ test("helpers: deterministic randomness, rgba, tracks, turns", () => {
   // The L-shaped test path turns once.
   assert.equal(E.turnPoints(path, E.lengths(path)).length, 1)
 })
+
+test("comet trail: old pieces burn out, fresh ones glow", () => {
+  // Points drawn 0..2 s ago: the oldest are gone, the newest strong.
+  const pts = Array.from({ length: 40 }, (_, i) => ({ x: 10 + i * 10, y: 50 }))
+  const strokes = []
+  const ctx = new Proxy({}, { get: (_, k) => k === "createRadialGradient"
+    ? () => ({ addColorStop() {} })
+    : k === "strokeStyle" ? undefined : (...a) => { if (k === "stroke") strokes.push(ctx._style) } , set: (o, k, v) => { if (k === "strokeStyle") ctx._style = v; o[k] = v; return true } })
+  E.drawTrail(ctx, "comets", { t: 2, still: false, points: pts, times: pts.map((_, i) => i * 0.05), lineWidth: 4, colors })
+  // Pieces older than the fade time are skipped: fewer strokes than segments.
+  assert.ok(strokes.length < pts.length - 1, String(strokes.length))
+  assert.ok(strokes.length > 5)
+})

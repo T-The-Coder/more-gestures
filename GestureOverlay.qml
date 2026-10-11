@@ -33,6 +33,9 @@ Item {
   property string lang: "en"
 
   readonly property int fadeMs: 150
+  // The comet trail burns out after the release instead of vanishing with the rest
+  // (Effects: each piece fades with its age); the surface stays this long, input-free.
+  readonly property int trailLingerMs: trailStyle === "comets" && animations ? 1200 : 0
   // Gestures end at the latest with the daemon's emergency brake (10 s); if its `end` or
   // `cancel` line gets lost, the surfaces must still go away on their own.
   readonly property int safetyMs: 10000
@@ -162,7 +165,7 @@ Item {
 
   Timer {
     id: fadeTimer
-    interval: root.fadeMs
+    interval: Math.max(root.fadeMs, root.trailLingerMs)
     onTriggered: { root.fading = false; root.done = false }
   }
 
@@ -275,6 +278,39 @@ Item {
     // Visual only: an empty input region keeps clicks going to the desktop below.
     mask: Region {}
 
+    // A style's trail (Effects.drawTrail) instead of the plain line; repainted about 30
+    // times a second while the gesture runs, so ageing effects keep moving.
+    Canvas {
+      id: trailCanvas
+      anchors.fill: parent
+      visible: root.trailStyle !== "plain"
+      // Outside `content`, so a lingering comet keeps its own fade (by age) instead of
+      // the indicator's quick one.
+      opacity: root.active || root.trailLingerMs > 0 ? 1 : 0
+      Behavior on opacity {
+        enabled: root.animations
+        NumberAnimation { duration: root.fadeMs; easing.type: Easing.OutCubic }
+      }
+      property real t: 0
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.reset()
+        var path = root.trailPath
+        // trailPath is clipped at the ring: its points are the last ones of `points`.
+        var times = root.pointTimes.slice(Math.max(0, root.pointTimes.length - path.length))
+        Effects.drawTrail(ctx, root.trailStyle, {
+          t: t, still: !root.animations, points: path, times: times, lineWidth: root.lineWidth,
+          colors: { accent: Color.accent, fg: Color.foreground, bg: Color.background }
+        })
+      }
+      Timer {
+        interval: 33
+        repeat: true
+        running: trailCanvas.visible && root.visualVisible
+        onTriggered: { trailCanvas.t = root.now(); trailCanvas.requestPaint() }
+      }
+    }
+
     Item {
       id: content
       anchors.fill: parent
@@ -282,32 +318,6 @@ Item {
       Behavior on opacity {
         enabled: root.animations
         NumberAnimation { duration: root.fadeMs; easing.type: Easing.OutCubic }
-      }
-
-      // A style's trail (Effects.drawTrail) instead of the plain line; repainted about 30
-      // times a second while the gesture runs, so ageing effects keep moving.
-      Canvas {
-        id: trailCanvas
-        anchors.fill: parent
-        visible: root.trailStyle !== "plain"
-        property real t: 0
-        onPaint: {
-          var ctx = getContext("2d")
-          ctx.reset()
-          var path = root.trailPath
-          // trailPath is clipped at the ring: its points are the last ones of `points`.
-          var times = root.pointTimes.slice(Math.max(0, root.pointTimes.length - path.length))
-          Effects.drawTrail(ctx, root.trailStyle, {
-            t: t, still: !root.animations, points: path, times: times, lineWidth: root.lineWidth,
-            colors: { accent: Color.accent, fg: Color.foreground, bg: Color.background }
-          })
-        }
-        Timer {
-          interval: 33
-          repeat: true
-          running: trailCanvas.visible && root.visualVisible
-          onTriggered: { trailCanvas.t = root.now(); trailCanvas.requestPaint() }
-        }
       }
 
       Shape {
