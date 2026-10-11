@@ -24,7 +24,8 @@ cat >"$desktop" <<DESKTOP
 Type=Application
 Version=1.0
 Name=More Gestures
-Comment=Mouse gestures: trigger button, actions, indicator
+Comment=Mouse and trackpad gestures, ring menu: settings
+Comment[de]=Maus- und Trackpad-Gesten, Kreismenü: Einstellungen
 Exec=omarchy-shell shell toggle more-gestures
 Icon=more-gestures
 Terminal=false

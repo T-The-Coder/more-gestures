@@ -17,6 +17,9 @@ var VERSION = 1
 
 var BUTTONS = ["right", "middle", "side", "extra"]
 var PROFILES = ["default", "browser", "terminal"]
+// Interface language: "auto" follows the system locale; More Time and More Weather have
+// the same setting, so all three can show German on an English system.
+var LANGUAGES = ["auto", "en", "de"]
 
 var LIMITS = {
   threshold: { min: 1, max: 5000, def: 20 },
@@ -268,6 +271,7 @@ function defaults(actions) {
   return {
     version: VERSION,
     enabled: true,
+    language: "auto",
     button: "right",
     threshold: LIMITS.threshold.def,
     holdMs: LIMITS.holdMs.def,
@@ -291,6 +295,7 @@ function sanitize(raw, actions) {
   return {
     version: VERSION,
     enabled: raw.enabled !== false,
+    language: LANGUAGES.indexOf(raw.language) >= 0 ? raw.language : "auto",
     button: BUTTONS.indexOf(raw.button) >= 0 ? raw.button : "right",
     threshold: clampInt(raw.threshold, LIMITS.threshold),
     holdMs: clampInt(raw.holdMs, LIMITS.holdMs),
@@ -389,6 +394,13 @@ function listBindings(config, profile, actions) {
   })
 }
 
+// The language the interface uses: "en" or "de".
+function uiLanguage(config, localeName) {
+  var chosen = config && LANGUAGES.indexOf(config.language) > 0 ? config.language : ""
+  if (chosen) return chosen
+  return String(localeName || "en").toLowerCase().indexOf("de") === 0 ? "de" : "en"
+}
+
 // The settings pages, in the order of the tab strip.
 var SETTINGS_PAGES = ["general", "mouse", "trackpad", "ring", "changes"]
 
@@ -453,5 +465,6 @@ if (typeof module !== "undefined") module.exports = {
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
-  removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage
+  removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage,
+  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage
 }

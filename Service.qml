@@ -15,7 +15,8 @@ Item {
 
   readonly property string statePath: Quickshell.env("HOME") + "/.local/state/omarchy/settings/more-gestures.json"
   readonly property string daemonPath: decodeURIComponent(Qt.resolvedUrl("bin/gesture-daemon").toString().replace(/^file:\/\//, ""))
-  readonly property string lang: Qt.locale().name
+  // Settings › General › Language, else the system locale.
+  readonly property string lang: Config.uiLanguage(root.config, Qt.locale().name)
 
   // Settings come from the state file, written by Settings.qml (shared contract: Config.js).
   // Broken or missing JSON yields the defaults instead of an error.

@@ -17,7 +17,7 @@ BarWidget {
   moduleName: "more-gestures"
 
   property var config: Config.defaults(Actions)
-  readonly property string lang: Qt.locale().name
+  readonly property string lang: Config.uiLanguage(root.config, Qt.locale().name)
   readonly property bool gesturesOn: config.enabled
 
   visible: config.bar.show

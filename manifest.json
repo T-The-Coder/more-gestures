@@ -4,7 +4,7 @@
   "name": "More Gestures",
   "version": "0.3.0",
   "author": "Timo",
-  "description": "Opera-style mouse gestures for Omarchy: hold the right button, drag a line, release.",
+  "description": "Opera-style mouse and trackpad gestures for Omarchy, a ring menu with up to three rings, a menu bar icon and settings",
   "kinds": [
     "service",
     "overlay",

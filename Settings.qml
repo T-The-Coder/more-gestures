@@ -29,7 +29,8 @@ Item {
   property bool opened: false
   property var working: Config.defaults(Actions)
   property string profile: "default"
-  readonly property string lang: Qt.locale().name
+  // Follows the working copy, so a new language shows before Save.
+  readonly property string lang: Config.uiLanguage(root.working, Qt.locale().name)
   function tr(key) { return I18n.tr(root.lang, key) }
 
   // Editor state. editKey === "" with editorOpen means "new gesture".
@@ -83,6 +84,16 @@ Item {
     root.showPage(pages[(i + delta + pages.length) % pages.length])
   }
 
+  // Wheel and touchpad as in More Time and More Weather (Panel.wheelPixels): Omarchy
+  // scales touchpad scrolling down to 0.4, which made the page crawl, so pixel deltas are
+  // scaled back up; a mouse wheel scrolls a fixed step per notch. Flickable's own wheel
+  // handling is not used.
+  readonly property real touchpadScrollFactor: 2.5
+  function wheelPixels(wheel) {
+    if (wheel.pixelDelta.y !== 0) return wheel.pixelDelta.y * root.touchpadScrollFactor
+    return wheel.angleDelta.y / 120 * Style.space(60)
+  }
+
   function scrollBy(dy) {
     scroller.contentY = Math.max(0, Math.min(scroller.contentHeight - scroller.height, scroller.contentY + dy))
   }
@@ -128,6 +139,7 @@ Item {
     root.working = Config.parse(stateFile.text(), Actions)
     root.profile = "default"
     root.closeEditor()
+    scroller.contentY = 0
     root.syncControls()
     root.opened = true
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
@@ -146,6 +158,7 @@ Item {
     thresholdField.field.value = root.working.threshold
     holdField.field.value = root.working.holdMs
     mmField.field.value = root.working.touchpad.thresholdMm
+    languagePicker.value = root.working.language
     cornerField.field.value = root.working.taps.cornerMm
     doubleField.field.value = root.working.ring.doubleMs
   }
@@ -609,6 +622,16 @@ Item {
           }
         }
 
+        MouseArea {
+          anchors.fill: scroller
+          z: 2
+          acceptedButtons: Qt.NoButton
+          onWheel: function(wheel) {
+            root.scrollBy(-root.wheelPixels(wheel))
+            wheel.accepted = true
+          }
+        }
+
         Flickable {
           id: scroller
           anchors.top: top.bottom
@@ -632,6 +655,39 @@ Item {
               width: parent.width
               spacing: Style.spacing.huge
               visible: root.page === "general"
+
+              // Language first, as in More Time and More Weather.
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+
+                PanelSectionHeader { text: root.tr("languageSection"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Row {
+                  spacing: Style.spacing.md
+                  Text {
+                    width: Style.space(220)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.tr("language")
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+                  Dropdown {
+                    id: languagePicker
+                    width: Style.space(260)
+                    showLabel: false
+                    fontFamily: root.fontFamily
+                    options: [
+                      { value: "auto", label: root.tr("languageAuto").replace("%1",
+                          Config.uiLanguage({ language: "auto" }, Qt.locale().name) === "de" ? "Deutsch" : "English") },
+                      { value: "en", label: "English" },
+                      { value: "de", label: "Deutsch" }
+                    ]
+                    value: root.working.language
+                    onChanged: function(v) { root.set("language", v) }
+                  }
+                }
+              }
 
               Column {
                 width: parent.width

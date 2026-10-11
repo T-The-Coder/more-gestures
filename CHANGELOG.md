@@ -14,8 +14,11 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- General › Language: Automatic, English or Deutsch, as in More Time and More Weather,
+  for the settings, ring, indicator, menu bar tooltip and notifications (was: always the
+  system locale, so an English system showed English next to German siblings).
 - Ring 2 moves the window under the pointer to a workspace without following it (new
-  actions "Move window under pointer to workspace 1-10", also for gestures): each slot
+  actions "Window under pointer → workspace 1-10", also for gestures): each slot
   sits just clockwise of its workspace on ring 1 and shows an arrow into a small monitor
   with the number. The window is the one where the ring was opened. The former ring 2
   (window and program actions, keys q f s a d n t o l x) is now ring 3.
@@ -37,6 +40,11 @@
 - Settings: gesture language hint, "All gestures to default".
 
 ### Fixed
+- Scrolling in the settings at the speed of More Time and More Weather: a fixed step per
+  wheel notch, touchpad deltas scaled up 2.5 × (Omarchy slows touchpads to 0.4, the page
+  crawled). The window opens at the top of the page.
+- Texts brought up to date: ring 2 / ring 3 hints, launcher entry comment (also in
+  German), plugin description.
 - The settings listed every key combination action (back, forward, close tab …) as "—"
   and opened it as "no action" in the editor: QML hands lists over as sequences that are
   not real arrays, and the check refused them.

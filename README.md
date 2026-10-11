@@ -19,12 +19,17 @@ takes it away). Changes are written to `~/.local/state/omarchy/settings/more-ges
 on Save and applied live: a new trigger button restarts the daemon, everything else
 applies at once.
 
+The interface language is set under General › Language: Automatic (the system locale),
+English or Deutsch, like in More Time and More Weather; it covers the settings, the ring,
+the indicator, the menu bar tooltip and the notifications.
+
 Pages, laid out like the settings of More Time and More Weather (Tab / Shift+Tab switch
-them, Esc closes, PageUp/PageDown and the arrows scroll):
+them, Esc closes, PageUp/PageDown and the arrows scroll; the wheel scrolls a fixed step per
+notch and touchpads 2.5 × their delta, the same speed as there):
 
 | Page | What is there |
 |---|---|
-| General | gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions |
+| General | language, gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions |
 | Mouse | trigger button, threshold, hold time, rocker, wheel, and the mouse gestures |
 | Trackpad | 3 / 4 fingers, Hyprland swipe, segment length, corner taps, and the trackpad gestures |
 | Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
