@@ -598,6 +598,7 @@ Item {
   // ----------------------------------------------------------------- components
 
   component Label: Text {
+    textFormat: Text.PlainText
     color: root.muted
     font.family: root.fontFamily
     font.pixelSize: Style.font.caption
@@ -605,6 +606,7 @@ Item {
   }
 
   component Hint: Text {
+    textFormat: Text.PlainText
     color: Qt.darker(root.foreground, 1.8)
     font.family: root.fontFamily
     font.pixelSize: Style.font.caption
@@ -644,6 +646,7 @@ Item {
         radius: Style.cornerRadius
         color: Util.alpha(root.foreground, 0.06)
         Text {
+          textFormat: Text.PlainText
           id: commandText
           anchors.centerIn: parent
           text: root.exposeInstallCommand
@@ -774,6 +777,7 @@ Item {
                 spacing: Style.space(2)
                 anchors.verticalCenter: parent.verticalCenter
                 Text {
+                  textFormat: Text.PlainText
                   text: root.tr("title")
                   color: root.foreground
                   font.family: root.fontFamily
@@ -814,6 +818,7 @@ Item {
                 color: selected || pageMouse.containsMouse ? Style.hoverFillFor(root.foreground, Color.accent) : "transparent"
 
                 Text {
+                  textFormat: Text.PlainText
                   id: pageLabel
                   anchors.centerIn: parent
                   text: root.tr("page_" + parent.modelData).toLocaleUpperCase()
@@ -895,6 +900,7 @@ Item {
                 Row {
                   spacing: Style.spacing.md
                   Text {
+                    textFormat: Text.PlainText
                     width: Style.space(220)
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.tr("language")
@@ -990,6 +996,7 @@ Item {
                     required property var modelData
                     spacing: Style.spacing.md
                     Text {
+                      textFormat: Text.PlainText
                       width: Style.space(150)
                       anchors.verticalCenter: parent.verticalCenter
                       text: root.tr("bar_" + modelData.key)
@@ -1120,6 +1127,7 @@ Item {
                   }
                 }
                 Text {
+                  textFormat: Text.PlainText
                   visible: transfer.status !== null
                   width: parent.width
                   text: transfer.status ? root.trp(transfer.status.key, { path: transfer.shown(transfer.status.path),
@@ -1210,6 +1218,7 @@ Item {
                     Row {
                       spacing: Style.spacing.md
                       Text {
+                        textFormat: Text.PlainText
                         anchors.verticalCenter: parent.verticalCenter
                         width: Style.space(120)
                         text: root.tr("trailStyle")
@@ -1393,6 +1402,7 @@ Item {
                 Row {
                   spacing: Style.spacing.md
                   Text {
+                    textFormat: Text.PlainText
                     width: Style.space(220)
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.tr("hotkey")
@@ -1432,6 +1442,7 @@ Item {
                     Row {
                       spacing: Style.spacing.md
                       Text {
+                        textFormat: Text.PlainText
                         anchors.verticalCenter: parent.verticalCenter
                         width: Style.space(120)
                         text: root.tr("ringStyle")
@@ -1545,6 +1556,7 @@ Item {
                             required property int index
                             spacing: Style.spacing.md
                             Text {
+                              textFormat: Text.PlainText
                               width: Style.space(70)
                               anchors.verticalCenter: parent.verticalCenter
                               text: root.slotName(ringBlock.index, index, ringBlock.modelData.count)
@@ -1638,6 +1650,7 @@ Item {
                     height: parent.height
                     readonly property bool isTap: Actions.tapDots(modelData.gesture).length > 0
                     Text {
+                      textFormat: Text.PlainText
                       visible: !parent.isTap
                       anchors.verticalCenter: parent.verticalCenter
                       text: root.gestureText(modelData.gesture)
@@ -1656,6 +1669,7 @@ Item {
                     }
                   }
                   Text {
+                    textFormat: Text.PlainText
                     anchors.left: gestureCell.right
                     anchors.right: rowButtons.left
                     anchors.rightMargin: Style.spacing.md
@@ -1750,6 +1764,7 @@ Item {
                       onClicked: root.recordingGesture ? root.stopRecord() : root.startRecord()
                     }
                     Text {
+                      textFormat: Text.PlainText
                       anchors.verticalCenter: parent.verticalCenter
                       width: Math.max(0, editor.width - x)
                       text: root.recordingGesture ? root.tr("recordGestureNow") : root.recordInfo
@@ -1821,6 +1836,7 @@ Item {
                     }
                     SmallButton { text: root.tr("clear"); onClicked: root.editGesture = "" }
                     Text {
+                      textFormat: Text.PlainText
                       anchors.verticalCenter: parent.verticalCenter
                       leftPadding: Style.spacing.lg
                       text: root.editGesture === "" ? root.tr("gestureEmpty") : root.gestureText(root.editGesture)
@@ -1866,6 +1882,7 @@ Item {
                         required property int index
                         spacing: Style.spacing.sm
                         Text {
+                          textFormat: Text.PlainText
                           anchors.verticalCenter: parent.verticalCenter
                           width: Style.space(28)
                           text: (index + 1) + "."
@@ -1944,6 +1961,7 @@ Item {
                   }
 
                   Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     visible: root.editError !== ""
                     text: root.editError

@@ -482,3 +482,8 @@ test("exposeAvailable: installed and not disabled in shell.json", () => {
   assert.equal(A.exposeAvailable(true, '{"disabledPlugins":["x"]}'), true)
   assert.equal(A.exposeAvailable(true, '{"disabledPlugins":["expose.window-overview"]}'), false)
 })
+
+test("notification text: markup characters become look-alikes", () => {
+  assert.equal(A.notificationText('<b>x</b> & "y"'), '\u2039b\u203ax\u2039/b\u203a \uff06 "y"')
+  assert.equal(A.notificationText(undefined), "")
+})

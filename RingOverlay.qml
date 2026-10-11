@@ -397,6 +397,7 @@ Item {
       border.width: Math.max(1, Style.space(2))
       border.color: Util.alpha(Color.foreground, root.selected < 0 ? 0.6 : 0.25)
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         text: "×"
         color: Util.alpha(Color.foreground, root.selected < 0 ? 0.8 : 0.35)
@@ -408,6 +409,7 @@ Item {
     // Full name of the slot under the pointer: chips on the outer rings are small and
     // only show a shortened name.
     Text {
+      textFormat: Text.PlainText
       visible: root.selected >= 0
       width: root.deadzone * 4
       x: root.cx - width / 2
@@ -446,6 +448,7 @@ Item {
         border.color: Color.accent
         // The key, small in the corner, unless the label already says it (Ring.keyHint).
         Text {
+          textFormat: Text.PlainText
           readonly property string hint: Ring.keyHint(modelData.key, modelData.action)
           visible: hint !== ""
           anchors.right: parent.right
@@ -466,6 +469,7 @@ Item {
           spacing: Math.round(root.slotSize * 0.04)
           readonly property color ink: parent.hot ? Color.background : Color.foreground
           Text {
+            textFormat: Text.PlainText
             anchors.verticalCenter: parent.verticalCenter
             anchors.verticalCenterOffset: -Math.round(root.slotSize * 0.04)
             text: "➜"
@@ -484,6 +488,7 @@ Item {
               border.width: Math.max(1.5, root.slotSize * 0.035)
               border.color: moveIcon.ink
               Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: Ring.workspaceLabel(moveIcon.parent.moveTo)
                 color: moveIcon.ink
@@ -501,6 +506,7 @@ Item {
           }
         }
         Text {
+          textFormat: Text.PlainText
           id: label
           visible: parent.moveTo === 0
           anchors.centerIn: parent

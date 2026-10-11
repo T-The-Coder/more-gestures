@@ -579,6 +579,13 @@ function actionName(raw, l) {
   return name ? name + " (" + text + ")" : text
 }
 
+// Text for notify-send: its body is markup, so a label like "<b>" or "&" would be
+// interpreted. Swapped for look-alikes, as in More Time and More Weather.
+function notificationText(text) {
+  return String(text === undefined || text === null ? "" : text)
+    .replace(/&/g, "\uff06").replace(/</g, "\u2039").replace(/>/g, "\u203a")
+}
+
 // ----------------------------------------------------------------- indicator
 
 var INDICATOR_MODES = ["off", "minimal", "full"]
@@ -816,7 +823,7 @@ if (typeof module !== "undefined") module.exports = {
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
   EXPOSE_AVAILABLE_LUA: EXPOSE_AVAILABLE_LUA, exposeAvailable: exposeAvailable,
-  dispatchName: dispatchName,
+  dispatchName: dispatchName, notificationText: notificationText,
   recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION, tapDots: tapDots,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,

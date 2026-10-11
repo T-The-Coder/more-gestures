@@ -69,6 +69,7 @@ Column {
   }
 
   Text {
+    textFormat: Text.PlainText
     visible: changesPage.page.lang !== "en"
     width: parent.width
     text: changesPage.page.tr("changesEnglishNote")
@@ -79,6 +80,7 @@ Column {
   }
 
   Text {
+    textFormat: Text.PlainText
     visible: changesPage.loaded && changesPage.sections.length === 0
     width: parent.width
     text: changesPage.page.tr("changesNone")
@@ -115,6 +117,7 @@ Column {
           height: Math.max(versionTitle.implicitHeight, installedTag.implicitHeight)
 
           Text {
+            textFormat: Text.PlainText
             id: versionTitle
             anchors.left: parent.left
             anchors.right: installedTag.visible ? installedTag.left : parent.right
@@ -129,6 +132,7 @@ Column {
           }
 
           Text {
+            textFormat: Text.PlainText
             id: installedTag
             visible: versionCard.installed
             anchors.right: parent.right
@@ -153,6 +157,7 @@ Column {
             topPadding: group ? Style.space(4) : 0
 
             Text {
+              textFormat: Text.PlainText
               visible: change.modelData.title !== "" || change.group
               width: parent.width
               text: change.group ? change.modelData.text.toLocaleUpperCase() : change.modelData.title
@@ -164,6 +169,7 @@ Column {
               wrapMode: Text.WordWrap
             }
             Text {
+              textFormat: Text.PlainText
               visible: change.modelData.text !== "" && !change.group
               width: parent.width
               text: change.modelData.text

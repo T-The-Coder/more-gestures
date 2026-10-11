@@ -1,5 +1,7 @@
 # More Gestures
 
+**Control Omarchy with Mouse and Trackpad Gestures.**
+
 Opera-style mouse gestures for [Omarchy](https://omarchy.org): hold the right
 button, draw a line, release. The same shapes work with three fingers on the
 trackpad, four fingers are the system level, and a ring menu around the
@@ -131,6 +133,10 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 
 ## Screenshots
 
+![Eleven ring styles](screenshots/styles.png)
+
+![A trail for every gesture](screenshots/trails.png)
+
 | | |
 |---|---|
 | ![Ring menu](screenshots/ring.png) | ![General](screenshots/settings-general.png) |
@@ -172,6 +178,9 @@ under General).
 
 - Optional: the Hyprexpo plugin (hyprpm) for 4-finger pinch out; without it
   that gesture opens Exposé, else the launcher.
+- Everything else it calls ships with Omarchy: `hyprctl`, `omarchy-shell`,
+  `omarchy-menu`, `omarchy-launch-terminal`, Nautilus for Files and `wl-copy`.
+  Commands you bind to a gesture yourself run through `bash`.
 
 ## Installation
 

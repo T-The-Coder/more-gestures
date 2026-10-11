@@ -411,7 +411,7 @@ Item {
       ]
       if (root.lastGesture) lines.push(tr("notifyLast") + ": " + root.lastGesture + (root.lastAction ? " → " + root.lastAction : ""))
       if (root.passWanted) lines.push(tr("notifyPaused"))
-      Quickshell.execDetached(["omarchy-notification-send", title, lines.join("\n")])
+      Quickshell.execDetached(["omarchy-notification-send", Actions.notificationText(title), Actions.notificationText(lines.join("\n"))])
       return "ok"
     }
     // Opens the settings overlay (same as the launcher entry from bin/launcher-entry).
