@@ -197,6 +197,17 @@ Item {
       else ring.cancel()
       return
     }
+    // Recording for the settings' gesture editor: the next gesture is handed over
+    // instead of acting (mouse line, wheel, rocker, 3/4 fingers, corner tap).
+    if (Date.now() < root.recordUntil && (event.type === "end" || event.type === "wheel" || event.type === "rocker")) {
+      var rec = Actions.recordedGesture(event)
+      if (rec) {
+        root.recordUntil = 0
+        recordFile.setText(JSON.stringify({ source: rec.source, gesture: rec.gesture, at: Date.now() }) + "\n")
+      }
+      if (event.type === "end") overlay.finish(rec !== null)
+      return
+    }
     // The daemon swallows the wheel while the trigger is held; with the wheel setting off
     // the step is simply dropped instead of acting.
     if (event.type === "wheel" && !root.config.wheel) return
@@ -204,6 +215,17 @@ Item {
     if (gesture === "") return
     var fired = root.fire(event, gesture)
     if (event.type === "end") overlay.finish(fired)
+  }
+
+  // Until when the next gesture is recorded instead of run (ms since epoch, 0 = not).
+  property real recordUntil: 0
+  // Where a recorded gesture goes; Settings.qml watches it. In the runtime dir: it only
+  // matters while the settings are open.
+  FileView {
+    id: recordFile
+    path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/more-gestures-recorded.json"
+    atomicWrites: true
+    printErrors: false
   }
 
   // Returns true when an action was started.
@@ -363,6 +385,10 @@ Item {
 
     // Opens the ring to stay (bar icon or a keybinding): pick a slot with a click.
     function openRing(): string { ring.open(); ring.release(); return "ok" }
+    // The settings' "Record" button: the next gesture is written to the runtime file
+    // instead of acting, for at most 15 seconds.
+    function recordGesture(): string { root.recordUntil = Date.now() + 15000; return "recording" }
+    function stopRecording(): string { root.recordUntil = 0; return "stopped" }
 
     // A short summary as a desktop notification (bar icon, right click).
     function notifyStatus(): string {

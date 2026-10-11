@@ -185,10 +185,15 @@ test("live apply: only the button restarts, the rest goes to the daemon", () => 
   assert.equal(Config.needsRestart(a, c), false)
 })
 
-test("touchpad settings are cleaned and drive the native swipe file", () => {
+test("touchpad settings are cleaned; old swipe switches become swipe gestures", () => {
   const c = Config.sanitize({ touchpad: { thresholdMm: 999, swipe: { tp3: true, tp4: "yes" }, fingers: { tp3: false } } })
   assert.equal(c.touchpad.thresholdMm, Config.LIMITS.thresholdMm.max)
-  assert.deepEqual(c.touchpad.swipe, { tp3: true, tp4: true })
+  assert.equal(c.touchpad.swipe, undefined)
+  assert.deepEqual(c.bindings.default["tp3:swipe"], { type: "dispatch", id: "hypr-workspace-swipe" })
+  assert.equal(c.bindings.default["tp4:swipe"], undefined)   // "yes" is no answer: the default stays
+  // Old switches equal to the defaults store nothing.
+  const same = Config.sanitize({ touchpad: { swipe: { tp3: false, tp4: true } } })
+  assert.deepEqual(same.bindings.default, {})
   assert.deepEqual(c.touchpad.fingers, { tp3: false, tp4: true })
   const lua = Config.hyprLua(c)
   assert.match(lua, /fingers = 3, direction = "horizontal", action = "workspace"/)
@@ -334,4 +339,40 @@ test("ring dividers: on by default, off only when switched off", () => {
   assert.equal(Config.defaults().ring.dividers, true)
   assert.equal(Config.sanitize({ ring: { dividers: false } }).ring.dividers, false)
   assert.equal(Config.sanitize({ ring: { dividers: "x" } }).ring.dividers, true)
+})
+
+test("swipe gesture: Hyprland swipe or none, desktop profile only, drives the native file", () => {
+  const A = load("Actions.js")
+  const d = Config.defaults(A)
+  assert.equal(Config.swipeOn(d, "tp4", A), true)
+  assert.equal(Config.swipeOn(d, "tp3", A), false)
+  const off = Config.sanitize({ touchpad: { swipe: { tp4: false } } }, A)
+  assert.deepEqual(off.bindings.default["tp4:swipe"], { type: "none" })
+  assert.equal(Config.swipeOn(off, "tp4", A), false)
+  assert.doesNotMatch(Config.hyprLua(off, A), /hl\.gesture/)
+  assert.deepEqual(Config.daemonConfig(off, A).touchpad.native, { 3: [], 4: [] })
+  // Only the Hyprland swipe or none on the swipe gesture, and that action nowhere else.
+  assert.equal(Config.setBinding(d, "default", "tp3:swipe", { type: "dispatch", id: "expose" }, A).ok, false)
+  assert.equal(Config.setBinding(d, "default", "tp3:DR", { type: "dispatch", id: "hypr-workspace-swipe" }, A).ok, false)
+  assert.equal(Config.setBinding(d, "browser", "tp3:swipe", { type: "dispatch", id: "hypr-workspace-swipe" }, A).ok, false)
+  const on = Config.setBinding(d, "default", "tp3:swipe", { type: "dispatch", id: "hypr-workspace-swipe" }, A)
+  assert.equal(on.ok, true)
+  assert.match(Config.hyprLua(on.config, A), /fingers = 3, direction = "horizontal", action = "workspace"/)
+  // Junk in the file is dropped, not obeyed.
+  const junk = Config.sanitize({ bindings: { default: { "tp4:swipe": { type: "dispatch", id: "expose" } },
+    browser: { "tp3:swipe": { type: "dispatch", id: "hypr-workspace-swipe" } } } }, A)
+  assert.equal(junk.bindings.default["tp4:swipe"], undefined)
+  assert.equal(junk.bindings.browser["tp3:swipe"], undefined)
+})
+
+test("recorded gestures: daemon events as the editor takes them", () => {
+  const A = load("Actions.js")
+  assert.deepEqual(A.recordedGesture({ type: "end", source: "mouse", gesture: "DR" }), { source: "mouse", gesture: "DR" })
+  assert.deepEqual(A.recordedGesture({ type: "end", source: "touchpad", fingers: 3, gesture: "UL" }), { source: "tp3", gesture: "UL" })
+  assert.deepEqual(A.recordedGesture({ type: "end", source: "touchpad", fingers: 4, gesture: "tap2" }), { source: "tp4", gesture: "tap2" })
+  assert.deepEqual(A.recordedGesture({ type: "end", source: "tap", gesture: "tl2" }), { source: "tap", gesture: "tl2" })
+  assert.deepEqual(A.recordedGesture({ type: "wheel", dir: "up" }), { source: "mouse", gesture: "wheel-up" })
+  assert.deepEqual(A.recordedGesture({ type: "rocker", side: "left" }), { source: "mouse", gesture: "rocker-left" })
+  assert.equal(A.recordedGesture({ type: "end", source: "touchpad", fingers: 2, gesture: "L" }), null)
+  assert.equal(A.recordedGesture({ type: "cancel" }), null)
 })

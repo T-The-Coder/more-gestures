@@ -37,7 +37,7 @@ notch and touchpads 2.5 × their delta, the same speed as there):
 |---|---|
 | General | language, gestures on/off, indicator and animations, menu bar icon, app launcher entry, exclusions, back up and restore |
 | Mouse | trigger button, threshold, hold time, rocker, wheel, and the mouse gestures |
-| Trackpad | 3 / 4 fingers, Hyprland swipe, segment length, corner taps, and the trackpad gestures |
+| Trackpad | 3 / 4 fingers, segment length, corner taps, and the trackpad gestures (the Hyprland swipe among them) |
 | Ring menu | on/off, double click time, keyboard shortcut, the three rings with slots and keys |
 | What's new | this `CHANGELOG.md`, read from the plugin folder (nothing is fetched) |
 
@@ -50,6 +50,14 @@ Per profile, the list shows only entries that differ from the defaults plus the 
 of that profile. "Remove" on a built-in gesture stores `none` for it (switched off),
 "Reset" restores the built-in action. Key combinations can be recorded (press them) or
 typed (`Ctrl+Shift+T`, `Strg+Umschalt+T`); up to 4 are sent one after another.
+
+New gestures: build the shape with the arrow buttons, or press **Record** and make the
+gesture (mouse line, trigger + wheel, rocker, 3 or 4 fingers, corner tap). The service
+hands the next gesture to the editor instead of running it (IPC `recordGesture` /
+`stopRecording`, result in `$XDG_RUNTIME_DIR/more-gestures-recorded.json`); Esc or 15 s
+without a gesture stop. A line drawn with the mouse or three fingers keeps the device
+"All" if chosen; anything else takes its device. If the gesture is already bound, the
+editor says with what.
 
 ## Menu bar icon
 
@@ -113,7 +121,10 @@ the fingers lift. Bindings use `tp3:` / `tp4:` per gesture and fall back to the 
 `*:` entries.
 
 Hyprland's workspace swipe follows the fingers, which a gesture recogniser cannot do, so
-it stays native. The plugin writes the `hl.gesture` lines for it into
+it stays native. It is a gesture like the others: "← → swipe" with 3 or 4 fingers
+(`tp3:swipe` / `tp4:swipe`, Desktop profile), whose effect is either "Swipe workspaces
+(Hyprland)" or nothing (default: 4 fingers swipe, 3 fingers nothing). While it swipes,
+left and right with those fingers are Hyprland's. The plugin writes the `hl.gesture` lines for it into
 `~/.local/state/omarchy/settings/more-gestures-hypr.lua` (only when they change, then
 `hyprctl reload`). Load that file from `~/.config/hypr/input.lua`:
 

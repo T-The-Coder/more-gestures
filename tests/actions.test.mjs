@@ -300,7 +300,7 @@ test("every default action is valid and has a name in both languages", () => {
     assert.ok(d.en && d.de, id)
     // Either a single dispatcher expression or a fixed multi-line chunk (show desktop,
     // hyprexpo) that is passed to `hyprctl eval` as is.
-    if (d.internal) assert.equal(d.internal, "ring", id)
+    if (d.internal) assert.ok(["ring", "swipe"].includes(d.internal), id)
     else if (d.chunk) assert.match(d.chunk, /^(local |for |if #|hl\.exec_cmd\("[a-z -]+"\)$)/, id)
     else assert.match(d.lua, /^hl\.dsp\.[a-z_.]+\(.*\)$/, id)
   }

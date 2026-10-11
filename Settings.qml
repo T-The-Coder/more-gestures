@@ -222,11 +222,91 @@ Item {
 
   // --------------------------------------------------------------------- editor
 
-  function dispatchOptions() {
+  // The actions to pick from: the Hyprland swipe only for the swipe gesture (and there
+  // only it), everywhere else everything but it (Actions.fitsGesture).
+  function dispatchOptions(forSwipe) {
     var code = I18n.lang(root.lang)
-    return Object.keys(Actions.DISPATCH).map(function(id) {
+    return Object.keys(Actions.DISPATCH).filter(function(id) {
+      return (id === Actions.SWIPE_ACTION) === !!forSwipe
+    }).map(function(id) {
       return { value: id, label: Actions.DISPATCH[id][code] }
     })
+  }
+
+  // The swipe gesture can only swipe (Hyprland) or do nothing.
+  function setSwipeGesture() {
+    root.editGesture = "swipe"
+    if (root.editType !== "none") root.editType = "dispatch"
+    root.editDispatch = Actions.SWIPE_ACTION
+    dispatchPicker.value = Actions.SWIPE_ACTION
+  }
+
+  // ------------------------------------------------------------------ recording
+  // "Record": the service hands the next gesture over (Service.recordGesture) through a
+  // file in the runtime dir instead of running it; it fills the editor's gesture and
+  // device. Esc or 15 s without a gesture stop it.
+  property bool recordingGesture: false
+  property real recordStarted: 0
+  property string recordInfo: ""
+  readonly property string recordPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/more-gestures-recorded.json"
+
+  function startRecord() {
+    root.recordingStep = -1
+    root.recordInfo = ""
+    root.recordingGesture = true
+    root.recordStarted = Date.now()
+    recordTimeout.restart()
+    Quickshell.execDetached(["omarchy-shell", "-q", "more-gestures", "recordGesture"])
+  }
+
+  function stopRecord() {
+    if (!root.recordingGesture) return
+    root.recordingGesture = false
+    recordTimeout.stop()
+    Quickshell.execDetached(["omarchy-shell", "-q", "more-gestures", "stopRecording"])
+  }
+
+  Timer { id: recordTimeout; interval: 15000; onTriggered: root.stopRecord() }
+
+  FileView {
+    id: recordFile
+    path: root.recordPath
+    watchChanges: true
+    blockAllReads: true
+    printErrors: false
+    onFileChanged: {
+      reload()
+      if (!root.recordingGesture) return
+      var rec = null
+      try { rec = JSON.parse(recordFile.text()) } catch (e) { rec = null }
+      if (!rec || Number(rec.at) < root.recordStarted) return
+      root.recordingGesture = false
+      recordTimeout.stop()
+      root.applyRecorded(rec)
+    }
+  }
+
+  // A recorded gesture into the editor. A line drawn with the mouse or three fingers
+  // keeps "All" (one gesture language) if that was chosen; anything else takes the device
+  // it came from.
+  function applyRecorded(rec) {
+    var source = String(rec.source || "")
+    var gesture = String(rec.gesture || "")
+    var shared = /^[UDLR]+$|^(wheel|rocker)-/.test(gesture) && (source === "mouse" || source === "tp3")
+    var next = root.editSource === "*" && shared ? "*" : source
+    if (next === "tap") { root.editCorner = gesture.slice(0, 2); root.editCount = Number(gesture.slice(2)) }
+    if (Config.gestureKeyFor(next, gesture, Actions) === "") {
+      root.recordInfo = root.tr("recordUnknown")
+      return
+    }
+    root.editSource = next
+    root.editGesture = gesture
+    // Already bound? Say with what, so a new action does not silently replace it.
+    var key = next + ":" + gesture
+    var hit = null
+    for (var i = 0; i < root.rows.length; i++) if (root.rows[i].key === key) hit = root.rows[i]
+    root.recordInfo = hit && !(hit.action && hit.action.type === "none") && key !== root.editKey
+      ? root.tr("recordTaken").replace("%1", Actions.actionName(hit.action, root.lang)) : ""
   }
 
   function openEditor(row) {
@@ -265,7 +345,18 @@ Item {
     labelField.text = root.editLabel
   }
 
+  // Leaving the swipe gesture: its action fits no other gesture.
+  onEditGestureChanged: {
+    if (root.editGesture !== "swipe" && root.editDispatch === Actions.SWIPE_ACTION) {
+      root.editDispatch = "workspace-prev"
+      dispatchPicker.value = "workspace-prev"
+    }
+    if (root.editGesture === "swipe" && (root.editType === "keys" || root.editType === "exec")) root.editType = "dispatch"
+  }
+
   function closeEditor() {
+    root.stopRecord()
+    root.recordInfo = ""
     root.recordingStep = -1
     root.editorOpen = false
     root.editError = ""
@@ -278,7 +369,7 @@ Item {
   }
 
   function addDir(d) {
-    if (/^(wheel|rocker|pinch|tap)/.test(root.editGesture)) root.editGesture = ""
+    if (/^(wheel|rocker|pinch|tap|swipe)/.test(root.editGesture)) root.editGesture = ""
     if (root.editGesture.length >= 5) return
     // Equal neighbours merge in the recogniser, so "LL" could never be drawn.
     if (root.editGesture.slice(-1) === d) return
@@ -324,7 +415,7 @@ Item {
     var built = root.editorAction()
     if (!built.ok) { root.editError = built.error; return }
     var res = Config.setBinding(root.working, root.profile, key, built.action, Actions)
-    if (!res.ok) { root.editError = root.tr("err_action"); return }
+    if (!res.ok) { root.editError = root.tr(res.error === "swipe" ? "err_swipe" : "err_action"); return }
     var next = res.config
     // Renamed gesture: the old key goes, otherwise both would act.
     if (root.editKey !== "" && root.editKey !== key) next = Config.removeBinding(next, root.profile, root.editKey)
@@ -345,6 +436,7 @@ Item {
   // wheel-up / rocker-left read as "Wheel ↑" / "Rocker ←" instead of internal ids.
   function gestureText(g) {
     if (g === "tap2") return root.tr("tap2")
+    if (g === "swipe") return "← → " + root.tr("swipeWord")
     if (/^(tl|tr|bl|br)[1-4]$/.test(g)) return Actions.tapText(g)
     if (/^[UDLR]+$/.test(g) || /^pinch/.test(g)) return Actions.arrowText(g)
     var m = /^(wheel|rocker)-(up|down|left|right)$/.exec(g)
@@ -520,7 +612,8 @@ Item {
       anchors.fill: parent
       focus: true
       Keys.onEscapePressed: function(event) {
-        if (root.editorOpen) root.closeEditor(); else root.close()
+        if (root.recordingGesture) root.stopRecord()
+        else if (root.editorOpen) root.closeEditor(); else root.close()
         event.accepted = true
       }
       // Tab / Shift+Tab: next / previous page, as in More Time and More Weather. Text
@@ -1059,14 +1152,6 @@ Item {
                       foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                       onClicked: root.setTouchpad("fingers", modelData, !root.working.touchpad.fingers[modelData])
                     }
-                    Toggle {
-                      width: parent.width
-                      label: root.tr("swipe_" + modelData)
-                      description: root.tr("swipeHint")
-                      checked: root.working.touchpad.swipe[modelData]
-                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
-                      onClicked: root.setTouchpad("swipe", modelData, !root.working.touchpad.swipe[modelData])
-                    }
                   }
                 }
 
@@ -1381,6 +1466,7 @@ Item {
                     ]
                     foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                     onChanged: function(v) {
+                      if (root.editGesture === "swipe" && v !== "tp3" && v !== "tp4") root.editGesture = ""
                       // Tap gestures and line gestures never share a name: switching
                       // between them starts the gesture over.
                       if ((v === "tap") !== (root.editSource === "tap"))
@@ -1391,6 +1477,23 @@ Item {
                   }
 
                   Label { text: root.tr("gesture") }
+                  Row {
+                    spacing: Style.spacing.md
+                    SmallButton {
+                      text: root.recordingGesture ? root.tr("recordingGesture") : "● " + root.tr("recordGesture")
+                      selected: root.recordingGesture
+                      onClicked: root.recordingGesture ? root.stopRecord() : root.startRecord()
+                    }
+                    Text {
+                      anchors.verticalCenter: parent.verticalCenter
+                      width: Math.max(0, editor.width - x)
+                      text: root.recordingGesture ? root.tr("recordGestureNow") : root.recordInfo
+                      color: root.recordingGesture || root.recordInfo !== "" ? root.accent : root.muted
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      wrapMode: Text.WordWrap
+                    }
+                  }
                   Row {
                     visible: root.editSource === "tap"
                     spacing: Style.spacing.lg
@@ -1442,6 +1545,12 @@ Item {
                       onClicked: root.editGesture = "tap2"
                     }
                     SmallButton {
+                      text: "← → " + root.tr("swipeWord")
+                      tooltipText: root.tr("swipeGestureHint")
+                      visible: root.editSource === "tp3" || root.editSource === "tp4"
+                      onClicked: root.setSwipeGesture()
+                    }
+                    SmallButton {
                       text: "⌫"
                       onClicked: root.editGesture = /^(pinch|tap)/.test(root.editGesture) ? "" : root.editGesture.slice(0, -1)
                     }
@@ -1461,12 +1570,11 @@ Item {
                   Label { text: root.tr("action") }
                   ButtonGroup {
                     value: root.editType
-                    options: [
-                      { value: "dispatch", label: root.tr("actionDispatch") },
-                      { value: "keys", label: root.tr("actionKeys") },
-                      { value: "exec", label: root.tr("actionExec") },
-                      { value: "none", label: root.tr("actionNone") }
-                    ]
+                    // The swipe gesture can only swipe (Hyprland) or do nothing.
+                    options: root.editGesture === "swipe"
+                      ? [{ value: "dispatch", label: root.tr("actionDispatch") }, { value: "none", label: root.tr("actionNone") }]
+                      : [{ value: "dispatch", label: root.tr("actionDispatch") }, { value: "keys", label: root.tr("actionKeys") },
+                         { value: "exec", label: root.tr("actionExec") }, { value: "none", label: root.tr("actionNone") }]
                     foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                     onChanged: function(v) { root.editType = v; root.editError = ""; root.recordingStep = -1 }
                   }
@@ -1476,7 +1584,7 @@ Item {
                     width: parent.width
                     visible: root.editType === "dispatch"
                     showLabel: false
-                    options: root.dispatchOptions()
+                    options: root.dispatchOptions(root.editGesture === "swipe")
                     fontFamily: root.fontFamily
                     onChanged: function(v) { root.editDispatch = v }
                   }

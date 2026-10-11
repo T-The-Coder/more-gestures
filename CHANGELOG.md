@@ -14,6 +14,17 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- Record gestures: "Record" in the gesture editor takes the next gesture you make (mouse,
+  trigger + wheel, rocker, 3 or 4 fingers, corner tap) into the editor instead of running
+  it, with its device, and says if it is bound already. Esc or 15 s stop it.
+
+### Changed
+- Trackpad like the mouse, gesture first, then its effect: Hyprland's workspace swipe is
+  no longer a switch per finger count but the gesture "← → swipe" (3 or 4 fingers) in the
+  list, with the effect "Swipe workspaces (Hyprland)" or nothing. Settings from before are
+  carried over.
+
+### Added
 - Settings are saved at once, as in More Time and More Weather: no Save or Cancel button
   any more; a change made elsewhere while the window is open (the bar's middle click) is
   taken in.

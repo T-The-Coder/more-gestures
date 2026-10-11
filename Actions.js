@@ -30,7 +30,10 @@ var PROFILE_TAGS = [
 
 var SOURCES = ["*", "mouse", "tp3", "tp4", "tap"]
 // Corner taps (source "tap") have their own gesture names: corner + count, e.g. "tl2".
-var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,5}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4]|tp4:tap2)$/
+// `tp3:swipe` / `tp4:swipe`: the horizontal swipe Hyprland follows with the fingers; its
+// only effects are "hypr-workspace-swipe" or none (see SWIPE_ACTION).
+var GESTURE_KEY_PATTERN = /^((\*|mouse|tp3|tp4):([UDLR]{1,5}|wheel-up|wheel-down|rocker-left|rocker-right|pinchin|pinchout)|tap:(tl|tr|bl|br)[1-4]|tp4:tap2|(tp3|tp4):swipe)$/
+var SWIPE_ACTION = "hypr-workspace-swipe"
 
 // Windows the plugin must not touch (games, VMs). Trailing "*" is a prefix match.
 var DEFAULT_EXCLUDES = ["steam_app_*", "retroarch", "qemu*", "virt-manager", "gamescope"]
@@ -249,6 +252,10 @@ var DISPATCH = {
     en: "Window under pointer → workspace 10", de: "Fenster unterm Zeiger → Arbeitsfläche 10" },
   // Handled inside the shell (Service.qml), not by Hyprland: opens the ring menu.
   "ring-menu":           { internal: "ring", en: "Ring menu", de: "Kreismenü" },
+  // Not run by the plugin: bound to a "swipe" gesture it becomes Hyprland's own gesture
+  // in the generated Lua file, where the workspace follows the fingers.
+  "hypr-workspace-swipe": { internal: "swipe", en: "Swipe workspaces (Hyprland, follows the fingers)",
+                           de: "Arbeitsflächen wischen (Hyprland, folgt den Fingern)" },
   "expose":              { lua: 'hl.dsp.event("expose.window-overview:toggle")', en: "Exposé (all windows)", de: "Exposé (alle Fenster)" },
   // The ring shows only the part before the brackets ("Wallpaper").
   "show-desktop":        { chunk: SHOW_DESKTOP_LUA, en: "Wallpaper (show wallpaper)", de: "Wallpaper (Hintergrund anzeigen)" },
@@ -335,8 +342,11 @@ function defaultBindings() {
   var terminal = {
     "*:DR": keys("CTRL SHIFT", "W", "close-tab")
   }
-  // Four fingers left/right are Hyprland's workspace swipe by default (Config:
-  // touchpad.swipe), so they never reach these tables; up/down use the "*:" layers.
+  // Four fingers left/right are Hyprland's workspace swipe by default (the "swipe"
+  // gesture), so they never reach these tables; up/down use the "*:" layers. Three
+  // fingers swipe nothing natively; the row is listed so it can be switched on.
+  desktop["tp4:swipe"] = dispatch(SWIPE_ACTION)
+  desktop["tp3:swipe"] = none()
   desktop["tp4:pinchin"] = exec("omarchy-menu toggle apps", "launcher")
   desktop["tp4:pinchout"] = dispatch("hyprexpo")
   // No "hold and drag" on a trackpad: the ring opens to stay, tap a slot to pick it.
@@ -646,6 +656,27 @@ function gestureKey(event) {
   return prefix + ":" + gesture
 }
 
+// A daemon event as the settings' gesture editor takes it while recording:
+// { source: "mouse" | "tp3" | "tp4" | "tap", gesture } or null (nothing bindable).
+function recordedGesture(event) {
+  var gesture = eventGesture(event)
+  if (gesture === "") return null
+  var key = gestureKey({ source: event.source, fingers: event.fingers, gesture: gesture })
+  if (key === "") return null
+  var i = key.indexOf(":")
+  return { source: key.slice(0, i), gesture: key.slice(i + 1) }
+}
+
+// A gesture/action pair the settings accept: the swipe gesture takes only the Hyprland
+// swipe (or none), and that action fits no other gesture.
+function fitsGesture(gesture, raw) {
+  var v = validateAction(raw)
+  if (!v.ok) return false
+  var isSwipe = v.action.type === "dispatch" && v.action.id === SWIPE_ACTION
+  if (gesture === "swipe") return isSwipe || v.action.type === "none"
+  return !isSwipe
+}
+
 // Daemon events -> gesture string: end{gesture}, wheel{dir}, rocker{side}.
 function eventGesture(event) {
   if (!event) return ""
@@ -745,6 +776,7 @@ if (typeof module !== "undefined") module.exports = {
   defaultBindings: defaultBindings, mergeBindings: mergeBindings,
   parseModifiers: parseModifiers, parseCombo: parseCombo,
   validateAction: validateAction, buildCommand: buildCommand, internalOf: internalOf, keysLua: keysLua,
+  recordedGesture: recordedGesture, fitsGesture: fitsGesture, SWIPE_ACTION: SWIPE_ACTION,
   actionName: actionName, keysText: keysText,
   INDICATOR_MODES: INDICATOR_MODES, normalizeIndicator: normalizeIndicator,
   arrowFor: arrowFor, arrowList: arrowList, arrowText: arrowText, tapText: tapText, SOURCES: SOURCES,
