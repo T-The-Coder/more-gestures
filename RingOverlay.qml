@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.Commons
 import "Actions.js" as Actions
 import "Ring.js" as Ring
+import "Effects.js" as Effects
 
 // Ring menu: double click with the trigger button and keep the second press held (or
 // four-finger double tap, or the hotkey). Up to three clock faces of actions around the
@@ -23,6 +24,13 @@ Item {
   id: root
 
   property string lang: "en"
+  // Look (Effects.js) and whether it may move (Settings › General › Animations).
+  property string style: "plain"
+  property bool animations: true
+  property real openedAt: 0
+  property real selectedSince: 0
+  onOpenedChanged: if (opened) openedAt = Date.now()
+  onSelectedChanged: selectedSince = Date.now()
   // Config.activeRings: [{ index, count, slots, keys }], inner first. One key per slot
   // while the ring is open ("" = none, upper case = Shift+letter); Esc always closes.
   property var rings: []
@@ -328,6 +336,45 @@ Item {
           ctx.lineTo(cx + l.x2, cy + l.y2)
         }
         ctx.stroke()
+      }
+    }
+
+    // The style's effects (Effects.drawRing), behind the slots. Only as large as the ring,
+    // and repainted about 30 times a second only while a moving style is open.
+    Canvas {
+      id: fxCanvas
+      visible: root.opened && Effects.animated(root.style)
+      readonly property real box: Math.ceil((root.outer + Style.space(40)) * 2)
+      x: root.cx - box / 2
+      y: root.cy - box / 2
+      width: box
+      height: box
+      property real t: 0
+      onVisibleChanged: if (visible) { t = 0; requestPaint() }
+      onBoxChanged: requestPaint()
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.reset()
+        var sel = root.selected >= 0 ? root.chips[root.selected] : null
+        Effects.drawRing(ctx, root.style, {
+          t: t, still: !root.animations, cx: box / 2, cy: box / 2,
+          rings: root.geometry, slot: root.slotSize, deadzone: root.deadzone, outer: root.outer,
+          selected: sel ? { x: sel.x, y: sel.y } : null,
+          selectedAge: (Date.now() - root.selectedSince) / 1000,
+          openAge: (Date.now() - root.openedAt) / 1000,
+          clock: new Date().getSeconds() + new Date().getMilliseconds() / 1000,
+          colors: { accent: Color.accent, fg: Color.foreground, bg: Color.background }
+        })
+      }
+      Timer {
+        interval: 33
+        repeat: true
+        running: fxCanvas.visible && root.animations
+        onTriggered: { fxCanvas.t = (Date.now() - root.openedAt) / 1000; fxCanvas.requestPaint() }
+      }
+      Connections {
+        target: root
+        function onSelectedChanged() { if (!root.animations) fxCanvas.requestPaint() }
       }
     }
 

@@ -8,6 +8,7 @@ import "Actions.js" as Actions
 import "Config.js" as Config
 import "Keys.js" as KeyCombo
 import "I18n.js" as I18n
+import "Effects.js" as Effects
 
 // Settings overlay for More Gestures, in pages like More Time and More Weather: General
 // (on/off, indicator, menu bar, app launcher, exclusions), Mouse, Trackpad, Ring menu and
@@ -163,6 +164,7 @@ Item {
     holdField.field.value = root.working.holdMs
     mmField.field.value = root.working.touchpad.thresholdMm
     languagePicker.value = root.working.language
+    stylePicker.value = root.working.ring.style
     cornerField.field.value = root.working.taps.cornerMm
     doubleField.field.value = root.working.ring.doubleMs
   }
@@ -1256,6 +1258,99 @@ Item {
                   checked: root.working.ring.dividers
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.setRing("dividers", !root.working.ring.dividers)
+                }
+
+                // Look of the ring and the trail (Effects.js), with a live preview: a small
+                // ring and a gesture line drawn over and over.
+                Row {
+                  spacing: Style.spacing.huge
+                  Column {
+                    spacing: Style.spacing.md
+                    Row {
+                      spacing: Style.spacing.md
+                      Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Style.space(120)
+                        text: root.tr("ringStyle")
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.body
+                      }
+                      Dropdown {
+                        id: stylePicker
+                        width: Style.space(240)
+                        showLabel: false
+                        fontFamily: root.fontFamily
+                        options: Effects.STYLES.map(function(s) { return { value: s, label: Effects.name(s, root.lang) } })
+                        value: root.working.ring.style
+                        onChanged: function(v) { root.setRing("style", v) }
+                      }
+                    }
+                    Hint { width: Style.space(380); text: root.tr("ringStyleHint") }
+                    Toggle {
+                      width: Style.space(380)
+                      label: root.tr("ringStyleTrail")
+                      description: root.tr("ringStyleTrailHint")
+                      checked: root.working.ring.styleTrail
+                      foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                      onClicked: root.setRing("styleTrail", !root.working.ring.styleTrail)
+                    }
+                  }
+                  Rectangle {
+                    width: Style.space(260)
+                    height: width
+                    radius: Style.cornerRadius
+                    color: Util.alpha(Color.background, 0.82)
+                    border.width: 1
+                    border.color: Util.alpha(root.foreground, 0.12)
+                    Canvas {
+                      id: stylePreview
+                      anchors.fill: parent
+                      property real t: 0
+                      readonly property string style: root.working.ring.style
+                      readonly property bool running: root.opened && root.page === "ring"
+                      onStyleChanged: { t = 0; requestPaint() }
+                      onRunningChanged: if (running) requestPaint()
+                      // A mini ring: two rings of twelve, and a ↓→ line drawn in 1.6 s,
+                      // held, then drawn again.
+                      onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        var w = width, c = w / 2, slot = w * 0.085
+                        var rings = [{ radius: w * 0.22, count: 12, offset: 0 }, { radius: w * 0.36, count: 12, offset: 0 }]
+                        var colors = { accent: Color.accent, fg: root.foreground, bg: Color.background }
+                        var still = !root.working.animations
+                        var cycle = t % 3.2
+                        Effects.drawRing(ctx, style, { t: t, still: still, cx: c, cy: c, rings: rings, slot: slot,
+                          deadzone: w * 0.07, outer: w * 0.42, selected: { x: 0, y: -rings[1].radius },
+                          selectedAge: cycle, openAge: cycle, clock: t % 60, colors: colors })
+                        ctx.fillStyle = Effects.rgba(root.foreground, 0.55)
+                        for (var k = 0; k < rings.length; k++)
+                          for (var i = 0; i < 12; i++) {
+                            var a = i / 12 * 2 * Math.PI
+                            ctx.beginPath()
+                            ctx.arc(c + Math.sin(a) * rings[k].radius, c - Math.cos(a) * rings[k].radius, slot * 0.18, 0, 2 * Math.PI)
+                            ctx.fill()
+                          }
+                        if (!root.working.ring.styleTrail || style === "plain") return
+                        var shown = still ? 1 : Math.min(1, cycle / 1.6)
+                        var pts = [], times = [], n = 40
+                        for (var j = 0; j <= n * shown; j++) {
+                          var f = j / n
+                          pts.push(f < 0.5 ? { x: w * 0.3, y: w * (0.25 + f * 1.0) } : { x: w * (0.3 + (f - 0.5) * 0.8), y: w * 0.75 })
+                          times.push(f * 1.6)
+                        }
+                        Effects.drawTrail(ctx, style, { t: cycle, still: still, points: pts, times: times,
+                          lineWidth: 3, colors: colors })
+                      }
+                      Timer {
+                        interval: 40
+                        repeat: true
+                        running: stylePreview.running && Effects.animated(stylePreview.style) && root.working.animations
+                        onTriggered: { stylePreview.t += 0.04; stylePreview.requestPaint() }
+                      }
+                    }
+                  }
                 }
 
                 // Three rings: what each slot does, and its key.

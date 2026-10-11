@@ -404,3 +404,14 @@ test("tap symbols: dots along the diagonal into the corner, two rows for tap2", 
   assert.equal(A.tapDots("tap2").length, 8)
   assert.deepEqual(A.tapDots("DR"), [])
 })
+
+test("ring style: plain by default, known styles only, trail follows by default", () => {
+  const E = load("Effects.js")
+  assert.deepEqual(Config.RING_STYLES, E.STYLES)
+  const d = Config.defaults().ring
+  assert.equal(d.style, "plain")
+  assert.equal(d.styleTrail, true)
+  assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.style, "neon")
+  assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.styleTrail, false)
+  assert.equal(Config.sanitize({ ring: { style: "glitter" } }).ring.style, "plain")
+})

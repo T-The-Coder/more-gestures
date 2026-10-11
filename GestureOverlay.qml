@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
+import "Effects.js" as Effects
 import "Actions.js" as Actions
 import "Trail.js" as Trail
 
@@ -49,6 +50,11 @@ Item {
   property real startX: 0            // ring centre, local to the screen
   property real startY: 0
   property var points: []
+  // Seconds since begin() for each point, for styles whose trail ages (sparks, vapour).
+  property var pointTimes: []
+  property real begunAt: 0
+  // The trail's look (Effects.js); "plain" is the accent line.
+  property string trailStyle: "plain"
 
   property string source: "mouse"
   property int fingers: 0
@@ -88,6 +94,8 @@ Item {
     done = false
     haveStart = false
     points = []
+    pointTimes = []
+    begunAt = Date.now()
     safety.restart()
     // Read-only; tells which monitor holds the pointer. The surfaces open when it answers.
     if (!cursorProbe.running) cursorProbe.running = true
@@ -199,9 +207,12 @@ Item {
       startY = pos.y - screen.y
       haveStart = true
       points = [Qt.point(startX, startY)]
+      pointTimes = [root.now()]
     }
     active = true
   }
+
+  function now() { return (Date.now() - root.begunAt) / 1000 }
 
   function addPoint(x, y) {
     if (!active) return
@@ -211,6 +222,7 @@ Item {
       startY = y
       haveStart = true
       points = [Qt.point(x, y)]
+      pointTimes = [root.now()]
       return
     }
     var last = points[points.length - 1]
@@ -220,6 +232,9 @@ Item {
     if (points.length >= 4000) return
     var next = points.slice()
     next.push(Qt.point(x, y))
+    var times = pointTimes.slice()
+    times.push(root.now())
+    pointTimes = times
     points = next
   }
 
@@ -269,11 +284,37 @@ Item {
         NumberAnimation { duration: root.fadeMs; easing.type: Easing.OutCubic }
       }
 
+      // A style's trail (Effects.drawTrail) instead of the plain line; repainted about 30
+      // times a second while the gesture runs, so ageing effects keep moving.
+      Canvas {
+        id: trailCanvas
+        anchors.fill: parent
+        visible: root.trailStyle !== "plain"
+        property real t: 0
+        onPaint: {
+          var ctx = getContext("2d")
+          ctx.reset()
+          var path = root.trailPath
+          // trailPath is clipped at the ring: its points are the last ones of `points`.
+          var times = root.pointTimes.slice(Math.max(0, root.pointTimes.length - path.length))
+          Effects.drawTrail(ctx, root.trailStyle, {
+            t: t, still: !root.animations, points: path, times: times, lineWidth: root.lineWidth,
+            colors: { accent: Color.accent, fg: Color.foreground, bg: Color.background }
+          })
+        }
+        Timer {
+          interval: 33
+          repeat: true
+          running: trailCanvas.visible && root.visualVisible
+          onTriggered: { trailCanvas.t = root.now(); trailCanvas.requestPaint() }
+        }
+      }
+
       Shape {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
-          strokeColor: Color.accent
+          strokeColor: root.trailStyle === "plain" ? Color.accent : "transparent"
           strokeWidth: root.lineWidth
           fillColor: "transparent"
           capStyle: ShapePath.RoundCap

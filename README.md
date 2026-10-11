@@ -100,6 +100,28 @@ action, workspaces included; outer
 rings show short names, the full name of the slot under the pointer appears in the
 middle. Rings that do not fit the screen are drawn smaller.
 
+**Styles** (Ring menu › Style), with a live preview in the settings; the gesture trail
+takes the same style unless "Gesture trail in the same style" is off. With animations off
+(General) every style is a still frame.
+
+| Style | Ring | Trail |
+|---|---|---|
+| Plain | the slots and soft dividing lines | the accent line |
+| Comets | a bright dot with a tail runs clockwise on every circle, each at its own speed; slots flash as it passes | a comet: bright head, fading tail |
+| Drifting clouds | soft blobs drift behind the slots; a light patch under the pointer | a vapour trail that widens into puffs |
+| Radar | a beam sweeps round, slots light up and fade | blips that fade one by one, the newest pings |
+| Orbits | planets circle on the circles, neighbours in opposite directions; twinkling stars | a thin line throwing stardust |
+| Ink in water | the colour seeps out from the centre on opening; a drop under the pointer | a brush stroke, thick to thin, bleeding edge |
+| Neon | tubes flicker on one after the other; a neon frame under the pointer | a glowing tube with a faint buzz |
+| Pulse | rings of light run outwards; the slot under the pointer beats | pulses run along the line |
+| Clockwork | turning rows of ticks and a second hand | dashes with a mark at every turn |
+| Aurora | a wavy band of colour flows along the circles | a ribbon of light whose colour runs along it |
+| Fireflies | points of light float and swarm around the slot under the pointer | sparks that fall and go out |
+
+The effects are drawn by `Effects.js` (pure functions of time and geometry, tested with
+a recording canvas) on a Canvas only as large as the ring, about 30 frames a second while
+a moving style is open.
+
 **Keys** while the ring is open: Esc closes; every slot can have one key (letter or
 digit, upper case = Shift+letter), shown in the slot's corner unless the label already
 says it. Defaults: 1-0 workspaces, e Exposé, w wallpaper, ring 3 as above; ring 2 has no keys
@@ -344,6 +366,7 @@ is closed (e.g. `< /dev/null`) the daemon exits, that is how the shell stops it.
 - `bin/gesture-daemon` – thin evdev/uinput wrapper.
 - `manifest.json`, `Service.qml`, `Settings.qml`, `BarWidget.qml` – the Omarchy plugin.
 - `SettingsTransfer.qml` – export, import and the backup before an import.
+- `Effects.js` – the ring and trail styles; `TapGlyph.qml` – taps drawn as dots.
 - `ChangesPage.qml`, `Changelog.js` – Settings › What's new; `Changelog.js` is the parser
   More Time and More Weather share, kept byte-identical (`tests/changelog.test.mjs`).
 - `GestureOverlay.qml` – line and indicator, instantiated by `Service.qml`.

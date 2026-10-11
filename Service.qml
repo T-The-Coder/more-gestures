@@ -274,6 +274,8 @@ Item {
     lang: root.lang
     rings: Config.activeRings(root.config.ring)
     dividers: root.config.ring.dividers
+    style: root.config.ring.style
+    animations: root.config.animations
     onChosen: function(action, point) { root.runRingSlot(action, point) }
   }
 
@@ -282,6 +284,7 @@ Item {
     indicator: root.config.indicator
     animations: root.config.animations
     lang: root.lang
+    trailStyle: root.config.ring.styleTrail ? root.config.ring.style : "plain"
   }
 
   function daemonCommand() {

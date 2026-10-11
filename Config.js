@@ -53,8 +53,12 @@ var RING_HOTKEY = { mods: ["SUPER", "ALT"], key: "R" }
 function ringDefaults(actions) {
   var A = actionsModule(actions)
   return { enabled: false, doubleMs: LIMITS.doubleMs.def, hotkey: clone(RING_HOTKEY),
-           dividers: true, rings: clone(A.ringDefaultsList()) }
+           dividers: true, style: "plain", styleTrail: true, rings: clone(A.ringDefaultsList()) }
 }
+
+// The ring's looks; the same list as Effects.STYLES (a test keeps them equal).
+var RING_STYLES = ["plain", "comets", "clouds", "radar", "orbits", "ink", "neon", "pulse",
+                   "clockwork", "aurora", "fireflies"]
 
 // Letters and digits; upper case means Shift+letter, so "a" and "A" are two keys.
 var RING_KEY_PATTERN = /^[a-zA-Z0-9]$/
@@ -122,6 +126,9 @@ function cleanRing(raw, actions) {
            hotkey: Object.prototype.hasOwnProperty.call(raw, "hotkey") ? cleanHotkey(raw.hotkey, A) : clone(RING_HOTKEY),
            // Soft lines between the rings and their slots.
            dividers: raw.dividers !== false,
+           // Look of the ring (Effects.js); styleTrail: the gesture trail matches it.
+           style: RING_STYLES.indexOf(raw.style) >= 0 ? raw.style : "plain",
+           styleTrail: raw.styleTrail !== false,
            rings: rings }
 }
 
@@ -540,5 +547,5 @@ if (typeof module !== "undefined") module.exports = {
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
   removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage,
-  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, TRACKPAD_GROUPS: TRACKPAD_GROUPS
+  LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, TRACKPAD_GROUPS: TRACKPAD_GROUPS, RING_STYLES: RING_STYLES
 }

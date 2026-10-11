@@ -13,6 +13,12 @@
   Ctrl+Shift+W.
 - Shapes can have up to 5 strokes.
 
+### Added
+- Ten styles for the ring menu, each with a matching gesture trail (Ring menu › Style,
+  live preview): Comets, Drifting clouds, Radar, Orbits, Ink in water, Neon, Pulse,
+  Clockwork, Aurora, Fireflies; "Plain" stays the default. "Gesture trail in the same
+  style" can be switched off; with animations off each style is a still frame.
+
 ### Changed
 - Trackpad gestures in groups: taps (by corner, then count; the 4-finger double tap
   last), 2, 3 (with the shared shapes) and 4 fingers, each with a heading. Taps show as
