@@ -26,6 +26,9 @@
 - Settings: gesture language hint, "All gestures to default".
 
 ### Changed
+- The menu bar icon is as tall as the icons next to it (it was a pixel smaller).
+- App icon like More Weather's: a bigger symbol, and the right button (the gesture
+  trigger) in the theme's accent color; it still follows every theme change.
 - Four fingers up/down work as layers, the opposite swipe undoes the last step:
   nothing open: down = wallpaper, up = Exposé; Exposé: down closes it, up = app
   launcher; launcher: down closes it; wallpaper: down = Files (floating, centred,

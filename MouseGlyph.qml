@@ -3,7 +3,7 @@ import QtQuick.Shapes
 
 // The More Gestures symbol drawn in QML so it follows the theme live: a square split
 // by a fine cross whose lower arm is missing (a schematic mouse). Same proportions as
-// bin/app-icon (64 px square, 6 px frame, 2.5 px lines in a 128 px tile).
+// bin/app-icon (78 px square, 7 px frame, 3 px lines in a 128 px tile).
 //
 // `inverted` (bar icon): a filled square with the arms cut out. They are real holes
 // (odd-even fill), so a transparent bar shows through them like through the tile.

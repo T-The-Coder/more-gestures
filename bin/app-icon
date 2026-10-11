@@ -1,7 +1,8 @@
 #!/bin/bash
 # Writes the More Gestures app icon in the colors of the current Omarchy theme:
 # a schematic mouse, i.e. a square split by a fine cross whose lower arm is missing
-# (an upside-down T: two buttons on top, the body below).
+# (an upside-down T: two buttons on top, the body below). The right button, the
+# gesture trigger, is filled with the theme's accent, like the sun in More Weather.
 # Called by bin/install-app-entry and by the theme-set hook it installs.
 
 set -u
@@ -20,15 +21,17 @@ color() {
 tile=$(color background "#1a1b26")
 edge=$(color lighter_background "#2a2b3d")
 ink=$(color foreground "#c0caf5")
+mark=$(color accent "#7aa2f7")
 
 svg() {
   cat <<SVG
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect x="4" y="4" width="120" height="120" rx="28" fill="$tile" stroke="$edge" stroke-width="3"/>
+  <path d="M64 25 H90 Q103 25 103 38 V64 H64 Z" fill="$mark"/>
   <g fill="none" stroke="$ink" stroke-linecap="round">
-    <rect x="32" y="32" width="64" height="64" rx="10" stroke-width="6"/>
-    <path d="M32 64 H96 M64 32 V64" stroke-width="2.5"/>
+    <rect x="25" y="25" width="78" height="78" rx="13" stroke-width="7"/>
+    <path d="M25 64 H103 M64 25 V64" stroke-width="3"/>
   </g>
 </svg>
 SVG
