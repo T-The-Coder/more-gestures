@@ -855,6 +855,14 @@ Item {
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.set("enabled", !root.working.enabled)
                 }
+                Toggle {
+                  width: parent.width
+                  label: root.tr("superDigits")
+                  description: root.tr("superDigitsHint")
+                  checked: root.working.superDigits
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onClicked: root.set("superDigits", !root.working.superDigits)
+                }
               }
 
               Column {

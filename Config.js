@@ -236,6 +236,20 @@ function hyprLua(config, actions) {
     if (swipeOn(config, f, actions))
       lines.push('hl.gesture({ fingers = ' + f.slice(2) + ', direction = "horizontal", action = "workspace" })')
   })
+  // Super+1…0 (Omarchy binds them by key code, code:10 … code:19) switch workspaces;
+  // picking the workspace already shown changes nothing, so its hidden windows stayed
+  // hidden. Rebound to the plugin's workspace action, which shows them again. Omarchy's
+  // bindings load before input.lua, so the unbind finds them; ~/.config/hypr/bindings.lua
+  // loads later and still wins.
+  if (config.superDigits !== false) {
+    var A2 = actionsModule(actions)
+    for (var n = 1; n <= 10; n++) {
+      var key = "SUPER + code:" + (n + 9)
+      lines.push('hl.unbind("' + key + '")')
+      lines.push('hl.bind("' + key + '", function()\n' + A2.DISPATCH["workspace-" + n].chunk
+        + '\nend, { description = "Switch to workspace ' + n + ' (More Gestures: shows hidden windows)" })')
+    }
+  }
   // The hotkey reaches Lua text: only a combo that passes Actions.parseCombo again
   // (allow-listed modifiers, key name [A-Za-z0-9_]) is written.
   var hk = config.ring && config.ring.hotkey ? actionsModule(actions).parseCombo([config.ring.hotkey.mods, config.ring.hotkey.key]) : null
@@ -315,6 +329,7 @@ function defaults(actions) {
     version: VERSION,
     enabled: true,
     language: "auto",
+    superDigits: true,
     button: "right",
     threshold: LIMITS.threshold.def,
     holdMs: LIMITS.holdMs.def,
@@ -339,6 +354,9 @@ function sanitize(raw, actions) {
     version: VERSION,
     enabled: raw.enabled !== false,
     language: LANGUAGES.indexOf(raw.language) >= 0 ? raw.language : "auto",
+    // Super+1…0 run the plugin's workspace action (hyprLua), so they bring back windows
+    // the wallpaper layer hid and close Exposé, like the ring's workspace slots.
+    superDigits: raw.superDigits !== false,
     button: BUTTONS.indexOf(raw.button) >= 0 ? raw.button : "right",
     threshold: clampInt(raw.threshold, LIMITS.threshold),
     holdMs: clampInt(raw.holdMs, LIMITS.holdMs),

@@ -76,7 +76,9 @@ around the pointer. Default ring 1: Exposé at 12 o'clock, workspaces 1-5 at 1-5
 wallpaper at 6, workspaces 6-9 and 0 (= 10) at 7-11. Move towards a slot and release to
 run it; release in the middle to cancel. Released without leaving the middle, the ring
 stays open: click a slot (left or right button), or anywhere else to close it.
-A workspace slot always shows that workspace's windows: it closes an open Exposé and
+Super+1 … Super+0 do the same (General › "Super+1…0 show hidden windows", on by
+default): the generated Hyprland file unbinds Omarchy's workspace keys and binds them to
+the plugin's workspace action. A workspace slot always shows that workspace's windows: it closes an open Exposé and
 brings back windows the wallpaper layer had hidden, also on the workspace you are on.
 
 Other ways in, both open the ring to stay:

@@ -282,7 +282,7 @@ test("ring hotkey: default, off, invalid, Lua line", () => {
   assert.match(Config.hyprLua(d, A), /hl\.bind\("SUPER \+ ALT \+ R", function\(\) hl\.exec_cmd\("omarchy-shell -q more-gestures openRing"\) end, \{ description = "More Gestures: ring menu" \}\)/)
   const off = Config.sanitize({ ring: { hotkey: null } }, A)
   assert.equal(off.ring.hotkey, null)
-  assert.doesNotMatch(Config.hyprLua(off, A), /hl\.bind/)
+  assert.doesNotMatch(Config.hyprLua(off, A), /openRing/)
   // No modifier, or anything that could break out of the Lua string: back to the default.
   assert.deepEqual(Config.sanitize({ ring: { hotkey: { mods: [], key: "R" } } }, A).ring.hotkey, d.ring.hotkey)
   assert.deepEqual(Config.sanitize({ ring: { hotkey: { mods: ["CTRL"], key: 'R") os.exit() --' } } }, A).ring.hotkey, d.ring.hotkey)
@@ -414,4 +414,15 @@ test("ring style: plain by default, known styles only, trail follows by default"
   assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.style, "neon")
   assert.equal(Config.sanitize({ ring: { style: "neon", styleTrail: false } }).ring.styleTrail, false)
   assert.equal(Config.sanitize({ ring: { style: "glitter" } }).ring.style, "plain")
+})
+
+test("Super+1…0 are rebound to the workspace action, unless switched off", () => {
+  const A = load("Actions.js")
+  const lua = Config.hyprLua(Config.defaults(A), A)
+  assert.match(lua, /hl\.unbind\("SUPER \+ code:10"\)\nhl\.bind\("SUPER \+ code:10", function\(\)\n/)
+  assert.match(lua, /hl\.bind\("SUPER \+ code:19"/)
+  assert.ok(lua.includes(A.DISPATCH["workspace-10"].chunk))
+  assert.equal((lua.match(/hl\.unbind\(/g) || []).length, 10)
+  const off = Config.sanitize({ superDigits: false }, A)
+  assert.doesNotMatch(Config.hyprLua(off, A), /code:1\d/)
 })

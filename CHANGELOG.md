@@ -14,6 +14,9 @@
 - Shapes can have up to 5 strokes.
 
 ### Added
+- Super+1 … Super+0 bring back the windows the wallpaper layer hid and close Exposé, like
+  the ring's workspace slots, also on the workspace already shown (General, on by
+  default; rebinds Omarchy's keys in the generated Hyprland file).
 - Ten styles for the ring menu, each with a matching gesture trail (Ring menu › Style,
   live preview): Comets, Drifting clouds, Radar, Orbits, Ink in water, Neon, Pulse,
   Clockwork, Aurora, Fireflies; "Plain" stays the default. "Gesture trail in the same

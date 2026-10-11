@@ -7,6 +7,8 @@ var STRINGS = {
   en: {
     title: "More Gestures",
     closeWindow: "Close",
+    superDigits: "Super+1…0 show hidden windows",
+    superDigitsHint: "Super+1 … Super+0 switch workspaces as before, and also bring back the windows the wallpaper layer hid and close Exposé, like the ring's workspace slots (also on the workspace you are on). Off: Omarchy's own binding.",
     ringStyle: "Style",
     ringStyleHint: "The look of the ring menu: Plain, or one of ten moving styles (comets on the circles, drifting clouds, radar, orbits, ink in water, neon, pulse, clockwork, aurora, fireflies). With animations off (General) each shows a still frame.",
     ringStyleTrail: "Gesture trail in the same style",
@@ -196,6 +198,8 @@ var STRINGS = {
   de: {
     title: "More Gestures",
     closeWindow: "Schließen",
+    superDigits: "Super+1…0 zeigen versteckte Fenster",
+    superDigitsHint: "Super+1 … Super+0 wechseln wie gewohnt die Arbeitsfläche und holen zusätzlich die vom Wallpaper versteckten Fenster zurück und schließen Exposé, wie die Arbeitsflächen im Kreismenü (auch auf der Arbeitsfläche, auf der du gerade bist). Aus: die Belegung von Omarchy.",
     ringStyle: "Stil",
     ringStyleHint: "Das Aussehen des Kreismenüs: Schlicht oder einer von zehn bewegten Stilen (Kometen auf den Kreisen, wandernde Wolken, Radar, Umlaufbahnen, Tinte im Wasser, Neon, Puls, Uhrwerk, Polarlicht, Glühwürmchen). Mit ausgeschalteten Animationen (Allgemein) zeigt jeder ein ruhiges Standbild.",
     ringStyleTrail: "Gestenspur im selben Stil",
