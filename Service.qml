@@ -420,6 +420,24 @@ Item {
 
   Component.onCompleted: probeActiveWindow()
 
+  // One-time setup: without access to /dev/input and /dev/uinput the daemon sees no
+  // device. Said once per shell start in a notification (the bar icon turns urgent and
+  // the settings open on their Setup page); the daemon picks the devices up by itself
+  // within seconds once the setup command ran.
+  property var access: null
+  Process {
+    id: accessCheck
+    command: ["python3", root.daemonPath, "--check"]
+    running: true
+    stdout: StdioCollector { id: accessOut; waitForEnd: true }
+    onExited: function() {
+      root.access = Config.parseAccess(accessOut.text)
+      if (root.access && !root.access.ready)
+        Quickshell.execDetached(["omarchy-notification-send", "More Gestures",
+                                 Actions.notificationText(I18n.tr(root.lang, "notifySetup"))])
+    }
+  }
+
   // ---------------------------------------------------------------------- IPC
 
   IpcHandler {
@@ -486,6 +504,7 @@ Item {
         profiles: Actions.profilesFor(root.activeWindow),
         pass: root.passWanted,
         sessionLocked: root.sessionLocked,
+        access: root.access,
         lastGesture: root.lastGesture,
         lastAction: root.lastAction
       })

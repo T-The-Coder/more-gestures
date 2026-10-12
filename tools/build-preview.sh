@@ -7,7 +7,12 @@
 #   trail-<style>.png        the settings window on the Mouse page (grim -g
 #                            "550,170 820x860"), one per trail style
 #   settings-<page>.png      the settings window, one per page
-#                            (general, mouse, trackpad, ring, changes)
+#                            (general, mouse, trackpad, ring, setup, changes)
+#   gesture.png              the whole screen during a ↓→ gesture with the Neon
+#                            trail (started at 700,380, then down and right), shot
+#                            while still moving so the trail is complete
+# Without ring-<style>/trail-<style> shots for every style the two style grids are
+# left as they are (they only change with the styles).
 # Colours come from the current Omarchy theme, the font is JetBrains Mono.
 #   tools/build-preview.sh <raw-screenshot-dir>
 set -euo pipefail
@@ -32,9 +37,12 @@ trail_names=("Plain" "Comet" "Vapour trail" "Blips" "Stardust" "Brush stroke" "N
 ring_crop() { magick "$in/ring-$1-full.png" -crop 680x680+620+280 +repage "$2"; }
 trail_crop() { magick "$in/trail-$1.png" -crop 262x180+418+432 +repage "$2"; }
 
+gesture_crop() { magick "$in/gesture.png" -crop 820x385+450+280 +repage -resize 1000x "$1"; }
+
 mkdir -p "$root/screenshots"
 ring_crop comets "$root/screenshots/ring.png"
-for page in general mouse trackpad ring changes; do
+gesture_crop "$root/screenshots/gesture.png"
+for page in general mouse trackpad ring setup changes; do
   cp "$in/settings-$page.png" "$root/screenshots/settings-$page.png"
 done
 
@@ -57,13 +65,16 @@ grid() {  # output title cell-width picture-height columns kind(ring|trail)
     -font "$bold" -pointsize 44 -fill "$accent" -annotate +0+34 "$title" \
     -bordercolor "$bg" -border 30 -depth 8 "$out"
 }
-grid "$root/screenshots/styles.png" "Eleven ring styles" 380 380 4 ring
-grid "$root/screenshots/trails.png" "And a trail for every gesture" 393 270 4 trail
+have_all() { local s; for s in "${styles[@]}"; do [[ -f "$in/$1-$s$2" ]] || return 1; done; }
+if have_all ring -full.png; then grid "$root/screenshots/styles.png" "Eleven ring styles" 380 380 4 ring; fi
+if have_all trail .png; then grid "$root/screenshots/trails.png" "And a trail for every gesture" 393 270 4 trail; fi
 
-# The preview: name and slogan, a cheat sheet of the gesture language, the ring
-# (Comets) large on the right.
+# The preview: name and slogan, a cheat sheet of the gesture language; on the right
+# a gesture being drawn (↓→, Neon trail) over the ring menu (Comets).
+gesture_crop "$work/gesture.png"
+magick "$work/gesture.png" -bordercolor "$line" -border 3 "$work/gesture.png"
 ring_crop comets "$work/hero.png"
-magick "$work/hero.png" -resize 1000x -bordercolor "$line" -border 3 "$work/hero.png"
+magick "$work/hero.png" -resize 660x -bordercolor "$line" -border 3 "$work/hero.png"
 
 rows=("↓→" "close tab" "↓←" "close window" "↑← ↑→" "workspace left / right" "← →" "back / forward"
   "↑" "Exposé, then the app launcher" "↓" "wallpaper, then Files" "2× click" "hold: the ring menu")
@@ -77,7 +88,7 @@ done
 
 magick -size 2400x1350 "xc:$bg" \
   -fill "$accent" -draw "roundrectangle 98,96 420,150 8,8" \
-  -font "$bold" -pointsize 30 -fill "$bg" -annotate +124+134 "VERSION 1.0" \
+  -font "$bold" -pointsize 30 -fill "$bg" -annotate +124+134 "VERSION 1.1" \
   -font "$bold" -pointsize 96 -fill "$accent" -annotate +92+290 "More Gestures" \
   -font "$font" -pointsize 52 -fill "$fg" -annotate +98+400 "Control Omarchy with" \
   -annotate +98+468 "Mouse and Trackpad Gestures" \
@@ -85,7 +96,8 @@ magick -size 2400x1350 "xc:$bg" \
   -fill "$line" -draw "rectangle 98,640 1200,644" \
   -font "$font" -pointsize 26 -fill "$muted" -annotate +104+700 "ONE GESTURE LANGUAGE, EVERY PROGRAM" \
   "${args[@]}" \
-  -font "$font" -pointsize 28 -fill "$muted" -annotate +100+1250 "30 languages · 11 ring styles · 11 trails · settings saved as you go" \
-  "$work/hero.png" -geometry +1300+172 -composite \
+  -font "$font" -pointsize 28 -fill "$muted" -annotate +100+1250 "30 languages · 11 ring styles · 11 trails · no packages to install" \
+  "$work/gesture.png" -geometry +1300+96 -composite \
+  "$work/hero.png" -geometry +1470+604 -composite \
   -depth 8 "$root/preview.png"
 echo "preview.png and screenshots/ updated"

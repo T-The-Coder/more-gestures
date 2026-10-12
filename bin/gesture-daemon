@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""More Gestures: evdev/uinput-Rahmen um die Entscheidungslogik in lib/gesture_core.py.
+"""More Gestures: evdev/uinput-Rahmen (lib/evdev_lite.py, ohne python-evdev) um die Entscheidungslogik in lib/gesture_core.py.
 
 Greift Zeigegeräte exklusiv, reicht alles über ein eigenes uinput-Gerät 1:1 weiter und
 hält nur die Auslösetaste zurück. JSON-Zeilen für den Dienst gehen nach stdout.
@@ -18,8 +18,9 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
 
-import evdev  # noqa: E402
-from evdev import ecodes  # noqa: E402
+# python-evdev's API in plain Python: Omarchy ships Python but not python-evdev.
+import evdev_lite as evdev  # noqa: E402
+ecodes = evdev
 
 import gesture_core as core  # noqa: E402
 import touchpad_core as tpc  # noqa: E402
@@ -89,6 +90,9 @@ class Daemon:
         self.tp_settings = tpc.TouchpadSettings(enabled=not args.no_touchpad)
         self.tap_settings = tap_core.TapSettings()
         self.rejected = set()  # Pfade ohne passendes Gerät, nicht jede 2 s neu öffnen
+        # Paths we may not open or clone yet (setup not done): tried again on every scan,
+        # so the daemon starts working seconds after the setup command, but logged once.
+        self.denied = set()
         self.next_scan = 0.0
 
     # --- Ausgabe ------------------------------------------------------------
@@ -106,6 +110,7 @@ class Daemon:
     def scan(self):
         paths = set(evdev.list_devices())
         self.rejected &= paths
+        self.denied &= paths
         for path in set(self.pointers) - paths:
             self.drop_pointer(path)
         for path in set(self.keyboards) - paths:
@@ -115,6 +120,8 @@ class Daemon:
         known = set(self.pointers) | set(self.keyboards) | set(self.touchpads)
         for path in sorted(paths - known - self.rejected):
             self.add_device(path)
+        # Settled (added or for good not ours): a later denial is news again.
+        self.denied -= set(self.pointers) | set(self.keyboards) | set(self.touchpads) | self.rejected
 
     def add_device(self, path):
         try:
@@ -122,7 +129,9 @@ class Daemon:
         except OSError as e:
             # Gerät noch nicht bereit (Berechtigung der udev-Regel kommt verzögert):
             # nicht merken, der nächste Abgleich versucht es erneut.
-            log(f"cannot open {path}: {e}")
+            if path not in self.denied:
+                log(f"cannot open {path}: {e}")
+                self.denied.add(path)
             return
         if dev.name.startswith(core.VIRTUAL_NAME_PREFIX):
             # Our own clones (mouse or touchpad): grabbing them would loop.
@@ -161,10 +170,16 @@ class Daemon:
                 )
                 dev.grab()
             except OSError as e:
-                log(f"cannot grab {dev.name} [{path}]: {e}")
                 if uinput:
                     uinput.close()
                 dev.close()
+                if e.errno in (errno.EACCES, errno.EPERM):
+                    # No /dev/uinput yet (setup not done): the next scan tries again.
+                    if path not in self.denied:
+                        log(f"cannot clone {dev.name} [{path}]: {e}")
+                        self.denied.add(path)
+                    return
+                log(f"cannot grab {dev.name} [{path}]: {e}")
                 self.rejected.add(path)
                 return
         engine = core.Engine(self.config)  # Config wird geteilt: `config {...}` wirkt überall
@@ -479,11 +494,16 @@ def parse_args(argv):
                     help="do not read touchpads (3/4-finger gestures off)")
     ap.add_argument("--include-pointing-sticks", action="store_true",
                     help="also grab pointing sticks such as a TrackPoint (off by default)")
+    ap.add_argument("--check", action="store_true",
+                    help="print what this user may access as JSON and exit (for the setup page)")
     return ap.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.check:
+        print(json.dumps(evdev.access(), separators=(",", ":")), flush=True)
+        return 0
     daemon = Daemon(args)
 
     def stop(signum, frame):

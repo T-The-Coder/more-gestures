@@ -489,7 +489,34 @@ function uiLanguage(config, localeName) {
 }
 
 // The settings pages, in the order of the tab strip.
-var SETTINGS_PAGES = ["general", "mouse", "trackpad", "ring", "changes"]
+var SETTINGS_PAGES = ["general", "mouse", "trackpad", "ring", "setup", "changes"]
+
+// One-time setup (the settings' Setup page and the README show the same text). The
+// daemon reads mice, touchpads and keyboards from /dev/input and forwards the mouse
+// through a copy made with /dev/uinput; Omarchy grants neither to the user. One udev
+// rule tags both "uaccess", so systemd gives the person logged in at this computer
+// access (not other users, not SSH sessions); the trigger applies it to the devices
+// already plugged in, so no logout is needed. printf | tee works in bash, zsh and fish.
+var SETUP_RULE_PATH = "/etc/udev/rules.d/70-more-gestures.rules"
+var SETUP_RULES = [
+  'KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"',
+  'SUBSYSTEM=="input", KERNEL=="event*", TAG+="uaccess"'
+]
+var SETUP_COMMAND = "printf '%s\\n' " + SETUP_RULES.map(function(r) { return "'" + r + "'" }).join(" ") +
+  " | sudo tee " + SETUP_RULE_PATH + " >/dev/null" +
+  " && sudo udevadm control --reload" +
+  " && sudo udevadm trigger --action=change --subsystem-match=input --subsystem-match=misc"
+// Removing the rule takes effect with the next restart (granted access stays until then).
+var SETUP_UNDO_COMMAND = "sudo rm " + SETUP_RULE_PATH
+
+// What `gesture-daemon --check` printed, as { input, uinput, devices }; null when the
+// output is not that (old daemon, Python missing). ready: both granted.
+function parseAccess(text) {
+  var a
+  try { a = JSON.parse(String(text || "").trim()) } catch (e) { return null }
+  if (!a || typeof a.input !== "boolean" || typeof a.uinput !== "boolean") return null
+  return { input: a.input, uinput: a.uinput, devices: Number(a.devices) || 0, ready: a.input && a.uinput }
+}
 
 // The gesture rows a settings page lists. Shared "*" rows show on both device pages:
 // the mouse and three fingers speak one gesture language, so editing one edits both.
@@ -590,6 +617,8 @@ if (typeof module !== "undefined") module.exports = {
   daemonConfigChanged: daemonConfigChanged, daemonConfigLine: daemonConfigLine,
   listBindings: listBindings, setBinding: setBinding, removeBinding: removeBinding,
   gestureKeyFor: gestureKeyFor, cleanExcludes: cleanExcludes, addExclude: addExclude,
-  removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES, rowsForPage: rowsForPage,
+  removeExclude: removeExclude, SETTINGS_PAGES: SETTINGS_PAGES,
+  SETUP_RULE_PATH: SETUP_RULE_PATH, SETUP_RULES: SETUP_RULES, SETUP_COMMAND: SETUP_COMMAND,
+  SETUP_UNDO_COMMAND: SETUP_UNDO_COMMAND, parseAccess: parseAccess, rowsForPage: rowsForPage,
   LANGUAGES: LANGUAGES, uiLanguage: uiLanguage, ringKeyFrom: ringKeyFrom, TRACKPAD_GROUPS: TRACKPAD_GROUPS, RING_STYLES: RING_STYLES
 }

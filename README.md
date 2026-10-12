@@ -136,6 +136,8 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 
 ## Screenshots
 
+![A gesture being drawn: ↓→ closes the tab](screenshots/gesture.png)
+
 ![Eleven ring styles](screenshots/styles.png)
 
 ![A trail for every gesture](screenshots/trails.png)
@@ -144,7 +146,8 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 |---|---|
 | ![Ring menu](screenshots/ring.png) | ![General](screenshots/settings-general.png) |
 | ![Mouse](screenshots/settings-mouse.png) | ![Trackpad](screenshots/settings-trackpad.png) |
-| ![Ring menu settings](screenshots/settings-ring.png) | ![What's new](screenshots/settings-changes.png) |
+| ![Ring menu settings](screenshots/settings-ring.png) | ![Setup](screenshots/settings-setup.png) |
+| ![What's new](screenshots/settings-changes.png) | |
 
 ## Keyboard
 
@@ -166,10 +169,10 @@ under General).
 
 - Omarchy with Hyprland 0.56 or newer (Lua configuration) and its Quickshell
   shell.
-- Python 3 with `python-evdev` (Omarchy ships both).
-- Your user in the `input` group, with write access to `/dev/uinput` (the
-  daemon reads mice and touchpads and forwards the mouse through a virtual
-  device).
+- Python 3 (Omarchy ships it). Nothing else to install: the daemon talks to
+  the kernel's input devices in plain Python.
+- A one-time setup with one command (below), because Omarchy does not let a
+  user read input devices or create a virtual one on its own.
 - Recommended: the [Exposé plugin](https://github.com/kristofferR/omarchy-expose)
   for the "Exposé" action, the ring's 12 o'clock slot and the up layer.
   Without it they open the app launcher; the settings show the install
@@ -191,7 +194,39 @@ under General).
 omarchy plugin add https://github.com/T-The-Coder/more-gestures.git --enable
 ```
 
-The icon goes into the right section of the bar.
+The icon goes into the right section of the bar (move it under General ›
+Menu bar › Position in the bar).
+
+**One-time setup.** Until it is done the bar icon is red, a notification says
+so and the settings open on their **Setup** page, which shows what is missing,
+why, and the command with a copy button (`Ctrl+C` copies it there too). Paste
+it into a terminal; `sudo` asks for your password:
+
+```bash
+printf '%s\n' 'KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"' 'SUBSYSTEM=="input", KERNEL=="event*", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-more-gestures.rules >/dev/null && sudo udevadm control --reload && sudo udevadm trigger --action=change --subsystem-match=input --subsystem-match=misc
+```
+
+Why both are needed:
+
+- **Read mice, trackpads and keyboards** (`/dev/input/event*`): to see a
+  gesture before programs do. Of the keyboards only Super, Alt, Ctrl and Shift
+  are looked at (so Super + right drag still resizes windows); no other key is
+  stored or passed on.
+- **Create a virtual mouse** (`/dev/uinput`): the trigger button is held back
+  and everything else goes on through a copy of your mouse; a short click is
+  replayed there, so it stays a normal click.
+
+What it does: it writes `/etc/udev/rules.d/70-more-gestures.rules` with two lines that tag
+both for udev's `uaccess` (as systemd does for webcams and game controllers),
+so the person logged in at this computer gets access; other users and SSH
+sessions get nothing. It then reloads udev and applies the rules to the devices
+already connected: no logout, gestures start within seconds. Like membership
+in the `input` group, it lets programs you run in your session read input
+devices. To undo it, delete the file (the access ends with the next restart):
+
+```bash
+sudo rm /etc/udev/rules.d/70-more-gestures.rules
+```
 
 **Hyprland hook.** Hyprland's workspace swipe, the ring's shortcut and
 Super+1…0 live in a file the plugin writes,
@@ -228,13 +263,20 @@ read from the installed plugin. Your settings stay as they are.
    ~/.config/omarchy/plugins/more-gestures/bin/hypr-hook --remove
    ```
 
-3. Remove the plugin:
+3. Optional: remove the udev rule from the one-time setup (the access ends
+   with the next restart):
+
+   ```bash
+   sudo rm /etc/udev/rules.d/70-more-gestures.rules
+   ```
+
+4. Remove the plugin:
 
    ```bash
    omarchy plugin remove more-gestures
    ```
 
-4. Optional: delete the settings and the generated Hyprland file:
+5. Optional: delete the settings and the generated Hyprland file:
 
    ```bash
    rm -f ~/.local/state/omarchy/settings/more-gestures*.json \
@@ -250,6 +292,7 @@ read from the installed plugin. Your settings stay as they are.
 | `~/.local/state/omarchy/settings/more-gestures-settings-backup.json` | the settings before the last import |
 | `~/Downloads/more-gestures-settings.json` | default export file |
 | `~/.config/hypr/input.lua` | gets the marked block from **Set up** |
+| `/etc/udev/rules.d/70-more-gestures.rules` | the one-time setup (written by you with `sudo`, see Installation) |
 | `$XDG_RUNTIME_DIR/more-gestures-recorded.json` | the gesture handed to the editor while recording |
 
 ## IPC
@@ -277,7 +320,9 @@ tests/qml-syntax.sh                 # every QML file parses (qmllint)
 tools/build-preview.sh <shots-dir>  # screenshots/ and preview.png from raw shots
 ```
 
-**Daemon.** `bin/gesture-daemon` is a thin evdev/uinput frame around
+**Daemon.** `bin/gesture-daemon` is a thin evdev/uinput frame
+(`lib/evdev_lite.py`: the part of python-evdev it needs, in plain Python with
+ioctl and struct, so nothing has to be installed) around
 `lib/gesture_core.py` (state machine, direction recogniser, commands),
 `lib/touchpad_core.py` (fingers, millimetres, pinches) and `lib/tap_core.py`
 (corner taps), which know nothing of evdev and are tested with recorded
@@ -287,7 +332,9 @@ trigger press back; touchpads are read without a grab. It lives as a child of
 the shell, with stdin as its leash: SIGTERM, SIGINT and EOF release the grab,
 and if it dies any other way the kernel does. A gesture held longer than 10 s
 is reset. `bin/gesture-daemon --dry-run` grabs nothing and prints devices and
-state changes.
+state changes; `--check` prints what this user may access (the Setup page and
+the bar icon use it). Devices it may not open or clone yet are tried again on
+every scan (every 2 s), so it starts working right after the setup command.
 
 **Protocol.** stdout, one JSON object per line: `start`, `segment {dirs}`,
 `progress {dir, ratio}` (≤ 30 Hz), `end {gesture}`, `cancel`, `wheel {dir}`,

@@ -25,6 +25,25 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
+  // Until the one-time setup is done gestures cannot work: the icon turns urgent and the
+  // tooltip says so (the settings open on their Setup page). Checked on load and every
+  // 10 s while missing; the check is a short Python run that opens no device.
+  property var access: null
+  readonly property bool setupNeeded: root.access !== null && !root.access.ready
+  Process {
+    id: accessCheck
+    command: ["python3", decodeURIComponent(String(Qt.resolvedUrl("bin/gesture-daemon")).replace(/^file:\/\//, "")), "--check"]
+    running: true
+    stdout: StdioCollector { id: accessOut; waitForEnd: true }
+    onExited: function() { root.access = Config.parseAccess(accessOut.text) }
+  }
+  Timer {
+    interval: 10000
+    repeat: true
+    running: root.access === null || root.setupNeeded
+    onTriggered: if (!accessCheck.running) accessCheck.running = true
+  }
+
   FileView {
     path: Quickshell.env("HOME") + Config.PATH_SUFFIX
     watchChanges: true
@@ -42,8 +61,9 @@ BarWidget {
   }
 
   function tooltip() {
-    if (!root.config.bar.tooltip) return ""
     var tr = function (key) { return I18n.tr(root.lang, key) }
+    if (root.setupNeeded) return "More Gestures: " + tr("setupNeeded")
+    if (!root.config.bar.tooltip) return ""
     var state = tr(root.gesturesOn ? "stateOn" : "stateOff")
     var name = function (a) { return a && a !== "none" ? tr("tip_" + a) : "" }
     var b = root.config.bar
@@ -70,11 +90,12 @@ BarWidget {
       width: Math.round(Style.font.body * 0.92)  // as tall as the font icons beside it (11 px at body 12)
       height: width
       inverted: true
-      color: button.foreground
-      opacity: root.gesturesOn ? 1.0 : 0.35
+      color: root.setupNeeded ? Color.urgent : button.foreground
+      opacity: root.gesturesOn || root.setupNeeded ? 1.0 : 0.35
     }
 
     onPressed: function(b) {
+      if (root.setupNeeded) { root.run("settings"); return }  // straight to the Setup page
       var bar = root.config.bar
       if (b === Qt.RightButton) root.run(bar.right)
       else if (b === Qt.MiddleButton) root.run(bar.middle)

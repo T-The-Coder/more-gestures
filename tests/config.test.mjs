@@ -322,7 +322,7 @@ test("settings pages list the gesture rows of their device", () => {
   assert.ok(keys(pad).includes("tp4:tap2") && !keys(mouse).includes("tp4:tap2"))
   assert.ok(!mouse.some((r) => /^(tp3|tp4|tap)$/.test(r.source)))
   assert.deepEqual(Config.rowsForPage(rows, "ring"), [])
-  assert.deepEqual(Config.SETTINGS_PAGES, ["general", "mouse", "trackpad", "ring", "changes"])
+  assert.deepEqual(Config.SETTINGS_PAGES, ["general", "mouse", "trackpad", "ring", "setup", "changes"])
 })
 
 test("language: auto follows the locale, a choice wins, junk is auto", () => {
@@ -442,4 +442,43 @@ test("ring keys: Shift+digit as ⇧N, typed in several ways; ring 2 has ⇧1 …
   assert.equal(c.ring.rings[1].keys[0], "⇧1")
   assert.equal(c.ring.rings[1].keys[1], "")    // used twice
   assert.equal(c.ring.rings[1].keys[2], "")    // not a key the ring knows
+})
+
+// The setup command shown on the Setup page and in the README: its printf part writes
+// exactly the two rules (checked in bash, and in fish when installed), and udev accepts
+// them. Only the part before "| sudo" runs here, nothing is installed.
+test("setup command writes the udev rules udev accepts", async () => {
+  const { execFileSync } = await import("node:child_process")
+  const { mkdtempSync, writeFileSync } = await import("node:fs")
+  const { tmpdir } = await import("node:os")
+  const { join } = await import("node:path")
+  const C = load("Config.js")
+  const [printf, rest] = C.SETUP_COMMAND.split(" | sudo tee ")
+  assert.equal(rest.split(" ")[0], C.SETUP_RULE_PATH)
+  assert.match(C.SETUP_RULE_PATH, /^\/etc\/udev\/rules\.d\/[0-6]\d-|^\/etc\/udev\/rules\.d\/7[0-2]-/) // before 73-seat-late
+  const expected = C.SETUP_RULES.join("\n") + "\n"
+  assert.equal(execFileSync("bash", ["-c", printf], { encoding: "utf8" }), expected)
+  try { assert.equal(execFileSync("fish", ["-c", printf], { encoding: "utf8" }), expected) } catch (e) { if (e.code !== "ENOENT") throw e }
+  const dir = mkdtempSync(join(tmpdir(), "mg-rules-"))
+  writeFileSync(join(dir, "70-more-gestures.rules"), expected)
+  try { execFileSync("udevadm", ["verify", join(dir, "70-more-gestures.rules")], { stdio: "pipe" }) }
+  catch (e) { if (e.code !== "ENOENT") throw e }
+  assert.equal(C.SETUP_UNDO_COMMAND, "sudo rm " + C.SETUP_RULE_PATH)
+})
+
+test("access check output", () => {
+  const C = load("Config.js")
+  assert.deepEqual(C.parseAccess('{"devices":21,"input":true,"uinput":false}\n'),
+    { input: true, uinput: false, devices: 21, ready: false })
+  assert.equal(C.parseAccess('{"devices":3,"input":true,"uinput":true}').ready, true)
+  assert.equal(C.parseAccess("Traceback ..."), null)
+  assert.equal(C.parseAccess('{"input":"yes"}'), null)
+})
+
+test("the README shows the same setup command as the Setup page", async () => {
+  const { readFileSync } = await import("node:fs")
+  const C = load("Config.js")
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8")
+  assert.ok(readme.includes(C.SETUP_COMMAND), "README setup command")
+  assert.ok(readme.includes(C.SETUP_UNDO_COMMAND), "README undo command")
 })

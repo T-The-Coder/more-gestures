@@ -38,11 +38,11 @@ test("every Text in the plugin's QML is plain text", () => {
   assert.ok(count > 20, "found the Text elements")
 })
 
-test("the status notification escapes markup", () => {
+test("notifications escape markup", () => {
   const service = readFileSync(join(root, "Service.qml"), "utf8")
-  const call = service.match(/execDetached\(\["omarchy-notification-send"[^\n]*/)
-  assert.ok(call, "notification call found")
-  assert.match(call[0], /Actions\.notificationText\(/)
+  const calls = service.match(/execDetached\(\["omarchy-notification-send"[\s\S]*?\]\)/g) || []
+  assert.ok(calls.length >= 2, "notification calls found")
+  for (const call of calls) assert.match(call, /Actions\.notificationText\(/)
 })
 
 // Nothing a gesture is bound to may run while the session is locked (marketplace review

@@ -76,6 +76,39 @@ Item {
     }
   }
   readonly property bool exposeInstalled: exposeCheck.available
+
+  // Left, center or right in Omarchy's bar ("Menu bar" section).
+  BarPlacement { id: barPlacement }
+
+  // One-time setup (Setup page): whether the daemon may read input devices and create
+  // its virtual mouse (`gesture-daemon --check`). Checked on open and every 2 s while
+  // something is missing, so the page turns green right after the command ran.
+  property var access: null                 // { input, uinput, devices, ready } or null
+  readonly property bool setupDone: root.access !== null && root.access.ready
+  readonly property string daemonScript: pluginPath("bin/gesture-daemon")
+  property bool showSetupOnCheck: false      // open on the Setup page when it is needed
+  Process {
+    id: accessCheck
+    command: ["python3", root.daemonScript, "--check"]
+    stdout: StdioCollector { id: accessOut; waitForEnd: true }
+    onExited: function() {
+      root.access = Config.parseAccess(accessOut.text)
+      if (root.showSetupOnCheck && !root.setupDone) root.showPage("setup")
+      root.showSetupOnCheck = false
+    }
+  }
+  Timer {
+    interval: 2000
+    repeat: true
+    running: root.opened && !root.setupDone
+    onTriggered: if (!accessCheck.running) accessCheck.running = true
+  }
+  // The copy button that last copied, so its label can say "Copied" (one at a time).
+  property string copiedText: ""
+  function copyText(text) {
+    Quickshell.execDetached(["wl-copy", String(text)])
+    root.copiedText = String(text)
+  }
   readonly property string exposeInstallCommand: "omarchy plugin add https://github.com/kristofferR/omarchy-expose.git --enable"
 
   // Shares the [menu] surface tokens like the other Omarchy overlays.
@@ -162,6 +195,9 @@ Item {
     exposeCheck.refresh()
     root.hyprSetupMessage = ""
     hyprCheck.running = true
+    root.copiedText = ""
+    root.showSetupOnCheck = true
+    if (!accessCheck.running) accessCheck.running = true
     desktopFile.reload()
     stateFile.reload()
     root.loading = true
@@ -638,28 +674,76 @@ Item {
     spacing: Style.spacing.sm
     visible: !root.exposeInstalled
     Hint { width: parent.width; color: root.accent; text: root.tr("exposeRecommend") }
-    Row {
-      spacing: Style.spacing.md
-      Rectangle {
-        width: commandText.implicitWidth + Style.space(16)
-        height: Style.spacing.controlHeight
-        radius: Style.cornerRadius
-        color: Util.alpha(root.foreground, 0.06)
-        Text {
-          textFormat: Text.PlainText
-          id: commandText
-          anchors.centerIn: parent
-          text: root.exposeInstallCommand
-          color: root.foreground
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-        }
+    CommandBox { command: root.exposeInstallCommand }
+  }
+
+  // A shell command to paste into a terminal: shown in full (wrapped, selectable by
+  // eye), with a button that copies it.
+  component CommandBox: Row {
+    id: commandBox
+    property string command: ""
+    width: parent ? parent.width : 0
+    spacing: Style.spacing.md
+    Rectangle {
+      width: commandBox.width - copyButton.width - commandBox.spacing
+      height: commandText.implicitHeight + Style.space(12)
+      radius: Style.cornerRadius
+      color: Util.alpha(root.foreground, 0.06)
+      Text {
+        id: commandText
+        textFormat: Text.PlainText
+        anchors.verticalCenter: parent.verticalCenter
+        x: Style.space(8)
+        width: parent.width - Style.space(16)
+        text: commandBox.command
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        wrapMode: Text.WrapAnywhere
       }
-      SmallButton {
-        property bool copied: false
-        text: copied ? root.tr("copied") : root.tr("copy")
-        onClicked: { Quickshell.execDetached(["wl-copy", root.exposeInstallCommand]); copied = true }
+    }
+    SmallButton {
+      id: copyButton
+      anchors.verticalCenter: parent.verticalCenter
+      text: root.copiedText === commandBox.command ? root.tr("copied") : root.tr("copy")
+      onClicked: root.copyText(commandBox.command)
+    }
+  }
+
+  // One requirement of the setup: granted or missing, its name and why it is needed.
+  component SetupStatus: Row {
+    id: setupStatus
+    property bool ok: false
+    property string title: ""
+    property string why: ""
+    property bool showState: true   // "granted" / "missing" after the title (permissions only)
+    width: parent ? parent.width : 0
+    spacing: Style.spacing.md
+    Text {
+      textFormat: Text.PlainText
+      width: Style.space(18)
+      readonly property bool pending: setupStatus.showState && root.access === null
+      text: pending ? "…" : setupStatus.ok ? "✓" : "✗"
+      color: pending ? root.muted : setupStatus.ok ? root.accent : Color.urgent
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.body
+      font.bold: true
+    }
+    Column {
+      width: setupStatus.width - Style.space(18) - setupStatus.spacing
+      spacing: Style.spacing.xs
+      Text {
+        textFormat: Text.PlainText
+        width: parent.width
+        text: !setupStatus.showState ? setupStatus.title
+          : setupStatus.title + "  ·  " + (root.access === null ? root.tr("setupChecking")
+            : root.tr(setupStatus.ok ? "setupGranted" : "setupMissing"))
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
+        wrapMode: Text.WordWrap
       }
+      Hint { width: parent.width; visible: text !== ""; text: setupStatus.why }
     }
   }
 
@@ -706,6 +790,10 @@ Item {
           event.accepted = true
         } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
           root.scrollBy((event.key === Qt.Key_Down ? 1 : -1) * Style.space(48))
+          event.accepted = true
+        } else if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier) && root.page === "setup") {
+          // Ctrl+C on the Setup page copies the setup command (the page says so).
+          root.copyText(Config.SETUP_COMMAND)
           event.accepted = true
         }
       }
@@ -888,8 +976,19 @@ Item {
               spacing: Style.spacing.huge
               visible: root.page === "general"
 
-              HyprTip {}
-              ExposeTip {}
+              // Points to the Setup page while gestures cannot work yet or Hyprland does not
+              // load the plugin's file.
+              Column {
+                width: parent.width
+                spacing: Style.spacing.sm
+                visible: (root.access !== null && !root.setupDone) || !root.hyprHooked
+                Hint {
+                  width: parent.width
+                  color: root.accent
+                  text: root.tr(root.access !== null && !root.setupDone ? "setupNeeded" : "hyprNotLoaded")
+                }
+                SmallButton { text: root.tr("setupOpen"); onClicked: root.showPage("setup") }
+              }
 
               // Language first, as in More Time and More Weather.
               Column {
@@ -986,6 +1085,20 @@ Item {
                   checked: root.working.bar.show
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.setBar("show", !root.working.bar.show)
+                }
+
+                Label { visible: root.working.bar.show && barPlacement.section !== ""; text: root.tr("barPosition") }
+                ButtonGroup {
+                  visible: root.working.bar.show && barPlacement.section !== ""
+                  enabled: !barPlacement.busy
+                  value: barPlacement.section
+                  options: [
+                    { value: "left", label: root.tr(barPlacement.verticalBar ? "barPositionTop" : "barPositionLeft") },
+                    { value: "center", label: root.tr("barPositionCenter") },
+                    { value: "right", label: root.tr(barPlacement.verticalBar ? "barPositionBottom" : "barPositionRight") }
+                  ]
+                  foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
+                  onChanged: function(v) { barPlacement.moveTo(v) }
                 }
 
                 Repeater {
@@ -1977,6 +2090,76 @@ Item {
                     SmallButton { text: root.tr("cancelEdit"); onClicked: root.closeEditor() }
                   }
                 }
+              }
+            }
+
+            // One-time setup: the two permissions the daemon needs (status, why, the
+            // command to copy, what it does, how to undo it), then the recommended extras.
+            Column {
+              width: parent.width
+              spacing: Style.spacing.huge
+              visible: root.page === "setup"
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+                PanelSectionHeader { text: root.tr("setupPermissions"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Hint { width: parent.width; color: root.foreground; text: root.tr("setupIntro") }
+                SetupStatus {
+                  ok: root.access !== null && root.access.input
+                  title: root.tr("setupInput")
+                  why: root.tr("setupInputWhy")
+                }
+                SetupStatus {
+                  ok: root.access !== null && root.access.uinput
+                  title: root.tr("setupUinput")
+                  why: root.tr("setupUinputWhy")
+                }
+                Hint {
+                  width: parent.width
+                  visible: root.setupDone
+                  color: root.accent
+                  text: root.tr("setupDone")
+                }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+                PanelSectionHeader { text: root.tr("setupCommand"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Hint { width: parent.width; color: root.foreground; text: root.tr("setupRun") }
+                CommandBox { command: Config.SETUP_COMMAND }
+                Hint { width: parent.width; text: root.tr("setupCopyHint") }
+                Hint { width: parent.width; text: root.tr("setupWhat").replace("%1", Config.SETUP_RULE_PATH) }
+                Hint { width: parent.width; text: root.tr("setupScope") }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+                PanelSectionHeader { text: root.tr("setupUndoSection"); foreground: root.foreground; fontFamily: root.fontFamily }
+                Hint { width: parent.width; text: root.tr("setupUndo") }
+                CommandBox { command: Config.SETUP_UNDO_COMMAND }
+              }
+
+              Column {
+                width: parent.width
+                spacing: Style.spacing.md
+                PanelSectionHeader { text: root.tr("setupRecommended"); foreground: root.foreground; fontFamily: root.fontFamily }
+                SetupStatus {
+                  ok: root.hyprHooked
+                  title: root.tr("setupHypr")
+                  showState: false
+                  why: root.hyprHooked ? root.tr("setupHyprWhy") : ""
+                }
+                HyprTip {}
+                SetupStatus {
+                  ok: root.exposeInstalled
+                  title: root.tr("setupExpose")
+                  showState: false
+                  why: root.exposeInstalled ? root.tr("setupExposeWhy") : ""
+                }
+                ExposeTip {}
               }
             }
 

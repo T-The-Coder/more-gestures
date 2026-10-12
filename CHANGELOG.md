@@ -2,6 +2,22 @@
 
 All notable changes to More Gestures are documented here.
 
+## 1.1.0 — 2026-10-12
+
+- **Nothing to install.** The daemon no longer needs python-evdev, which
+  Omarchy does not ship: the part it used (reading, grabbing and cloning input
+  devices) is now plain Python in `lib/evdev_lite.py`, checked against
+  python-evdev on every device of the test machine.
+- **Setup page.** One udev rule replaces joining the `input` group and a
+  separate rule for `/dev/uinput`. The new Setup page shows what is granted
+  and what is missing, why each is needed, the command with a copy button
+  (`Ctrl+C` copies it too), what it does and how to undo it, plus the
+  Hyprland hook and the Exposé plugin. No logout: the daemon picks the devices
+  up within seconds of the command. Until then the bar icon is red, its click
+  opens the Setup page, and one notification per session says so.
+- **Position in the bar.** Left, center or right, switched under General ›
+  Menu bar, as in More Time.
+
 ## 1.0.1 — 2026-10-12
 
 - **Nothing runs while the screen is locked.** The daemon reads the mouse

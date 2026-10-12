@@ -42,3 +42,12 @@ test("locale names map to catalogues; names in other languages come from them", 
   assert.equal(A.actionName({ type: "dispatch", id: "files" }, "ja"), I.catalogs.ja.act_files)
   assert.equal(A.actionName({ type: "keys", combo: ["ALT", "Left"], label: "back" }, "es"), I.catalogs.es.label_back + " (Alt+Left)")
 })
+
+test("every settings page has a tab name and a subtitle", () => {
+  const C = load("Config.js")
+  const en = load("i18n/en.js").catalog
+  for (const page of C.SETTINGS_PAGES) {
+    assert.ok(("page_" + page) in en, "page_" + page)
+    assert.ok(("subtitle_" + page) in en, "subtitle_" + page)
+  }
+})
