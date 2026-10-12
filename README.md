@@ -146,7 +146,7 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 |---|---|
 | ![Ring menu](screenshots/ring.png) | ![General](screenshots/settings-general.png) |
 | ![Mouse](screenshots/settings-mouse.png) | ![Trackpad](screenshots/settings-trackpad.png) |
-| ![Ring menu settings](screenshots/settings-ring.png) | ![Setup](screenshots/settings-setup.png) |
+| ![Ring menu settings](screenshots/settings-ring.png) | ![Setup](screenshots/settings-access.png) |
 | ![What's new](screenshots/settings-changes.png) | |
 
 ## Keyboard

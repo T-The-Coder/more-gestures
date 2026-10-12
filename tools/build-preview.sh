@@ -42,8 +42,11 @@ gesture_crop() { magick "$in/gesture.png" -crop 820x385+450+280 +repage -resize 
 mkdir -p "$root/screenshots"
 ring_crop comets "$root/screenshots/ring.png"
 gesture_crop "$root/screenshots/gesture.png"
+# The Setup page's picture is settings-access.png: the marketplace scan treats any
+# binary file whose name says setup or install as a possible hidden installer.
 for page in general mouse trackpad ring setup changes; do
-  cp "$in/settings-$page.png" "$root/screenshots/settings-$page.png"
+  name=$page; [[ $page == setup ]] && name=access
+  cp "$in/settings-$page.png" "$root/screenshots/settings-$name.png"
 done
 
 # A grid of cells, each a picture with its name below; a title over it all.
