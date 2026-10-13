@@ -54,8 +54,12 @@ Column {
   Row {
     spacing: Style.spacing.sm
 
-    SmallButton {
+    Button {
       text: "−"
+      bordered: true
+      foreground: root.foreground
+      accent: root.accent
+      fontFamily: root.fontFamily
       enabled: root.value > root.from
       onClicked: root.offer(root.value - root.stepSize)
     }
@@ -80,8 +84,12 @@ Column {
       onActiveFocusChanged: if (!activeFocus) root.commit()
       Component.onCompleted: text = String(root.value)
     }
-    SmallButton {
+    Button {
       text: "+"
+      bordered: true
+      foreground: root.foreground
+      accent: root.accent
+      fontFamily: root.fontFamily
       enabled: root.value < root.to
       onClicked: root.offer(root.value + root.stepSize)
     }
