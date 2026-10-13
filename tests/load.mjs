@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 // The plugin's .js files start with the QML-only `.pragma library` line, a syntax error
 // under node. Strip it and evaluate the rest like a CommonJS module; `require("./X.js")`
 // inside them resolves through this loader too.
-const root = join(dirname(fileURLToPath(import.meta.url)), "..")
+export const root = join(dirname(fileURLToPath(import.meta.url)), "..")
 const cache = {}
 
 export function load(name) {

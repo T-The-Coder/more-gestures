@@ -131,6 +131,9 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 - Nothing runs while the screen is locked: every action first asks Hyprland
   whether a session lock is held (any locker), and while it is the mouse and
   trackpad pass straight through.
+- The settings' text and number fields read the clipboard only when you
+  paste into them, not on every clipboard change (Qt 6.11 and 6.12.0 do that
+  for ordinary text fields, even in a hidden window).
 - Exclusions: window classes or tags where the mouse passes untouched
   (default: Steam games, RetroArch, QEMU, virt-manager, gamescope).
 

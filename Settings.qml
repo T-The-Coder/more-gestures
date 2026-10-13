@@ -220,17 +220,12 @@ Item {
   }
   function toggle() { if (root.opened) root.close(); else root.open("{}") }
 
-  // NumberField/Dropdown/TextField keep their own value once touched, so the working
+  // Dropdowns keep their own value once touched, so the working
   // state is pushed into them by hand after loading.
   function syncControls() {
-    thresholdField.field.value = root.working.threshold
-    holdField.field.value = root.working.holdMs
-    mmField.field.value = root.working.touchpad.thresholdMm
     languagePicker.value = root.working.language
     stylePicker.value = root.working.ring.style
     trailPicker.value = root.working.trailStyle
-    cornerField.field.value = root.working.taps.cornerMm
-    doubleField.field.value = root.working.ring.doubleMs
   }
 
   // Every change is saved at once, as in More Time and More Weather (no Save button):
@@ -1178,7 +1173,7 @@ Item {
 
                 Row {
                   spacing: Style.spacing.md
-                  TextField {
+                  GestureTextField {
                     id: excludeField
                     width: Style.space(260)
                     placeholderText: root.tr("excludePlaceholder")
@@ -1210,7 +1205,7 @@ Item {
 
                 PanelSectionHeader { text: root.tr("generalSectionBackup"); foreground: root.foreground; fontFamily: root.fontFamily }
                 Label { text: root.tr("settingsTransferFile") }
-                TextField {
+                GestureTextField {
                   id: transferPathField
                   width: Math.min(parent.width, Style.space(460))
                   text: transfer.shown(transfer.defaultPath)
@@ -1283,7 +1278,7 @@ Item {
 
                 Row {
                   spacing: Style.spacing.huge
-                  NumberField {
+                  GestureNumberField {
                     id: thresholdField
                     label: root.tr("threshold") + " (" + root.tr("thresholdUnit") + ")"
                     from: Config.LIMITS.threshold.min
@@ -1292,7 +1287,7 @@ Item {
                     foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                     onModified: function(v) { root.set("threshold", v) }
                   }
-                  NumberField {
+                  GestureNumberField {
                     id: holdField
                     label: root.tr("holdMs")
                     from: Config.LIMITS.holdMs.min
@@ -1444,7 +1439,7 @@ Item {
                   }
                 }
 
-                NumberField {
+                GestureNumberField {
                   id: mmField
                   visible: root.working.touchpad.enabled
                   label: root.tr("thresholdMm")
@@ -1467,7 +1462,7 @@ Item {
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.set("taps", { enabled: !root.working.taps.enabled, cornerMm: root.working.taps.cornerMm })
                 }
-                NumberField {
+                GestureNumberField {
                   id: cornerField
                   visible: root.working.taps.enabled
                   label: root.tr("cornerMm")
@@ -1499,7 +1494,7 @@ Item {
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onClicked: root.setRing("enabled", !root.working.ring.enabled)
                 }
-                NumberField {
+                GestureNumberField {
                   id: doubleField
                   visible: root.working.ring.enabled
                   label: root.tr("doubleMs")
@@ -1523,7 +1518,7 @@ Item {
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.body
                   }
-                  TextField {
+                  GestureTextField {
                     id: hotkeyField
                     width: Style.space(220)
                     text: Config.hotkeyText(root.working.ring.hotkey)
@@ -1686,7 +1681,7 @@ Item {
                               value: root.slotValue(modelData)
                               onChanged: function(v) { root.setSlot(ringBlock.index, index, v) }
                             }
-                            TextField {
+                            GestureTextField {
                               width: Style.space(44)
                               text: ringBlock.modelData.keys[index] || ""
                               placeholderText: "–"
@@ -2003,7 +1998,7 @@ Item {
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.body
                         }
-                        TextField {
+                        GestureTextField {
                           width: Style.space(260)
                           text: root.editSteps[index]
                           placeholderText: root.tr("keysPlaceholder")
@@ -2045,7 +2040,7 @@ Item {
                     visible: root.editType === "exec"
                     spacing: Style.spacing.sm
                     Label { text: root.tr("command") }
-                    TextField {
+                    GestureTextField {
                       id: commandField
                       width: parent.width
                       foreground: root.foreground
@@ -2062,7 +2057,7 @@ Item {
                     visible: root.editType === "keys" || root.editType === "exec"
                     spacing: Style.spacing.sm
                     Label { text: root.tr("label") }
-                    TextField {
+                    GestureTextField {
                       id: labelField
                       width: parent.width
                       foreground: root.foreground

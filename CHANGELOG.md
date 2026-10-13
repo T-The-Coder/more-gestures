@@ -2,6 +2,19 @@
 
 All notable changes to More Gestures are documented here.
 
+## 1.1.1 — 2026-10-13
+
+- **Text fields leave the clipboard alone.** Qt 6.11 and 6.12.0 read the
+  whole clipboard into every editable text field each time the clipboard
+  changes, even while the settings window is hidden, so a slow or huge
+  clipboard could stall the shell. Every text field is now
+  `GestureTextField` (the field of More Time and More Weather): built on
+  TextEdit, which only checks the offered formats, and read-only until it
+  has the keyboard focus. The clipboard is read only when you paste.
+- **Number fields** (threshold, hold time, double-click time, millimetres)
+  use it too, with − and + beside them and ↑ ↓ in the field, instead of the
+  shell's NumberField, whose spin box edits in a TextInput.
+
 ## 1.1.0 — 2026-10-12
 
 - **Nothing to install.** The daemon no longer needs python-evdev, which
