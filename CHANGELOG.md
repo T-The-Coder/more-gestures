@@ -2,6 +2,14 @@
 
 All notable changes to More Gestures are documented here.
 
+## 1.1.2 — 2026-10-19
+
+- **Pasting into a text field is bounded:** Ctrl+V, Shift+Insert and the
+  middle button read at most 4 KiB from the clipboard within one second,
+  through wl-paste (wl-clipboard), and insert it as typed text; Qt's own
+  paste, which has no byte limit, never runs. The same field as in More Time
+  and More Weather.
+
 ## 1.1.1 — 2026-10-13
 
 - **Text fields leave the clipboard alone.** Qt 6.11 and 6.12.0 read the
