@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "ingen genväg",
   hotkeyHint: "Kortkommando, t.ex. Super+Alt+R. Det öppnar ringen så att den stannar: tryck på en plats tangent eller klicka på den. Tomt = ingen genväg.",
   hotkeyInvalid: "Ingen giltig genväg: minst en modifierare och en tangent, t.ex. Super+Alt+R.",
-  languageHint: "Ett gestspråk: musen (utlösare + rörelse) och tre fingrar delar varje form, och en form betyder samma sak i alla program. ←/→ bakåt/framåt, ↑/↓ lager (Exposé, programstartare / bakgrund, filer), ↑←/↑→ arbetsyta, ↓→ stäng flik, ↓← stäng fönster, ↓←↑/↓→↑ flytta fönster. Fyra fingrar är systemnivån.",
+  languageHint: "Ett gestspråk: musen (utlösare + rörelse) och tre fingrar delar varje form, och en form betyder samma sak i alla program. ←/→ bakåt/framåt, ↑/↓ lager (Exposé, programstartare / bakgrund, filer), ↑←/↑→ arbetsyta, ↓→ öppna länk i bakgrunden, ↓→↑ stäng flik, ↓← stäng fönster, ↑←↓/↑→↓ flytta fönster. Fyra fingrar är systemnivån.",
   resetAll: "Alla gester till standard",
   ringEmpty: "Tom",
   oclock: "-tiden",

@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "fără scurtătură",
   hotkeyHint: "Scurtătură de tastatură, de ex. Super+Alt+R. Deschide inelul ca să rămână: apasă tasta unei poziții sau dă clic pe ea. Gol = fără scurtătură.",
   hotkeyInvalid: "Scurtătură invalidă: cel puțin un modificator și o tastă, de ex. Super+Alt+R.",
-  languageHint: "Un singur limbaj de gesturi: mouse-ul (declanșator + mișcare) și trei degete împart fiecare formă, iar o formă înseamnă același lucru în orice program. ←/→ înapoi/înainte, ↑/↓ straturi (Exposé, lansator / fundal, fișiere), ↑←/↑→ spațiu de lucru, ↓→ închide fila, ↓← închide fereastra, ↓←↑/↓→↑ mută fereastra. Patru degete sunt nivelul sistemului.",
+  languageHint: "Un singur limbaj de gesturi: mouse-ul (declanșator + mișcare) și trei degete împart fiecare formă, iar o formă înseamnă același lucru în orice program. ←/→ înapoi/înainte, ↑/↓ straturi (Exposé, lansator / fundal, fișiere), ↑←/↑→ spațiu de lucru, ↓→ deschide linkul în fundal, ↓→↑ închide fila, ↓← închide fereastra, ↑←↓/↑→↓ mută fereastra. Patru degete sunt nivelul sistemului.",
   resetAll: "Toate gesturile implicite",
   ringEmpty: "Gol",
   oclock: "ora",

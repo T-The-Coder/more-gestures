@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "aucun raccourci",
   hotkeyHint: "Raccourci clavier, p. ex. Super+Alt+R. Il ouvre l’anneau pour qu’il reste : appuie sur la touche d’une case ou clique dessus. Vide = aucun raccourci.",
   hotkeyInvalid: "Raccourci non valide : au moins un modificateur et une touche, p. ex. Super+Alt+R.",
-  languageHint: "Un seul langage de gestes : la souris (déclencheur + mouvement) et trois doigts partagent chaque forme, et une forme signifie la même chose dans chaque programme. ←/→ précédent/suivant, ↑/↓ couches (Exposé, lanceur / fond d’écran, fichiers), ↑←/↑→ espace, ↓→ fermer l’onglet, ↓← fermer la fenêtre, ↓←↑/↓→↑ déplacer la fenêtre. Quatre doigts sont le niveau système.",
+  languageHint: "Un seul langage de gestes : la souris (déclencheur + mouvement) et trois doigts partagent chaque forme, et une forme signifie la même chose dans chaque programme. ←/→ précédent/suivant, ↑/↓ couches (Exposé, lanceur / fond d’écran, fichiers), ↑←/↑→ espace, ↓→ ouvrir le lien en arrière-plan, ↓→↑ fermer l’onglet, ↓← fermer la fenêtre, ↑←↓/↑→↓ déplacer la fenêtre. Quatre doigts sont le niveau système.",
   resetAll: "Tous les gestes par défaut",
   ringEmpty: "Vide",
   oclock: "h",

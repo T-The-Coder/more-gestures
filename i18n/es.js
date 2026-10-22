@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "sin atajo",
   hotkeyHint: "Atajo de teclado, p. ej. Super+Alt+R. Abre el anillo para que se quede: pulsa la tecla de una casilla o haz clic en ella. Vacío = sin atajo.",
   hotkeyInvalid: "Atajo no válido: al menos un modificador y una tecla, p. ej. Super+Alt+R.",
-  languageHint: "Un solo lenguaje de gestos: el ratón (disparador + movimiento) y tres dedos comparten cada forma, y una forma significa lo mismo en todos los programas. ←/→ atrás/adelante, ↑/↓ capas (Exposé, lanzador / fondo de pantalla, archivos), ↑←/↑→ escritorio, ↓→ cerrar pestaña, ↓← cerrar ventana, ↓←↑/↓→↑ mover ventana. Cuatro dedos son el nivel del sistema.",
+  languageHint: "Un solo lenguaje de gestos: el ratón (disparador + movimiento) y tres dedos comparten cada forma, y una forma significa lo mismo en todos los programas. ←/→ atrás/adelante, ↑/↓ capas (Exposé, lanzador / fondo de pantalla, archivos), ↑←/↑→ escritorio, ↓→ abrir enlace en segundo plano, ↓→↑ cerrar pestaña, ↓← cerrar ventana, ↑←↓/↑→↓ mover ventana. Cuatro dedos son el nivel del sistema.",
   resetAll: "Todos los gestos por defecto",
   ringEmpty: "Vacía",
   oclock: "en punto",

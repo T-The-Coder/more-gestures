@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "ei pikanäppäintä",
   hotkeyHint: "Pikanäppäin, esim. Super+Alt+R. Se avaa kehän pysyvästi: paina paikan näppäintä tai napsauta sitä. Tyhjä = ei pikanäppäintä.",
   hotkeyInvalid: "Ei kelvollinen pikanäppäin: vähintään yksi muuntonäppäin ja näppäin, esim. Super+Alt+R.",
-  languageHint: "Yksi elekieli: hiiri (laukaisin + liike) ja kolme sormea jakavat jokaisen muodon, ja muoto tarkoittaa samaa jokaisessa ohjelmassa. ←/→ taakse/eteen, ↑/↓ tasot (Exposé, käynnistin / taustakuva, tiedostot), ↑←/↑→ työtila, ↓→ sulje välilehti, ↓← sulje ikkuna, ↓←↑/↓→↑ siirrä ikkuna. Neljä sormea on järjestelmätaso.",
+  languageHint: "Yksi elekieli: hiiri (laukaisin + liike) ja kolme sormea jakavat jokaisen muodon, ja muoto tarkoittaa samaa jokaisessa ohjelmassa. ←/→ taakse/eteen, ↑/↓ tasot (Exposé, käynnistin / taustakuva, tiedostot), ↑←/↑→ työtila, ↓→ avaa linkki taustalle, ↓→↑ sulje välilehti, ↓← sulje ikkuna, ↑←↓/↑→↓ siirrä ikkuna. Neljä sormea on järjestelmätaso.",
   resetAll: "Kaikki eleet oletuksiin",
   ringEmpty: "Tyhjä",
   oclock: "kello",

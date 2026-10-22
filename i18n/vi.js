@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "không có phím tắt",
   hotkeyHint: "Phím tắt, vd. Super+Alt+R. Nó mở vòng để vòng ở lại: nhấn phím của một ô hoặc nhấp vào ô. Trống = không có phím tắt.",
   hotkeyInvalid: "Phím tắt không hợp lệ: ít nhất một phím bổ trợ và một phím, vd. Super+Alt+R.",
-  languageHint: "Một ngôn ngữ cử chỉ: chuột (nút kích hoạt + di chuyển) và ba ngón dùng chung mọi hình, và một hình có cùng nghĩa trong mọi chương trình. ←/→ lùi/tiến, ↑/↓ các lớp (Exposé, trình khởi chạy / hình nền, tệp), ↑←/↑→ không gian làm việc, ↓→ đóng thẻ, ↓← đóng cửa sổ, ↓←↑/↓→↑ chuyển cửa sổ. Bốn ngón là cấp hệ thống.",
+  languageHint: "Một ngôn ngữ cử chỉ: chuột (nút kích hoạt + di chuyển) và ba ngón dùng chung mọi hình, và một hình có cùng nghĩa trong mọi chương trình. ←/→ lùi/tiến, ↑/↓ các lớp (Exposé, trình khởi chạy / hình nền, tệp), ↑←/↑→ không gian làm việc, ↓→ mở liên kết ở nền, ↓→↑ đóng thẻ, ↓← đóng cửa sổ, ↑←↓/↑→↓ chuyển cửa sổ. Bốn ngón là cấp hệ thống.",
   resetAll: "Mọi cử chỉ về mặc định",
   ringEmpty: "Trống",
   oclock: "giờ",

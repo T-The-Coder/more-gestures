@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "kein Kürzel",
   hotkeyHint: "Tastenkürzel, z. B. Super+Alt+R. Es öffnet den Ring zum Bleiben: Taste eines Platzes drücken oder ihn anklicken. Leer = kein Kürzel.",
   hotkeyInvalid: "Kein gültiges Kürzel: mindestens eine Zusatztaste und eine Taste, z. B. Super+Alt+R.",
-  languageHint: "Eine Gestensprache: Maus (Auslöser + Bewegung) und drei Finger teilen sich jede Form, und eine Form bedeutet in jedem Programm dasselbe. ←/→ zurück/vor, ↑/↓ Ebenen (Exposé, Launcher / Wallpaper, Dateien), ↑←/↑→ Arbeitsfläche, ↓→ Tab schließen, ↓← Fenster schließen, ↓←↑/↓→↑ Fenster verschieben. Vier Finger sind die Systemebene.",
+  languageHint: "Eine Gestensprache: Maus (Auslöser + Bewegung) und drei Finger teilen sich jede Form, und eine Form bedeutet in jedem Programm dasselbe. ←/→ zurück/vor, ↑/↓ Ebenen (Exposé, Launcher / Wallpaper, Dateien), ↑←/↑→ Arbeitsfläche, ↓→ Link im Hintergrund öffnen, ↓→↑ Tab schließen, ↓← Fenster schließen, ↑←↓/↑→↓ Fenster verschieben. Vier Finger sind die Systemebene.",
   resetAll: "Alle Gesten auf Standard",
   ringEmpty: "Leer",
   oclock: "Uhr",

@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "ingen snarvei",
   hotkeyHint: "Hurtigtast, f.eks. Super+Alt+R. Den åpner ringen slik at den blir værende: trykk tasten til en plass eller klikk på den. Tomt = ingen snarvei.",
   hotkeyInvalid: "Ikke en gyldig snarvei: minst én modifikator og en tast, f.eks. Super+Alt+R.",
-  languageHint: "Ett gestspråk: musen (utløser + bevegelse) og tre fingre deler hver form, og en form betyr det samme i alle programmer. ←/→ tilbake/frem, ↑/↓ lag (Exposé, programstarter / bakgrunn, filer), ↑←/↑→ arbeidsområde, ↓→ lukk fane, ↓← lukk vindu, ↓←↑/↓→↑ flytt vindu. Fire fingre er systemnivået.",
+  languageHint: "Ett gestspråk: musen (utløser + bevegelse) og tre fingre deler hver form, og en form betyr det samme i alle programmer. ←/→ tilbake/frem, ↑/↓ lag (Exposé, programstarter / bakgrunn, filer), ↑←/↑→ arbeidsområde, ↓→ åpne lenke i bakgrunnen, ↓→↑ lukk fane, ↓← lukk vindu, ↑←↓/↑→↓ flytt vindu. Fire fingre er systemnivået.",
   resetAll: "Alle gester til standard",
   ringEmpty: "Tom",
   oclock: "-tiden",

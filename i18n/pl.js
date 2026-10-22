@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "bez skrótu",
   hotkeyHint: "Skrót klawiszowy, np. Super+Alt+R. Otwiera pierścień na stałe: naciśnij klawisz pola lub je kliknij. Puste = bez skrótu.",
   hotkeyInvalid: "Nieprawidłowy skrót: co najmniej jeden modyfikator i klawisz, np. Super+Alt+R.",
-  languageHint: "Jeden język gestów: mysz (wyzwalacz + ruch) i trzy palce dzielą każdy kształt, a kształt znaczy to samo w każdym programie. ←/→ wstecz/dalej, ↑/↓ warstwy (Exposé, launcher / tapeta, pliki), ↑←/↑→ obszar, ↓→ zamknij kartę, ↓← zamknij okno, ↓←↑/↓→↑ przenieś okno. Cztery palce to poziom systemu.",
+  languageHint: "Jeden język gestów: mysz (wyzwalacz + ruch) i trzy palce dzielą każdy kształt, a kształt znaczy to samo w każdym programie. ←/→ wstecz/dalej, ↑/↓ warstwy (Exposé, launcher / tapeta, pliki), ↑←/↑→ obszar, ↓→ otwórz link w tle, ↓→↑ zamknij kartę, ↓← zamknij okno, ↑←↓/↑→↓ przenieś okno. Cztery palce to poziom systemu.",
   resetAll: "Wszystkie gesty domyślnie",
   ringEmpty: "Puste",
   oclock: "godz.",

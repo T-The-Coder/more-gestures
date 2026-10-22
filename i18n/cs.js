@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "bez zkratky",
   hotkeyHint: "Klávesová zkratka, např. Super+Alt+R. Otevře kruh tak, aby zůstal: stiskněte klávesu políčka nebo na něj klikněte. Prázdné = bez zkratky.",
   hotkeyInvalid: "Neplatná zkratka: aspoň jeden modifikátor a klávesa, např. Super+Alt+R.",
-  languageHint: "Jeden jazyk gest: myš (spoušť + pohyb) a tři prsty sdílejí každý tvar a tvar znamená totéž v každém programu. ←/→ zpět/vpřed, ↑/↓ vrstvy (Exposé, spouštěč / tapeta, soubory), ↑←/↑→ plocha, ↓→ zavřít kartu, ↓← zavřít okno, ↓←↑/↓→↑ přesunout okno. Čtyři prsty jsou systémová úroveň.",
+  languageHint: "Jeden jazyk gest: myš (spoušť + pohyb) a tři prsty sdílejí každý tvar a tvar znamená totéž v každém programu. ←/→ zpět/vpřed, ↑/↓ vrstvy (Exposé, spouštěč / tapeta, soubory), ↑←/↑→ plocha, ↓→ otevřít odkaz na pozadí, ↓→↑ zavřít kartu, ↓← zavřít okno, ↑←↓/↑→↓ přesunout okno. Čtyři prsty jsou systémová úroveň.",
   resetAll: "Všechna gesta na výchozí",
   ringEmpty: "Prázdné",
   oclock: "h",

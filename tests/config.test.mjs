@@ -104,7 +104,7 @@ test("listBindings: defaults, sorted, flags", () => {
   assert.deepEqual(rows.map(r => r.gesture).slice(0, 4), ["D", "L", "R", "U"])
   assert.ok(rows.every(r => r.hasDefault && !r.overridden))
   const wheel = rows.findIndex(r => r.gesture === "wheel-up")
-  assert.ok(wheel > rows.findIndex(r => r.gesture === "DLU"))
+  assert.ok(wheel > rows.findIndex(r => r.gesture === "URD"))
   // The browser lists only what differs: the wheel switches tabs.
   assert.deepEqual(Config.listBindings(Config.defaults(), "browser").map(r => r.gesture), ["wheel-down", "wheel-up"])
   assert.equal(Config.listBindings(Config.defaults(), "nope").length, 0)
@@ -112,15 +112,15 @@ test("listBindings: defaults, sorted, flags", () => {
 
 test("setBinding: override, add, and drop when equal to the built-in", () => {
   let c = Config.defaults()
-  let r = Config.setBinding(c, "default", "*:DR", { type: "none" })
+  let r = Config.setBinding(c, "default", "*:DRU", { type: "none" })
   assert.ok(r.ok)
   c = r.config
-  assert.deepEqual(c.bindings.default["*:DR"], { type: "none" })
-  const row = Config.listBindings(c, "default").find(x => x.key === "*:DR")
+  assert.deepEqual(c.bindings.default["*:DRU"], { type: "none" })
+  const row = Config.listBindings(c, "default").find(x => x.key === "*:DRU")
   assert.ok(row.overridden && row.hasDefault)
   assert.equal(row.action.type, "none")
   // putting the built-in action back removes the override again
-  r = Config.setBinding(c, "default", "*:DR", { type: "keys", combo: ["CTRL", "W"], label: "close-tab" })
+  r = Config.setBinding(c, "default", "*:DRU", { type: "keys", combo: ["CTRL", "W"], label: "close-tab" })
   assert.deepEqual(r.config.bindings.default, {})
   // new gesture
   r = Config.setBinding(c, "terminal", "*:UDU", { type: "exec", command: "echo hi", label: "Hi" })
@@ -141,11 +141,11 @@ test("setBinding rejects bad input", () => {
 
 test("removeBinding: restores the built-in or deletes a custom entry", () => {
   let c = Config.setBinding(Config.defaults(), "default", "*:L", { type: "none" }).config
-  c = Config.setBinding(c, "default", "*:ULD", { type: "none" }).config
+  c = Config.setBinding(c, "default", "*:LRL", { type: "none" }).config
   c = Config.removeBinding(c, "default", "*:L")
   assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:L").action.type, "keys")
-  c = Config.removeBinding(c, "default", "*:ULD")
-  assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:ULD"), undefined)
+  c = Config.removeBinding(c, "default", "*:LRL")
+  assert.equal(Config.listBindings(c, "default").find(x => x.key === "*:LRL"), undefined)
 })
 
 test("edited bindings take effect in Actions.resolve", () => {

@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "nincs billentyűparancs",
   hotkeyHint: "Billentyűparancs, pl. Super+Alt+R. Úgy nyitja meg a gyűrűt, hogy nyitva marad: nyomd meg egy hely billentyűjét vagy kattints rá. Üres = nincs billentyűparancs.",
   hotkeyInvalid: "Érvénytelen billentyűparancs: legalább egy módosító és egy billentyű, pl. Super+Alt+R.",
-  languageHint: "Egyetlen gesztusnyelv: az egér (indító + mozgás) és a három ujj minden alakzaton osztozik, és egy alakzat minden programban ugyanazt jelenti. ←/→ vissza/előre, ↑/↓ rétegek (Exposé, indító / háttérkép, fájlok), ↑←/↑→ munkaterület, ↓→ lap bezárása, ↓← ablak bezárása, ↓←↑/↓→↑ ablak áthelyezése. A négy ujj a rendszerszint.",
+  languageHint: "Egyetlen gesztusnyelv: az egér (indító + mozgás) és a három ujj minden alakzaton osztozik, és egy alakzat minden programban ugyanazt jelenti. ←/→ vissza/előre, ↑/↓ rétegek (Exposé, indító / háttérkép, fájlok), ↑←/↑→ munkaterület, ↓→ hivatkozás megnyitása háttérben, ↓→↑ lap bezárása, ↓← ablak bezárása, ↑←↓/↑→↓ ablak áthelyezése. A négy ujj a rendszerszint.",
   resetAll: "Minden gesztus alapértelmezésre",
   ringEmpty: "Üres",
   oclock: "óra",

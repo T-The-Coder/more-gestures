@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "tanpa pintasan",
   hotkeyHint: "Pintasan papan ketik, mis. Super+Alt+R. Membuka cincin agar tetap terbuka: tekan tombol slot atau klik slotnya. Kosong = tanpa pintasan.",
   hotkeyInvalid: "Pintasan tidak sah: minimal satu pengubah dan satu tombol, mis. Super+Alt+R.",
-  languageHint: "Satu bahasa gestur: mouse (pemicu + gerakan) dan tiga jari berbagi setiap bentuk, dan satu bentuk berarti sama di setiap program. ←/→ kembali/maju, ↑/↓ lapisan (Exposé, peluncur / wallpaper, berkas), ↑←/↑→ ruang kerja, ↓→ tutup tab, ↓← tutup jendela, ↓←↑/↓→↑ pindah jendela. Empat jari adalah tingkat sistem.",
+  languageHint: "Satu bahasa gestur: mouse (pemicu + gerakan) dan tiga jari berbagi setiap bentuk, dan satu bentuk berarti sama di setiap program. ←/→ kembali/maju, ↑/↓ lapisan (Exposé, peluncur / wallpaper, berkas), ↑←/↑→ ruang kerja, ↓→ buka tautan di latar, ↓→↑ tutup tab, ↓← tutup jendela, ↑←↓/↑→↓ pindah jendela. Empat jari adalah tingkat sistem.",
   resetAll: "Semua gestur ke bawaan",
   ringEmpty: "Kosong",
   oclock: "jam",

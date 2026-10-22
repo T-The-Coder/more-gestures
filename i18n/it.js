@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "nessuna scorciatoia",
   hotkeyHint: "Scorciatoia da tastiera, p. es. Super+Alt+R. Apre l’anello in modo che resti: premi il tasto di una casella o fai clic. Vuoto = nessuna scorciatoia.",
   hotkeyInvalid: "Scorciatoia non valida: almeno un modificatore e un tasto, p. es. Super+Alt+R.",
-  languageHint: "Un unico linguaggio di gesti: il mouse (attivazione + movimento) e tre dita condividono ogni forma, e una forma significa la stessa cosa in ogni programma. ←/→ indietro/avanti, ↑/↓ livelli (Exposé, avvio app / sfondo, file), ↑←/↑→ spazio, ↓→ chiudi scheda, ↓← chiudi finestra, ↓←↑/↓→↑ sposta finestra. Quattro dita sono il livello di sistema.",
+  languageHint: "Un unico linguaggio di gesti: il mouse (attivazione + movimento) e tre dita condividono ogni forma, e una forma significa la stessa cosa in ogni programma. ←/→ indietro/avanti, ↑/↓ livelli (Exposé, avvio app / sfondo, file), ↑←/↑→ spazio, ↓→ apri link in background, ↓→↑ chiudi scheda, ↓← chiudi finestra, ↑←↓/↑→↓ sposta finestra. Quattro dita sono il livello di sistema.",
   resetAll: "Tutti i gesti predefiniti",
   ringEmpty: "Vuota",
   oclock: "in punto",

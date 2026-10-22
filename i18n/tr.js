@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "kısayol yok",
   hotkeyHint: "Klavye kısayolu, ör. Super+Alt+R. Halkayı açık kalacak şekilde açar: bir bölmenin tuşuna bas ya da ona tıkla. Boş = kısayol yok.",
   hotkeyInvalid: "Geçerli bir kısayol değil: en az bir değiştirici ve bir tuş, ör. Super+Alt+R.",
-  languageHint: "Tek bir hareket dili: fare (tetik + hareket) ve üç parmak her şekli paylaşır ve bir şekil her programda aynı anlama gelir. ←/→ geri/ileri, ↑/↓ katmanlar (Exposé, başlatıcı / duvar kâğıdı, dosyalar), ↑←/↑→ çalışma alanı, ↓→ sekmeyi kapat, ↓← pencereyi kapat, ↓←↑/↓→↑ pencereyi taşı. Dört parmak sistem düzeyidir.",
+  languageHint: "Tek bir hareket dili: fare (tetik + hareket) ve üç parmak her şekli paylaşır ve bir şekil her programda aynı anlama gelir. ←/→ geri/ileri, ↑/↓ katmanlar (Exposé, başlatıcı / duvar kâğıdı, dosyalar), ↑←/↑→ çalışma alanı, ↓→ bağlantıyı arka planda aç, ↓→↑ sekmeyi kapat, ↓← pencereyi kapat, ↑←↓/↑→↓ pencereyi taşı. Dört parmak sistem düzeyidir.",
   resetAll: "Tüm hareketler varsayılana",
   ringEmpty: "Boş",
   oclock: "saat",

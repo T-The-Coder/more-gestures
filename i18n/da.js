@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "ingen genvej",
   hotkeyHint: "Tastaturgenvej, f.eks. Super+Alt+R. Den åbner ringen, så den bliver: tryk på en plads’ tast eller klik på den. Tom = ingen genvej.",
   hotkeyInvalid: "Ikke en gyldig genvej: mindst én modifikator og en tast, f.eks. Super+Alt+R.",
-  languageHint: "Ét gestussprog: musen (udløser + bevægelse) og tre fingre deler hver form, og en form betyder det samme i alle programmer. ←/→ tilbage/frem, ↑/↓ lag (Exposé, programstarter / baggrund, filer), ↑←/↑→ arbejdsområde, ↓→ luk faneblad, ↓← luk vindue, ↓←↑/↓→↑ flyt vindue. Fire fingre er systemniveauet.",
+  languageHint: "Ét gestussprog: musen (udløser + bevægelse) og tre fingre deler hver form, og en form betyder det samme i alle programmer. ←/→ tilbage/frem, ↑/↓ lag (Exposé, programstarter / baggrund, filer), ↑←/↑→ arbejdsområde, ↓→ åbn link i baggrunden, ↓→↑ luk faneblad, ↓← luk vindue, ↑←↓/↑→↓ flyt vindue. Fire fingre er systemniveauet.",
   resetAll: "Alle gestusser til standard",
   ringEmpty: "Tom",
   oclock: "-tiden",

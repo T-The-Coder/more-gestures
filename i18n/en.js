@@ -124,7 +124,7 @@ var catalog = {
   hotkeyNone: "no shortcut",
   hotkeyHint: "Keyboard shortcut, e.g. Super+Alt+R. It opens the ring to stay: press a slot's key or click it. Empty = no shortcut.",
   hotkeyInvalid: "Not a valid shortcut: at least one modifier and a key, e.g. Super+Alt+R.",
-  languageHint: "One gesture language: the mouse (trigger + movement) and three fingers share every shape, and a shape means the same in every program. ←/→ back/forward, ↑/↓ layers (Exposé, launcher / wallpaper, files), ↑←/↑→ workspace, ↓→ close tab, ↓← close window, ↓←↑/↓→↑ move window. Four fingers are the system level.",
+  languageHint: "One gesture language: the mouse (trigger + movement) and three fingers share every shape, and a shape means the same in every program. ←/→ back/forward, ↑/↓ layers (Exposé, launcher / wallpaper, files), ↑←/↑→ workspace, ↓→ open link in background, ↓→↑ close tab, ↓← close window, ↑←↓/↑→↓ move window. Four fingers are the system level.",
   resetAll: "All gestures to default",
   ringEmpty: "Empty",
   oclock: "o'clock",

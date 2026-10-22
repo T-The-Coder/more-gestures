@@ -60,9 +60,10 @@ shape does the same in every program:
 | ↑ | layer up: Exposé, then app launcher; closes Files / brings the windows back |
 | ↓ | layer down: wallpaper, then Files; closes launcher / Exposé |
 | ↑← / ↑→ | workspace left / right |
-| ↓→ | close tab (Ctrl+W; in a terminal Ctrl+Shift+W) |
+| ↓→ | open the link where the gesture began in a background tab (not in a terminal) |
+| ↓→↑ | close tab (Ctrl+W; in a terminal Ctrl+Shift+W) |
 | ↓← | close window (Super+W) |
-| ↓←↑ / ↓→↑ | move the window to the workspace left / right |
+| ↑←↓ / ↑→↓ | move the window to the workspace left / right |
 | ↓↑ | new tab (Ctrl+T) |
 | ←↑ | reopen closed tab (Ctrl+Shift+T) |
 | ↑↓ | reload (F5) |
@@ -82,9 +83,9 @@ or nothing.
 middle-clicks where the gesture began (where you pressed the trigger), so a
 gesture started on a link opens that link in a new background tab, as a
 middle click would. The pointer jumps there for the click and straight back;
-the focus stays. Not bound by default: give it a gesture of your own (for
-example ↓→↑ in the Browser profile). On the trackpad, where the pointer does
-not move, it clicks at the pointer; in a ring slot, where the ring was opened.
+the focus stays. It is on ↓→ by default, everywhere but in a terminal, where
+a middle click would paste. On the trackpad, where the pointer does not move,
+it clicks at the pointer; in a ring slot, where the ring was opened.
 
 **Ring menu**
 - Double click the trigger and keep the second press held (opt-in, since the

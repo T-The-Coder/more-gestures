@@ -49,10 +49,13 @@ test("gesture language: one meaning for every shape", () => {
   assert.deepEqual(id("D"), { type: "dispatch", id: "stack-down" })
   assert.deepEqual(id("UL"), { type: "dispatch", id: "workspace-prev" })
   assert.deepEqual(id("UR"), { type: "dispatch", id: "workspace-next" })
-  assert.equal(combo(id("DR")), "Ctrl+W")
+  assert.deepEqual(id("DR"), { type: "dispatch", id: "link-new-tab" })
+  assert.equal(combo(id("DRU")), "Ctrl+W")
   assert.deepEqual(id("DL"), { type: "dispatch", id: "window-close" })
-  assert.deepEqual(id("DLU"), { type: "dispatch", id: "window-to-workspace-prev" })
-  assert.deepEqual(id("DRU"), { type: "dispatch", id: "window-to-workspace-next" })
+  assert.deepEqual(id("ULD"), { type: "dispatch", id: "window-to-workspace-prev" })
+  assert.deepEqual(id("URD"), { type: "dispatch", id: "window-to-workspace-next" })
+  // ↓←↑ used to move the window; it is free now (↑←↓ does it).
+  assert.equal(A.resolve(mouse("DLU"), plain, {}), null)
   assert.equal(combo(id("DU")), "Ctrl+T")
   assert.equal(combo(id("LU")), "Ctrl+Shift+T")
   assert.equal(combo(id("UD")), "F5")
@@ -61,17 +64,19 @@ test("gesture language: one meaning for every shape", () => {
 
 test("gesture language: the same shapes in the browser, mouse and three fingers alike", () => {
   const tp3 = (g) => ({ source: "touchpad", fingers: 3, gesture: g })
-  for (const g of ["L", "R", "U", "D", "UL", "UR", "DR", "DL", "DLU", "DRU", "DU", "LU", "UD", "RU"]) {
+  for (const g of ["L", "R", "U", "D", "UL", "UR", "DR", "DL", "ULD", "URD", "DRU", "DU", "LU", "UD", "RU"]) {
     const m = A.resolve(mouse(g), browser, {})
     assert.deepEqual(m.action, A.resolve(mouse(g), plain, {}).action, g)
     assert.deepEqual(A.resolve(tp3(g), browser, {}).action, m.action, g)
   }
 })
 
-test("terminal: close tab is Ctrl+Shift+W, everything else shared", () => {
-  const dr = A.resolve(mouse("DR"), term, {})
-  assert.equal(dr.profile, "terminal")
-  assert.equal(combo(dr.action), "Ctrl+Shift+W")
+test("terminal: close tab is Ctrl+Shift+W, no link click, everything else shared", () => {
+  const dru = A.resolve(mouse("DRU"), term, {})
+  assert.equal(dru.profile, "terminal")
+  assert.equal(combo(dru.action), "Ctrl+Shift+W")
+  // A middle click would paste the primary selection into the shell.
+  assert.equal(A.resolve(mouse("DR"), term, {}), null)
   assert.equal(A.resolve(mouse("L"), term, {}).profile, "default")
   assert.equal(A.resolve(mouse("DL"), term, {}).action.id, "window-close")
 })
@@ -86,12 +91,12 @@ test("wheel and rocker defaults", () => {
 })
 
 test("source fallback: specific source beats *, * covers all sources", () => {
-  const config = { bindings: { default: { "tp3:DR": { type: "none" }, "tp4:L": { type: "dispatch", id: "focus-left" } } } }
+  const config = { bindings: { default: { "tp3:DRU": { type: "none" }, "tp4:L": { type: "dispatch", id: "focus-left" } } } }
   const tp = (fingers, gesture) => ({ source: "touchpad", fingers, gesture })
-  // "*:DR" is the shared binding: mouse and tp4 use it, tp3 is blocked by an explicit none.
-  assert.equal(A.resolve(mouse("DR"), plain, config).action.label, "close-tab")
-  assert.equal(A.resolve(tp(4, "DR"), plain, config).action.label, "close-tab")
-  assert.equal(A.resolve(tp(3, "DR"), plain, config), null)
+  // "*:DRU" is the shared binding: mouse and tp4 use it, tp3 is blocked by an explicit none.
+  assert.equal(A.resolve(mouse("DRU"), plain, config).action.label, "close-tab")
+  assert.equal(A.resolve(tp(4, "DRU"), plain, config).action.label, "close-tab")
+  assert.equal(A.resolve(tp(3, "DRU"), plain, config), null)
   assert.equal(A.resolve(tp(4, "L"), plain, config).action.id, "focus-left")
   assert.equal(A.resolve(tp(3, "L"), plain, config).action.label, "back")
 })
@@ -383,7 +388,7 @@ test("normalizeIndicator: known modes pass, everything else is full", () => {
 
 test("preview: name and validity for the indicator", () => {
   assert.deepEqual(A.preview(mouse("UL"), plain, {}, "en"), { name: "Workspace left", valid: true })
-  assert.deepEqual(A.preview(mouse("DR"), browser, {}, "de"), { name: "Tab schließen (Strg+W)", valid: true })
+  assert.deepEqual(A.preview(mouse("DRU"), browser, {}, "de"), { name: "Tab schließen (Strg+W)", valid: true })
   assert.deepEqual(A.preview(mouse("LU"), browser, {}, "en"), { name: "Reopen closed tab (Ctrl+Shift+T)", valid: true })
   // unbound -> dash, not valid
   assert.deepEqual(A.preview(mouse("LRL"), plain, {}, "en"), { name: "—", valid: false })

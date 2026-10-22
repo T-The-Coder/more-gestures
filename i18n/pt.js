@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "sem atalho",
   hotkeyHint: "Atalho de teclado, p. ex. Super+Alt+R. Abre o anel para ficar: pressione a tecla de uma posição ou clique nela. Vazio = sem atalho.",
   hotkeyInvalid: "Atalho inválido: pelo menos um modificador e uma tecla, p. ex. Super+Alt+R.",
-  languageHint: "Uma só linguagem de gestos: o mouse (gatilho + movimento) e três dedos compartilham cada forma, e uma forma significa o mesmo em todo programa. ←/→ voltar/avançar, ↑/↓ camadas (Exposé, lançador / papel de parede, arquivos), ↑←/↑→ área, ↓→ fechar aba, ↓← fechar janela, ↓←↑/↓→↑ mover janela. Quatro dedos são o nível do sistema.",
+  languageHint: "Uma só linguagem de gestos: o mouse (gatilho + movimento) e três dedos compartilham cada forma, e uma forma significa o mesmo em todo programa. ←/→ voltar/avançar, ↑/↓ camadas (Exposé, lançador / papel de parede, arquivos), ↑←/↑→ área, ↓→ abrir link em segundo plano, ↓→↑ fechar aba, ↓← fechar janela, ↑←↓/↑→↓ mover janela. Quatro dedos são o nível do sistema.",
   resetAll: "Todos os gestos ao padrão",
   ringEmpty: "Vazia",
   oclock: "horas",

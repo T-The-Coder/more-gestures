@@ -10,6 +10,12 @@ All notable changes to More Gestures are documented here.
   and back, the focus stays. In a ring slot it clicks where the ring was
   opened. The daemon now reports the trigger press, so the service knows the
   start point exactly, before the pointer has moved.
+- **New default gestures** (they change muscle memory): ↓→ opens the link
+  where the gesture began in a background tab (in a terminal it does
+  nothing, a middle click would paste there), ↓→↑ closes the tab (Ctrl+W,
+  in a terminal Ctrl+Shift+W), and moving the window to the workspace left /
+  right is now ↑←↓ / ↑→↓ (it was ↓←↑ / ↓→↑). Gestures you changed yourself
+  stay as they are.
 
 ## 1.1.2 — 2026-10-19
 

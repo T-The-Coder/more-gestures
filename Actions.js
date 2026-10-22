@@ -339,10 +339,13 @@ function defaultBindings() {
     "*:D": dispatch("stack-down"),
     "*:UL": dispatch("workspace-prev"),
     "*:UR": dispatch("workspace-next"),
-    "*:DR": keys("CTRL", "W", "close-tab"),
+    // A gesture started on a link opens it in a background tab (a middle click there).
+    "*:DR": dispatch("link-new-tab"),
+    "*:DRU": keys("CTRL", "W", "close-tab"),
     "*:DL": dispatch("window-close"),
-    "*:DLU": dispatch("window-to-workspace-prev"),
-    "*:DRU": dispatch("window-to-workspace-next"),
+    // Up, across, down: the window goes over to the next workspace and stays there.
+    "*:ULD": dispatch("window-to-workspace-prev"),
+    "*:URD": dispatch("window-to-workspace-next"),
     "*:DU": keys("CTRL", "T", "new-tab"),
     "*:LU": keys("CTRL SHIFT", "T", "reopen-tab"),
     "*:UD": keys("", "F5", "reload"),
@@ -358,8 +361,10 @@ function defaultBindings() {
     "*:wheel-down": keys("CTRL", "Tab", "next-tab")
   }
   // Ctrl+W deletes a word in a shell; terminals with tabs close them with Ctrl+Shift+W.
+  // A middle click would paste the primary selection, so no link gesture here.
   var terminal = {
-    "*:DR": keys("CTRL SHIFT", "W", "close-tab")
+    "*:DR": none(),
+    "*:DRU": keys("CTRL SHIFT", "W", "close-tab")
   }
   // Four fingers left/right are Hyprland's workspace swipe by default (the "swipe"
   // gesture), so they never reach these tables; up/down use the "*:" layers. Three

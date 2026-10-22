@@ -123,7 +123,7 @@ var catalog = {
   hotkeyNone: "geen sneltoets",
   hotkeyHint: "Sneltoets, bijv. Super+Alt+R. Die opent de ring zodat hij blijft: druk op de toets van een vak of klik erop. Leeg = geen sneltoets.",
   hotkeyInvalid: "Geen geldige sneltoets: minstens één modificatietoets en een toets, bijv. Super+Alt+R.",
-  languageHint: "Eén gebarentaal: de muis (trigger + beweging) en drie vingers delen elke vorm, en een vorm betekent in elk programma hetzelfde. ←/→ terug/vooruit, ↑/↓ lagen (Exposé, starter / achtergrond, bestanden), ↑←/↑→ werkblad, ↓→ tabblad sluiten, ↓← venster sluiten, ↓←↑/↓→↑ venster verplaatsen. Vier vingers zijn het systeemniveau.",
+  languageHint: "Eén gebarentaal: de muis (trigger + beweging) en drie vingers delen elke vorm, en een vorm betekent in elk programma hetzelfde. ←/→ terug/vooruit, ↑/↓ lagen (Exposé, starter / achtergrond, bestanden), ↑←/↑→ werkblad, ↓→ link op achtergrond openen, ↓→↑ tabblad sluiten, ↓← venster sluiten, ↑←↓/↑→↓ venster verplaatsen. Vier vingers zijn het systeemniveau.",
   resetAll: "Alle gebaren naar standaard",
   ringEmpty: "Leeg",
   oclock: "uur",
