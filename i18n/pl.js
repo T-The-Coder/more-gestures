@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Launcher aplikacji",
   "act_new-terminal": "Nowy terminal",
   act_files: "Pliki",
+  "act_link-new-tab": "Otwórz link w karcie w tle",
   label_back: "Wstecz",
   label_forward: "Dalej",
   "label_new-tab": "Nowa karta",

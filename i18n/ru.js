@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Лаунчер приложений",
   "act_new-terminal": "Новый терминал",
   act_files: "Файлы",
+  "act_link-new-tab": "Открыть ссылку в фоновой вкладке",
   label_back: "Назад",
   label_forward: "Вперёд",
   "label_new-tab": "Новая вкладка",

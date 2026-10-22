@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Лаунчер застосунків",
   "act_new-terminal": "Новий термінал",
   act_files: "Файли",
+  "act_link-new-tab": "Відкрити посилання у фоновій вкладці",
   label_back: "Назад",
   label_forward: "Вперед",
   "label_new-tab": "Нова вкладка",

@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Uygulama başlatıcı",
   "act_new-terminal": "Yeni terminal",
   act_files: "Dosyalar",
+  "act_link-new-tab": "Bağlantıyı arka plan sekmesinde aç",
   label_back: "Geri",
   label_forward: "İleri",
   "label_new-tab": "Yeni sekme",

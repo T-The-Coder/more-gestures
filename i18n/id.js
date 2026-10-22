@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Peluncur aplikasi",
   "act_new-terminal": "Terminal baru",
   act_files: "Berkas",
+  "act_link-new-tab": "Buka tautan di tab latar",
   label_back: "Kembali",
   label_forward: "Maju",
   "label_new-tab": "Tab baru",

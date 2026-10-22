@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Programstarter",
   "act_new-terminal": "Ny terminal",
   act_files: "Filer",
+  "act_link-new-tab": "Åpne lenke i bakgrunnsfane",
   label_back: "Tilbake",
   label_forward: "Frem",
   "label_new-tab": "Ny fane",

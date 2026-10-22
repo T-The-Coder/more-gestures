@@ -16,6 +16,9 @@ DOWN = Emit(EV_KEY, BTN_RIGHT, 1)
 UP = Emit(EV_KEY, BTN_RIGHT, 0)
 
 
+# Pressing the trigger sends nothing to the mouse, only the start point note.
+PRESSED = [Message({"type": "press", "source": "mouse"})]
+
 def press(e, t=0.0):
     return e.handle(t, EV_KEY, BTN_RIGHT, 1)
 
@@ -103,7 +106,8 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(self.e.state, IDLE)
 
     def test_press_is_held_back(self):
-        self.assertEqual(press(self.e), [])
+        # Held back from the mouse; only the service hears of it (start point).
+        self.assertEqual(press(self.e), PRESSED)
         self.assertEqual(self.e.state, UNDECIDED)
 
     def test_click_replays_press_and_release(self):
@@ -227,7 +231,7 @@ class EngineTest(unittest.TestCase):
         press(self.e, 0)
         move(self.e, 30)
         self.e.tick(10)
-        self.assertEqual(press(self.e, 11), [])
+        self.assertEqual(press(self.e, 11), PRESSED)
         self.assertEqual(self.e.state, UNDECIDED)
         self.assertEqual(release(self.e, 11.1), [DOWN, SYN, UP])
 
@@ -252,7 +256,7 @@ class EngineTest(unittest.TestCase):
     def test_other_trigger_button(self):
         e = Engine(Config(trigger=BTN_EXTRA))
         self.assertEqual(e.handle(0, EV_KEY, BTN_RIGHT, 1), [Emit(EV_KEY, BTN_RIGHT, 1)])
-        self.assertEqual(e.handle(0, EV_KEY, BTN_EXTRA, 1), [])
+        self.assertEqual(e.handle(0, EV_KEY, BTN_EXTRA, 1), PRESSED)
         self.assertEqual(e.state, UNDECIDED)
 
     def test_duplicate_press_does_not_reset_timer(self):
@@ -584,7 +588,7 @@ class RockerTest(unittest.TestCase):
         left(e, 0)
         release(e, 0.1)
         left(e, 1)
-        self.assertEqual(press(e), [])
+        self.assertEqual(press(e), PRESSED)
         self.assertEqual(e.state, UNDECIDED)
 
     def test_modifier_disables_rocker(self):
@@ -618,7 +622,7 @@ class PassthroughTest(unittest.TestCase):
         e = Engine(Config())
         e.set_passthrough(0, True)
         e.set_passthrough(0, False)
-        self.assertEqual(press(e), [])
+        self.assertEqual(press(e), PRESSED)
         self.assertEqual(e.state, UNDECIDED)
 
     def test_pass_and_modifier_are_independent(self):

@@ -221,6 +221,23 @@ var HYPREXPO_LUA = EXPOSE_AVAILABLE_LUA + "\n" + [
   'else ' + LAUNCHER + ' end'
 ].join("\n")
 
+// A middle click where the gesture began: in a browser, the link there opens in a
+// background tab (Chromium and Firefox alike). The pointer goes to the start point, the
+// click is sent there (to the window under it; the focus stays) and the pointer comes
+// back. Without a start point (a trackpad gesture, where the pointer stays put) it
+// clicks where the pointer is. Tried in a nested Hyprland 0.56: cursor.move takes
+// { x, y } in layout pixels, send_shortcut with "mouse:274" gives press and release.
+var LINK_NEW_TAB_LUA = [
+  'local back = hl.get_cursor_pos()',
+  POINT_FROM_CURSOR,
+  'hl.dispatch(hl.dsp.cursor.move({ x = px, y = py }))',
+  'hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "mouse:274" }))',
+  'hl.dispatch(hl.dsp.cursor.move({ x = back.x, y = back.y }))'
+].join("\n")
+// The gesture's input surface is unmapped when the trigger is released, but Hyprland
+// learns of it a frame or two later; a click before that would land on the surface.
+var START_CLICK_DELAY = "0.08"
+
 // id -> { lua, en, de }. `lua` is a complete hl.dsp expression; copied from the
 // shapes used in /usr/share/omarchy/default/hypr/bindings/tiling.lua.
 var DISPATCH = {
@@ -282,7 +299,9 @@ var DISPATCH = {
   // Programs as dispatch ids, so the ring settings can offer them in the dropdown.
   "app-launcher":        { chunk: 'hl.exec_cmd("omarchy-menu toggle apps")' },
   "new-terminal":        { chunk: 'hl.exec_cmd("omarchy-launch-terminal")' },
-  "files":               { chunk: 'hl.exec_cmd("uwsm-app -- nautilus --new-window")' }
+  "files":               { chunk: 'hl.exec_cmd("uwsm-app -- nautilus --new-window")' },
+  // atStart: acts where the gesture began (see LINK_NEW_TAB_LUA).
+  "link-new-tab":        { chunk: LINK_NEW_TAB_LUA, atStart: true }
 }
 
 var MODIFIER_NAMES = {
@@ -517,7 +536,9 @@ function keysLua(sequence) {
 // Revalidates, so callers can pass settings data straight in.
 // `point` ({ x, y } in layout pixels, optional): where an action that acts on the window
 // under a point looks (the ring passes where it was opened); without it, the pointer.
-function buildCommand(raw, point) {
+// `start` (same form, optional): where the gesture began, for the atStart actions (the
+// mouse press, or where the ring was opened); without it, the pointer.
+function buildCommand(raw, point, start) {
   var v = validateAction(raw)
   if (!v.ok) return null
   var a = v.action
@@ -526,9 +547,12 @@ function buildCommand(raw, point) {
     var d = DISPATCH[a.id]
     if (d.internal) return null  // the caller handles it (see isInternal)
     var chunk = d.chunk
-    if (d.atPoint && point && isFinite(point.x) && isFinite(point.y))
+    var at = d.atPoint ? point : (d.atStart ? start : null)
+    if (at && isFinite(at.x) && isFinite(at.y))
       chunk = chunk.replace(POINT_FROM_CURSOR,
-        "local px, py = " + Number(point.x).toFixed(1) + ", " + Number(point.y).toFixed(1))
+        "local px, py = " + Number(at.x).toFixed(1) + ", " + Number(at.y).toFixed(1))
+    if (d.atStart)
+      return { argv: ["bash", "-c", 'sleep ' + START_CLICK_DELAY + '; exec hyprctl eval "$1"', "more-gestures", chunk] }
     return { argv: ["hyprctl", "eval", chunk ? chunk : "hl.dispatch(" + d.lua + ")"] }
   }
   if (a.type === "exec")

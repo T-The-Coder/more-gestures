@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "اجراکننده برنامه‌ها",
   "act_new-terminal": "پایانه تازه",
   act_files: "پرونده‌ها",
+  "act_link-new-tab": "باز کردن پیوند در زبانه پس‌زمینه",
   label_back: "پس",
   label_forward: "پیش",
   "label_new-tab": "زبانه تازه",

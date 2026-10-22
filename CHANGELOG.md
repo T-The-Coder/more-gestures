@@ -2,6 +2,15 @@
 
 All notable changes to More Gestures are documented here.
 
+## Unreleased
+
+- **Open link in background tab:** a new desktop action that middle-clicks
+  where the gesture began, so a gesture started on a link opens it in a new
+  background tab (Chromium and Firefox). The pointer jumps there for the click
+  and back, the focus stays. In a ring slot it clicks where the ring was
+  opened. The daemon now reports the trigger press, so the service knows the
+  start point exactly, before the pointer has moved.
+
 ## 1.1.2 — 2026-10-19
 
 - **Pasting into a text field is bounded:** Ctrl+V, Shift+Insert and the

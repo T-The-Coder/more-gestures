@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Spouštěč aplikací",
   "act_new-terminal": "Nový terminál",
   act_files: "Soubory",
+  "act_link-new-tab": "Otevřít odkaz na pozadí",
   label_back: "Zpět",
   label_forward: "Vpřed",
   "label_new-tab": "Nová karta",

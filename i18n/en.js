@@ -294,6 +294,7 @@ var catalog = {
   "act_app-launcher": "App launcher",
   "act_new-terminal": "New terminal",
   act_files: "Files",
+  "act_link-new-tab": "Open link in background tab",
   label_back: "Back",
   label_forward: "Forward",
   "label_new-tab": "New tab",

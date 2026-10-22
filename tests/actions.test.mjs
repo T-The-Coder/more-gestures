@@ -177,6 +177,34 @@ test("buildCommand: dispatch", () => {
   })
 })
 
+test("buildCommand: link-new-tab clicks the middle button where the gesture began", () => {
+  const cmd = A.buildCommand({ type: "dispatch", id: "link-new-tab" }, null, { x: 812, y: 403.5 })
+  // Delayed by bash, the chunk an argument (never part of the script).
+  assert.deepEqual(cmd.argv.slice(0, 2), ["bash", "-c"])
+  assert.match(cmd.argv[2], /^sleep 0\.\d+; exec hyprctl eval "\$1"$/)
+  const lua = cmd.argv[4]
+  assert.match(lua, /local px, py = 812\.0, 403\.5/)
+  assert.ok(!lua.includes("local p = hl.get_cursor_pos()"))
+  // There, click, back to where the pointer was.
+  const there = lua.indexOf("cursor.move({ x = px, y = py })")
+  const click = lua.indexOf('send_shortcut({ mods = "", key = "mouse:274" })')
+  const back = lua.indexOf("cursor.move({ x = back.x, y = back.y })")
+  assert.ok(lua.startsWith("local back = hl.get_cursor_pos()"))
+  assert.ok(there > 0 && click > there && back > click)
+})
+
+test("buildCommand: link-new-tab without a start point clicks at the pointer", () => {
+  const lua = A.buildCommand({ type: "dispatch", id: "link-new-tab" }).argv[4]
+  assert.match(lua, /local p = hl\.get_cursor_pos\(\) local px, py = p\.x, p\.y/)
+  // A point meant for the window-under-point actions is not a start point.
+  assert.equal(A.buildCommand({ type: "dispatch", id: "link-new-tab" }, { x: 1, y: 2 }).argv[4], lua)
+})
+
+test("buildCommand: atPoint actions ignore the start point", () => {
+  const plain = A.buildCommand({ type: "dispatch", id: "window-to-workspace-silent-3" })
+  assert.deepEqual(A.buildCommand({ type: "dispatch", id: "window-to-workspace-silent-3" }, null, { x: 5, y: 6 }), plain)
+})
+
 test("buildCommand: keys, single combo like clipboard.lua", () => {
   const cmd = A.buildCommand({ type: "keys", combo: ["CTRL", "W"] })
   assert.equal(cmd.argv[0], "hyprctl")

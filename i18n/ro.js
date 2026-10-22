@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Lansator de aplicații",
   "act_new-terminal": "Terminal nou",
   act_files: "Fișiere",
+  "act_link-new-tab": "Deschide linkul în filă de fundal",
   label_back: "Înapoi",
   label_forward: "Înainte",
   "label_new-tab": "Filă nouă",

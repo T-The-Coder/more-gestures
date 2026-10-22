@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Trình khởi chạy ứng dụng",
   "act_new-terminal": "Terminal mới",
   act_files: "Tệp",
+  "act_link-new-tab": "Mở liên kết trong thẻ nền",
   label_back: "Lùi",
   label_forward: "Tiến",
   "label_new-tab": "Thẻ mới",

@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "مشغّل التطبيقات",
   "act_new-terminal": "طرفية جديدة",
   act_files: "الملفات",
+  "act_link-new-tab": "فتح الرابط في علامة تبويب بالخلفية",
   label_back: "رجوع",
   label_forward: "تقدّم",
   "label_new-tab": "تبويب جديد",

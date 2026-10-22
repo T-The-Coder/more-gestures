@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "앱 실행기",
   "act_new-terminal": "새 터미널",
   act_files: "파일",
+  "act_link-new-tab": "백그라운드 탭에서 링크 열기",
   label_back: "뒤로",
   label_forward: "앞으로",
   "label_new-tab": "새 탭",

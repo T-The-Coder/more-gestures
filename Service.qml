@@ -174,6 +174,13 @@ Item {
     var event
     try { event = JSON.parse(line) } catch (e) { return }
     if (!event || typeof event.type !== "string") return
+    if (event.type === "press") {
+      // The trigger went down: where the pointer is now is where a gesture would begin
+      // (the start event comes only after the threshold, the pointer already moved).
+      root.pressPoint = null
+      if (!pressProbe.running) pressProbe.running = true
+      return
+    }
     if (event.type === "start") {
       // The window can have changed without an event we saw; look again before the
       // gesture ends (a drag takes far longer than hyprctl).
@@ -222,6 +229,16 @@ Item {
     if (gesture === "") return
     var fired = root.fire(event, gesture)
     if (event.type === "end") overlay.finish(fired)
+  }
+
+  // Where the pointer was when the mouse trigger went down (layout pixels), for actions
+  // that act where the gesture began (Actions "link-new-tab"); null until hyprctl answers.
+  property var pressPoint: null
+  Process {
+    id: pressProbe
+    command: ["hyprctl", "cursorpos", "-j"]
+    stdout: StdioCollector { id: pressOut }
+    onExited: function(exitCode) { root.pressPoint = exitCode === 0 ? Actions.parseCursorPos(pressOut.text) : null }
   }
 
   // Until when the next gesture is recorded instead of run (ms since epoch, 0 = not).
@@ -290,7 +307,7 @@ Item {
       root.whenUnlocked(function() { ring.open(); ring.release() })
       return true
     }
-    var cmd = Actions.buildCommand(hit.action)
+    var cmd = Actions.buildCommand(hit.action, null, ev.source === "mouse" ? root.pressPoint : null)
     if (cmd) root.whenUnlocked(function() { Quickshell.execDetached(cmd.argv) })
     return cmd !== null
   }
@@ -301,7 +318,7 @@ Item {
     root.lastAction = Actions.actionName(action, root.lang)
     // Revalidates (the slot came from the settings file); `point` is where the ring was
     // opened, for actions on the window under the pointer.
-    var cmd = Actions.buildCommand(action, point)
+    var cmd = Actions.buildCommand(action, point, point)
     if (cmd) root.whenUnlocked(function() { Quickshell.execDetached(cmd.argv) })
   }
 

@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "ऐप लॉन्चर",
   "act_new-terminal": "नया टर्मिनल",
   act_files: "फ़ाइलें",
+  "act_link-new-tab": "लिंक पृष्ठभूमि टैब में खोलें",
   label_back: "पीछे",
   label_forward: "आगे",
   "label_new-tab": "नया टैब",

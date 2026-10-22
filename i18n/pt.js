@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Lançador de aplicativos",
   "act_new-terminal": "Novo terminal",
   act_files: "Arquivos",
+  "act_link-new-tab": "Abrir link em aba de fundo",
   label_back: "Voltar",
   label_forward: "Avançar",
   "label_new-tab": "Nova aba",

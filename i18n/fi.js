@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Sovelluskäynnistin",
   "act_new-terminal": "Uusi pääte",
   act_files: "Tiedostot",
+  "act_link-new-tab": "Avaa linkki taustavälilehteen",
   label_back: "Takaisin",
   label_forward: "Eteenpäin",
   "label_new-tab": "Uusi välilehti",

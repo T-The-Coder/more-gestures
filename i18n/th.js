@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "ตัวเปิดแอป",
   "act_new-terminal": "เทอร์มินัลใหม่",
   act_files: "ไฟล์",
+  "act_link-new-tab": "เปิดลิงก์ในแท็บพื้นหลัง",
   label_back: "ย้อนกลับ",
   label_forward: "ไปต่อ",
   "label_new-tab": "แท็บใหม่",

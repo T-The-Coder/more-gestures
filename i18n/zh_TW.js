@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "應用程式啟動器",
   "act_new-terminal": "新終端機",
   act_files: "檔案",
+  "act_link-new-tab": "在背景分頁中開啟連結",
   label_back: "上一頁",
   label_forward: "下一頁",
   "label_new-tab": "新分頁",

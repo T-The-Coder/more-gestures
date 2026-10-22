@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Εκκινητής εφαρμογών",
   "act_new-terminal": "Νέο τερματικό",
   act_files: "Αρχεία",
+  "act_link-new-tab": "Άνοιγμα συνδέσμου σε καρτέλα παρασκηνίου",
   label_back: "Πίσω",
   label_forward: "Μπροστά",
   "label_new-tab": "Νέα καρτέλα",

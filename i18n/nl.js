@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Appstarter",
   "act_new-terminal": "Nieuwe terminal",
   act_files: "Bestanden",
+  "act_link-new-tab": "Link openen in achtergrondtabblad",
   label_back: "Terug",
   label_forward: "Vooruit",
   "label_new-tab": "Nieuw tabblad",

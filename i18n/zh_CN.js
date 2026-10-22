@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "应用启动器",
   "act_new-terminal": "新终端",
   act_files: "文件",
+  "act_link-new-tab": "在后台标签页中打开链接",
   label_back: "后退",
   label_forward: "前进",
   "label_new-tab": "新标签页",

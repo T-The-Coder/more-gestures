@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "משגר יישומים",
   "act_new-terminal": "מסוף חדש",
   act_files: "קבצים",
+  "act_link-new-tab": "פתיחת הקישור בכרטיסייה ברקע",
   label_back: "אחורה",
   label_forward: "קדימה",
   "label_new-tab": "לשונית חדשה",

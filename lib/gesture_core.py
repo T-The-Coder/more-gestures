@@ -429,7 +429,9 @@ class Engine:
                     self.state = GESTURE
                     self._consumed = True
                     return [Message({"type": "rocker", "side": "right"})]
-                return []
+                # Der Dienst merkt sich hier die Zeigerposition: Aktionen wie „Link in
+                # neuem Tab“ klicken dort, wo die Geste begann, nicht wo sie endet.
+                return [Message({"type": "press", "source": "mouse"})]
             return []  # doppelter Druck in einem laufenden Zyklus
         # Loslassen. Ein noch offenes Paket zuerst auswerten, damit die letzte
         # Bewegung noch ins Segment zählt.

@@ -78,6 +78,14 @@ gesture with the mouse, the trackpad or a corner tap. An action is a desktop
 action, a key combination (recorded or typed, up to four steps), a command,
 or nothing.
 
+**Open link in background tab** is a desktop action for the browser: it
+middle-clicks where the gesture began (where you pressed the trigger), so a
+gesture started on a link opens that link in a new background tab, as a
+middle click would. The pointer jumps there for the click and straight back;
+the focus stays. Not bound by default: give it a gesture of your own (for
+example ↓→↑ in the Browser profile). On the trackpad, where the pointer does
+not move, it clicks at the pointer; in a ring slot, where the ring was opened.
+
 **Ring menu**
 - Double click the trigger and keep the second press held (opt-in, since the
   first click then waits for the double click time), double tap with four

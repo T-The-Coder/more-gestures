@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "アプリランチャー",
   "act_new-terminal": "新しいターミナル",
   act_files: "ファイル",
+  "act_link-new-tab": "リンクをバックグラウンドタブで開く",
   label_back: "戻る",
   label_forward: "進む",
   "label_new-tab": "新しいタブ",

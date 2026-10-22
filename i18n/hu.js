@@ -293,6 +293,7 @@ var catalog = {
   "act_app-launcher": "Alkalmazásindító",
   "act_new-terminal": "Új terminál",
   act_files: "Fájlok",
+  "act_link-new-tab": "Hivatkozás megnyitása háttérlapon",
   label_back: "Vissza",
   label_forward: "Előre",
   "label_new-tab": "Új lap",
