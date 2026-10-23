@@ -16,6 +16,8 @@ All notable changes to More Gestures are documented here.
   in a terminal Ctrl+Shift+W), and moving the window to the workspace left /
   right is now ↑←↓ / ↑→↓ (it was ↓←↑ / ↓→↑). Gestures you changed yourself
   stay as they are.
+- **The bar icon has square corners again.** Its rounding is under 2 px at
+  bar size, which Qt 6.12 draws visibly round.
 
 ## 1.1.2 — 2026-10-19
 

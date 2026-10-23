@@ -5,7 +5,7 @@ import QtQuick.Shapes
 // by a fine cross whose lower arm is missing (a schematic mouse). Same proportions as
 // bin/app-icon (78 px square, 7 px frame, 3 px lines in a 128 px tile).
 //
-// `inverted` (bar icon): a filled square with the arms cut out. They are real holes
+// `inverted` (bar icon): a filled square, square-cornered, with the arms cut out. They are real holes
 // (odd-even fill), so a transparent bar shows through them like through the tile.
 Item {
   id: root
@@ -53,10 +53,10 @@ Item {
       fillRule: ShapePath.OddEvenFill
       PathSvg {
         path: {
-          var w = root.width, h = root.height, r = w * 10 / 64, c = root.cut
-          var sq = "M " + r + " 0 H " + (w - r) + " Q " + w + " 0 " + w + " " + r
-            + " V " + (h - r) + " Q " + w + " " + h + " " + (w - r) + " " + h
-            + " H " + r + " Q 0 " + h + " 0 " + (h - r) + " V " + r + " Q 0 0 " + r + " 0 Z"
+          // Square corners: at bar size (11 px) the tile's rounding is under 2 px, which
+          // Qt 6.12's curve renderer draws as visibly round instead of crisp.
+          var w = root.width, h = root.height, c = root.cut
+          var sq = "M 0 0 H " + w + " V " + h + " H 0 Z"
           // The two arms meet; drawn as one T-shaped hole so the crossing is not
           // filled again by odd-even.
           var hx0 = (w - c) / 2, hx1 = (w + c) / 2, y0 = (h - c) / 2, y1 = (h + c) / 2
