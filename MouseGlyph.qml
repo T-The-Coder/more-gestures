@@ -16,7 +16,12 @@ Item {
 
   readonly property real frame: Math.max(1.5, width * 6 / 64)
   readonly property real line: Math.max(1, width * 2.5 / 64)
-  readonly property real cut: Math.max(1.5, width * 4 / 64)  // thicker: stays visible at bar size
+  // The slit in the inverted (bar) symbol: whole pixels, odd for an odd width and even
+  // for an even one, so it sits exactly in the middle and both squares are equal.
+  readonly property real cut: {
+    var w = Math.round(width), c = Math.max(1, Math.round(width * 4 / 64))
+    return (c % 2) === (w % 2) ? c : c + 1
+  }
 
   Rectangle {
     visible: !root.inverted

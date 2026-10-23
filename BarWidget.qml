@@ -86,9 +86,21 @@ BarWidget {
     tooltipText: root.tooltip()
 
     MouseGlyph {
-      anchors.centerIn: parent
+      id: glyph
       width: Math.round(Style.font.body * 0.92)  // as tall as the font icons beside it (11 px at body 12)
       height: width
+      // Centred, but on whole screen pixels: the widget sits where the texts beside it
+      // put it (often at x.25 or x.5), and an 11 px shape there smears its 1 px slit
+      // and makes one top square wider than the other. The font icons around it get
+      // this from glyph hinting. Reading the ancestors' x makes the binding follow
+      // when a neighbour changes width.
+      readonly property point origin: {
+        var a = button, depth = 0
+        while (a && depth < 8) { a.x; a.y; a = a.parent; depth++ }
+        return button.mapToItem(null, 0, 0)
+      }
+      x: Math.round(origin.x + (button.width - width) / 2) - origin.x
+      y: Math.round(origin.y + (button.height - height) / 2) - origin.y
       inverted: true
       color: root.setupNeeded ? Color.urgent : button.foreground
       opacity: root.gesturesOn || root.setupNeeded ? 1.0 : 0.35
