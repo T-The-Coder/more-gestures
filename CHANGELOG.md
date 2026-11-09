@@ -23,6 +23,10 @@ All notable changes to More Gestures are documented here.
   middle ones read as Center, where it used to vanish), moves it beside the
   clock box for Center (centerEnd, as Omarchy places a manifest's center)
   and offers the tray's new drawer.
+- **Bar icon as in Omarchy 4.5:** drawn at the bar's shared icon size
+  (`Style.bar.iconSize`, 12 px by default) instead of its own 11 px, and it
+  gives a little while you hold a mouse button on it, like the bar's own
+  icons.
 
 ## 1.1.2 — 2026-10-19
 

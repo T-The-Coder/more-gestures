@@ -87,8 +87,13 @@ BarWidget {
 
     MouseGlyph {
       id: glyph
-      width: Math.round(Style.font.body * 0.92)  // as tall as the font icons beside it (11 px at body 12)
+      // Omarchy 4.5 draws every bar icon at Style.bar.iconSize (12 px unless the theme
+      // says otherwise); the font icons beside it are fitted to the same size.
+      width: Style.bar.iconSize
       height: width
+      // Gives a little while held, like the bar's own glyphs (WidgetButton scales only
+      // its own label and glyph).
+      scale: button.pressScale
       // Centred, but on whole screen pixels: the widget sits where the texts beside it
       // put it (often at x.25 or x.5), and an 11 px shape there smears its 1 px slit
       // and makes one top square wider than the other. The font icons around it get
