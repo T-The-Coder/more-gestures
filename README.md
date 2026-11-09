@@ -208,8 +208,9 @@ under General).
 omarchy plugin add https://github.com/T-The-Coder/more-gestures.git --enable
 ```
 
-The icon goes into the right section of the bar (move it under General ›
-Menu bar › Position in the bar).
+The icon goes into the right section of the bar. Under General › Menu bar ›
+Position in the bar you move it left, to the middle (beside the clock), right
+or into the tray's drawer (Omarchy 4.5).
 
 **One-time setup.** Until it is done the bar icon is red, a notification says
 so and the settings open on their **Setup** page, which shows what is missing,
