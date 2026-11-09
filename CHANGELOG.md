@@ -2,7 +2,7 @@
 
 All notable changes to More Gestures are documented here.
 
-## Unreleased
+## 1.2.0 — 2026-11-09
 
 - **Open link in background tab:** a new desktop action that middle-clicks
   where the gesture began, so a gesture started on a link opens it in a new
