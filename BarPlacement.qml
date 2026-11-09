@@ -13,9 +13,9 @@ QtObject {
   // is not on the bar. Omarchy 4.5 splits the middle into centerBegin, center (the box
   // around the clock) and centerEnd; all three read as "center".
   property string section: ""
-  // The section as Omarchy names it (one of SECTIONS).
+  // The section as Omarchy names it (one of sections).
   property string rawSection: ""
-  readonly property var SECTIONS: ["left", "centerBegin", "center", "centerEnd", "right", "tray"]
+  readonly property var sections: ["left", "centerBegin", "center", "centerEnd", "right", "tray"]
   // A bar on the left or right screen edge runs top to bottom.
   property bool verticalBar: false
   property bool busy: false
@@ -27,10 +27,10 @@ QtObject {
       var bar = (JSON.parse(String(raw || "")) || {}).bar || {}
       vertical = bar.position === "left" || bar.position === "right"
       var layout = bar.layout || {}
-      for (var s = 0; s < SECTIONS.length && !found; ++s) {
-        var entries = layout[SECTIONS[s]] || []
+      for (var s = 0; s < sections.length && !found; ++s) {
+        var entries = layout[sections[s]] || []
         for (var i = 0; i < entries.length; ++i)
-          if (entries[i] && entries[i].id === widgetId) { found = SECTIONS[s]; break }
+          if (entries[i] && entries[i].id === widgetId) { found = sections[s]; break }
       }
     } catch (e) {
       found = ""
