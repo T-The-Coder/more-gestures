@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Jobbra",
   barPositionTop: "Fent",
   barPositionBottom: "Lent",
+  barPositionTray: "A tálcán",
   page_setup: "Beállítás",
   setupNeeded: "A gesztusokhoz egyszeri beállítás kell.",
   setupOpen: "Beállítás megnyitása",

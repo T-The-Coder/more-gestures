@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Δεξιά",
   barPositionTop: "Πάνω",
   barPositionBottom: "Κάτω",
+  barPositionTray: "Στο δίσκο",
   page_setup: "Ρύθμιση",
   setupNeeded: "Οι χειρονομίες χρειάζονται μια εφάπαξ ρύθμιση.",
   setupOpen: "Άνοιγμα ρύθμισης",

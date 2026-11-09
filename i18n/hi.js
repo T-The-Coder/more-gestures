@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "दाएँ",
   barPositionTop: "ऊपर",
   barPositionBottom: "नीचे",
+  barPositionTray: "ट्रे में",
   page_setup: "सेटअप",
   setupNeeded: "जेस्चर के लिए एक बार का सेटअप चाहिए।",
   setupOpen: "सेटअप खोलें",

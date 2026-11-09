@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "ขวา",
   barPositionTop: "บน",
   barPositionBottom: "ล่าง",
+  barPositionTray: "ในถาด",
   page_setup: "ตั้งค่า",
   setupNeeded: "ท่าทางต้องตั้งค่าครั้งเดียว",
   setupOpen: "เปิดการตั้งค่า",

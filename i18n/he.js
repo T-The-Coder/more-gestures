@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "ימין",
   barPositionTop: "למעלה",
   barPositionBottom: "למטה",
+  barPositionTray: "במגש",
   page_setup: "הגדרה",
   setupNeeded: "המחוות צריכות הגדרה חד-פעמית.",
   setupOpen: "פתיחת ההגדרה",

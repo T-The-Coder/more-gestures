@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Prawo",
   barPositionTop: "Góra",
   barPositionBottom: "Dół",
+  barPositionTray: "W zasobniku",
   page_setup: "Konfiguracja",
   setupNeeded: "Gesty wymagają jednorazowej konfiguracji.",
   setupOpen: "Otwórz konfigurację",

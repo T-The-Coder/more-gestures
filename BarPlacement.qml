@@ -2,15 +2,20 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Where the widget sits (taken over from More Time's TimeBarPlacement.qml) in Omarchy's bar (left, center or right section),
+// Where the widget sits (taken over from More Time's TimeBarPlacement.qml) in Omarchy's bar (left, middle, right or the tray's drawer),
 // switched in the settings. The layout belongs to Omarchy: it is only read
 // here, and a change goes through Omarchy's own `omarchy-bar move`, run when
 // the user picks a section, never on its own.
 QtObject {
   id: placement
   readonly property string widgetId: "more-gestures"
-  // "left" | "center" | "right", or "" when the widget is not on the bar.
+  // What the settings show: "left" | "center" | "right" | "tray", or "" when the widget
+  // is not on the bar. Omarchy 4.5 splits the middle into centerBegin, center (the box
+  // around the clock) and centerEnd; all three read as "center".
   property string section: ""
+  // The section as Omarchy names it (one of SECTIONS).
+  property string rawSection: ""
+  readonly property var SECTIONS: ["left", "centerBegin", "center", "centerEnd", "right", "tray"]
   // A bar on the left or right screen edge runs top to bottom.
   property bool verticalBar: false
   property bool busy: false
@@ -22,24 +27,31 @@ QtObject {
       var bar = (JSON.parse(String(raw || "")) || {}).bar || {}
       vertical = bar.position === "left" || bar.position === "right"
       var layout = bar.layout || {}
-      var sections = ["left", "center", "right"]
-      for (var s = 0; s < sections.length && !found; ++s) {
-        var entries = layout[sections[s]] || []
+      for (var s = 0; s < SECTIONS.length && !found; ++s) {
+        var entries = layout[SECTIONS[s]] || []
         for (var i = 0; i < entries.length; ++i)
-          if (entries[i] && entries[i].id === widgetId) { found = sections[s]; break }
+          if (entries[i] && entries[i].id === widgetId) { found = SECTIONS[s]; break }
       }
     } catch (e) {
       found = ""
     }
-    section = found
+    rawSection = found
+    section = shown(found)
     verticalBar = vertical
   }
 
+  function shown(raw) {
+    return raw === "centerBegin" || raw === "centerEnd" ? "center" : raw
+  }
+
+  // "center" goes beside the clock box (centerEnd), as Omarchy places a manifest's
+  // "center"; inside the box the widget would be centred together with the clock.
   function moveTo(target) {
     if (busy || !section || target === section) return
-    if (["left", "center", "right"].indexOf(target) < 0) return
+    var raw = { left: "left", center: "centerEnd", right: "right", tray: "tray" }[target]
+    if (!raw) return
     busy = true
-    moveProc.command = ["omarchy-bar", "move", widgetId, "--section", target]
+    moveProc.command = ["omarchy-bar", "move", widgetId, "--section", raw]
     moveProc.running = true
   }
 

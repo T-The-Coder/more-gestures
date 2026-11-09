@@ -206,6 +206,7 @@ var catalog = {
   barPositionRight: "Right",
   barPositionTop: "Top",
   barPositionBottom: "Bottom",
+  barPositionTray: "In tray",
   page_setup: "Setup",
   setupNeeded: "Gestures need a one-time setup.",
   setupOpen: "Open setup",

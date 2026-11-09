@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Destra",
   barPositionTop: "In alto",
   barPositionBottom: "In basso",
+  barPositionTray: "Nel vassoio",
   page_setup: "Configurazione",
   setupNeeded: "I gesti richiedono una configurazione una tantum.",
   setupOpen: "Apri configurazione",

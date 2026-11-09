@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Phải",
   barPositionTop: "Trên",
   barPositionBottom: "Dưới",
+  barPositionTray: "Trong khay",
   page_setup: "Thiết lập",
   setupNeeded: "Cử chỉ cần thiết lập một lần.",
   setupOpen: "Mở thiết lập",

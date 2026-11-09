@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Kanan",
   barPositionTop: "Atas",
   barPositionBottom: "Bawah",
+  barPositionTray: "Di baki",
   page_setup: "Penyiapan",
   setupNeeded: "Gestur perlu penyiapan satu kali.",
   setupOpen: "Buka penyiapan",

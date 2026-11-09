@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "يمين",
   barPositionTop: "أعلى",
   barPositionBottom: "أسفل",
+  barPositionTray: "في الدرج",
   page_setup: "الإعداد",
   setupNeeded: "تحتاج الإيماءات إلى إعداد لمرة واحدة.",
   setupOpen: "فتح الإعداد",

@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Справа",
   barPositionTop: "Сверху",
   barPositionBottom: "Снизу",
+  barPositionTray: "В трее",
   page_setup: "Настройка",
   setupNeeded: "Жестам нужна разовая настройка.",
   setupOpen: "Открыть настройку",

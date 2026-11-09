@@ -1090,7 +1090,8 @@ Item {
                   options: [
                     { value: "left", label: root.tr(barPlacement.verticalBar ? "barPositionTop" : "barPositionLeft") },
                     { value: "center", label: root.tr("barPositionCenter") },
-                    { value: "right", label: root.tr(barPlacement.verticalBar ? "barPositionBottom" : "barPositionRight") }
+                    { value: "right", label: root.tr(barPlacement.verticalBar ? "barPositionBottom" : "barPositionRight") },
+                    { value: "tray", label: root.tr("barPositionTray") }
                   ]
                   foreground: root.foreground; accent: root.accent; fontFamily: root.fontFamily
                   onChanged: function(v) { barPlacement.moveTo(v) }

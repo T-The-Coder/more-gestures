@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Derecha",
   barPositionTop: "Arriba",
   barPositionBottom: "Abajo",
+  barPositionTray: "En la bandeja",
   page_setup: "Configuración",
   setupNeeded: "Los gestos necesitan una configuración única.",
   setupOpen: "Abrir configuración",

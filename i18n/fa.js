@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "راست",
   barPositionTop: "بالا",
   barPositionBottom: "پایین",
+  barPositionTray: "در سینی",
   page_setup: "راه‌اندازی",
   setupNeeded: "ژست‌ها به یک راه‌اندازی یک‌باره نیاز دارند.",
   setupOpen: "باز کردن راه‌اندازی",

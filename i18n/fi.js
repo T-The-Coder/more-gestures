@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Oikea",
   barPositionTop: "Ylhäällä",
   barPositionBottom: "Alhaalla",
+  barPositionTray: "Ilmoitusalueella",
   page_setup: "Käyttöönotto",
   setupNeeded: "Eleet vaativat kertaluonteisen käyttöönoton.",
   setupOpen: "Avaa käyttöönotto",

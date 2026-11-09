@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Праворуч",
   barPositionTop: "Угорі",
   barPositionBottom: "Унизу",
+  barPositionTray: "У треї",
   page_setup: "Налаштування",
   setupNeeded: "Жестам потрібне одноразове налаштування.",
   setupOpen: "Відкрити налаштування",

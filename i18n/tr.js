@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Sağ",
   barPositionTop: "Üst",
   barPositionBottom: "Alt",
+  barPositionTray: "Tepside",
   page_setup: "Kurulum",
   setupNeeded: "Hareketler tek seferlik bir kurulum gerektirir.",
   setupOpen: "Kurulumu aç",

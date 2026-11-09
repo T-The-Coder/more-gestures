@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "右",
   barPositionTop: "上",
   barPositionBottom: "下",
+  barPositionTray: "托盘中",
   page_setup: "设置向导",
   setupNeeded: "手势需要一次性设置。",
   setupOpen: "打开设置向导",

@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Høyre",
   barPositionTop: "Øverst",
   barPositionBottom: "Nederst",
+  barPositionTray: "I systemfeltet",
   page_setup: "Oppsett",
   setupNeeded: "Bevegelser trenger et engangsoppsett.",
   setupOpen: "Åpne oppsett",

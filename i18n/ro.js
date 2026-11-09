@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Dreapta",
   barPositionTop: "Sus",
   barPositionBottom: "Jos",
+  barPositionTray: "În tavă",
   page_setup: "Configurare",
   setupNeeded: "Gesturile au nevoie de o configurare unică.",
   setupOpen: "Deschide configurarea",

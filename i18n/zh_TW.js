@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "右",
   barPositionTop: "上",
   barPositionBottom: "下",
+  barPositionTray: "系統匣中",
   page_setup: "設定精靈",
   setupNeeded: "手勢需要一次性設定。",
   setupOpen: "開啟設定精靈",

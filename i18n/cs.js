@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Vpravo",
   barPositionTop: "Nahoře",
   barPositionBottom: "Dole",
+  barPositionTray: "V liště",
   page_setup: "Nastavení",
   setupNeeded: "Gesta potřebují jednorázové nastavení.",
   setupOpen: "Otevřít nastavení",

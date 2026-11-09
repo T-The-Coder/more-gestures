@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Höger",
   barPositionTop: "Överst",
   barPositionBottom: "Nederst",
+  barPositionTray: "I fältet",
   page_setup: "Konfiguration",
   setupNeeded: "Gester behöver en engångskonfiguration.",
   setupOpen: "Öppna konfiguration",

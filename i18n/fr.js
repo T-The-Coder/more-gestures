@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Droite",
   barPositionTop: "Haut",
   barPositionBottom: "Bas",
+  barPositionTray: "Dans la zone",
   page_setup: "Configuration",
   setupNeeded: "Les gestes demandent une configuration unique.",
   setupOpen: "Ouvrir la configuration",

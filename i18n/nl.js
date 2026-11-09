@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "Rechts",
   barPositionTop: "Boven",
   barPositionBottom: "Onder",
+  barPositionTray: "In systeemvak",
   page_setup: "Instellen",
   setupNeeded: "Gebaren hebben een eenmalige instelling nodig.",
   setupOpen: "Instellen openen",

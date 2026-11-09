@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "오른쪽",
   barPositionTop: "위",
   barPositionBottom: "아래",
+  barPositionTray: "트레이에",
   page_setup: "설정",
   setupNeeded: "제스처를 쓰려면 한 번의 설정이 필요합니다.",
   setupOpen: "설정 열기",

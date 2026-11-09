@@ -18,6 +18,11 @@ All notable changes to More Gestures are documented here.
   stay as they are.
 - **The bar icon has square corners again.** Its rounding is under 2 px at
   bar size, which Qt 6.12 draws visibly round.
+- **Omarchy 4.5 bar sections.** The bar now has six sections; the position
+  switch under General › Menu bar finds the icon in all of them (the three
+  middle ones read as Center, where it used to vanish), moves it beside the
+  clock box for Center (centerEnd, as Omarchy places a manifest's center)
+  and offers the tray's new drawer.
 
 ## 1.1.2 — 2026-10-19
 

@@ -205,6 +205,7 @@ var catalog = {
   barPositionRight: "右",
   barPositionTop: "上",
   barPositionBottom: "下",
+  barPositionTray: "トレイ内",
   page_setup: "セットアップ",
   setupNeeded: "ジェスチャーには一度だけのセットアップが必要です。",
   setupOpen: "セットアップを開く",
