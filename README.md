@@ -150,7 +150,7 @@ trail under Mouse › Trail. With animations off every style is a still frame.
 
 ## Screenshots
 
-![A gesture being drawn: ↓→ closes the tab](screenshots/gesture.png)
+![A gesture being drawn: ↓→ opens the link in a background tab](screenshots/gesture.png)
 
 ![Eleven ring styles](screenshots/styles.png)
 

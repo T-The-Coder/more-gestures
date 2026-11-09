@@ -79,8 +79,9 @@ magick "$work/gesture.png" -bordercolor "$line" -border 3 "$work/gesture.png"
 ring_crop comets "$work/hero.png"
 magick "$work/hero.png" -resize 660x -bordercolor "$line" -border 3 "$work/hero.png"
 
-rows=("↓→" "close tab" "↓←" "close window" "↑← ↑→" "workspace left / right" "← →" "back / forward"
-  "↑" "Exposé, then the app launcher" "↓" "wallpaper, then Files" "2× click" "hold: the ring menu")
+rows=("↓→" "open the link in a background tab" "↓→↑" "close tab" "↓←" "close window"
+  "↑← ↑→" "workspace left / right" "← →" "back / forward" "↑" "Exposé, then the app launcher"
+  "2× click" "hold: the ring menu")
 args=()
 y=760
 for ((r = 0; r < ${#rows[@]}; r += 2)); do
@@ -91,7 +92,7 @@ done
 
 magick -size 2400x1350 "xc:$bg" \
   -fill "$accent" -draw "roundrectangle 98,96 420,150 8,8" \
-  -font "$bold" -pointsize 30 -fill "$bg" -annotate +124+134 "VERSION 1.1" \
+  -font "$bold" -pointsize 30 -fill "$bg" -annotate +124+134 "VERSION 1.2" \
   -font "$bold" -pointsize 96 -fill "$accent" -annotate +92+290 "More Gestures" \
   -font "$font" -pointsize 52 -fill "$fg" -annotate +98+400 "Control Omarchy with" \
   -annotate +98+468 "Mouse and Trackpad Gestures" \
